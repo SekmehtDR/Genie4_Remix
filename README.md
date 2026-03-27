@@ -1,3 +1,3 @@
-# Genie_Remix
+# Genie4_Remix
 
 Modified version of the public release of Genie4.
