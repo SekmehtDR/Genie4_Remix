@@ -1,6 +1,6 @@
 # Genie4_Remix
 
-Modified version of the public release of Genie4 (https://github.com/GenieClient/). This is currently an unofficial release, please do not expect the Genie team to support this version.
+Modified version of the public release of Genie4 (https://github.com/GenieClient/). <br>This is currently an unofficial release, please do not expect the Genie team to support this version.</br>
 <br>Latest Version: 4.0.3.0 / Release: 3/29/2026 / Lich Support: Yes!</br>
 <p>This was meant to be a personal tribute edition for Djordje, the eventual goal will be to merge this into Genie's public release of the client, but for now i'm sharing it here.
 
