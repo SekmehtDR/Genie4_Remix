@@ -8,6 +8,7 @@ Lich Support: Yes!
 
 <kbd><a href="screenshots/sekmeht-main.png"><img src="screenshots/sekmeht-main.png" width="350"/></a></kbd>
 
+- Download the latest ZIP file.
 - Extract this folder somewhere on your PC, open the folder and double-click Genie.exe.
 - In this version of Genie, click File > Open Directory
 - Copy over your Config, Maps, Plugins and Scripts folder from your working version of Genie.
