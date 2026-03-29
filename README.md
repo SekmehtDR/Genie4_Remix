@@ -2,7 +2,6 @@
 
 Modified version of the public release of Genie4 (https://github.com/GenieClient/). <br>This is currently an unofficial release, please do not expect the Genie team to support this version. USE AT YOUR OWN RISK!</br>
 <br>Latest Version: 4.0.3.0 / Release: 3/29/2026 / Lich Support: Yes! / Stable? YES!</br>
-<p>This was meant to be a personal tribute edition for Djordje, the eventual goal will be to merge this into Genie's public release of the client, but for now i'm sharing it here.
 
 <kbd><a href="screenshots/sekmeht-main.png"><img src="screenshots/sekmeht-main.png" width="350"/></a></kbd>
 - Download the latest ZIP file.
