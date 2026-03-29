@@ -13,6 +13,11 @@ Lich Support: Yes!
 - Copy over your Config, Maps, Plugins and Scripts folder from your working version of Genie.
 - Close and relaunch this new version of Genie.
 
+Additionally:
+- Ignore any prompts stating there's an update. This is prompting you to update BACK to the public released version of Genie.
+- If you find yourself updating maps frequently, don't forget to copy over your lamp.exe to this new folder!
+- I didn't want to modify these parts of the game client too heavily since they are needed when or if it merges. 
+
 <!-- CHANGELOG -->
 ## Changelog
 
