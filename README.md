@@ -7,7 +7,7 @@ Modified version of the public release of Genie4 (https://github.com/GenieClient
 - Download the latest ZIP file.
 - Extract this folder somewhere on your PC, open the folder and double-click Genie.exe.
 - In this version of Genie, click File > Open Directory
-- Copy over your Config, Maps, Plugins and Scripts folder from your working version of Genie.
+- Copy over your `Config`, `Icons`, `Logs`, `Maps`, `Plugins` and `Scripts` folder from your working version of Genie.
 - Close and relaunch this new version of Genie.
 
 Additionally:
