@@ -11,7 +11,7 @@ Modified version of the public release of Genie4 (https://github.com/GenieClient
 - Close and relaunch this new version of Genie.
 
 Additionally:
-- Ignore any prompts stating there's an update. This is prompting you to update BACK to the public released version of Genie.
+- Ignore any prompts stating `An Update is Available`. This is prompting you to update BACK to the public released version of Genie!
 - If you find yourself updating maps frequently, don't forget to copy over your lamp.exe to your new Genie folder!
 
 <!-- CHANGELOG -->
