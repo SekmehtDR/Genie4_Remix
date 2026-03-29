@@ -1,7 +1,6 @@
 # Genie4_Remix
 
-Modified version of the public release of Genie4 (https://github.com/GenieClient/).
-- The inspiration here was a tribute edition for Djordje, he was a great inspiration and mentor for people to learn programming and to shake off the intimidation factor of making things like Genie plugins...etc. He will be missed.
+Modified version of the public release of Genie4 (https://github.com/GenieClient/). This was meant to be a personal tribute edition for Djordje, the eventual goal will be to merge this into Genie's public release of the client, but for now i'm sharing it here.
 
 - Extract this folder somewhere on your PC, open the folder and double-click Genie.exe.
 - In this version of Genie, click File > Open Directory
