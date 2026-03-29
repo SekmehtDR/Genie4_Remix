@@ -4,6 +4,7 @@ Modified version of the public release of Genie4 (https://github.com/GenieClient
 
 Latest Version: 4.0.3.0
 Release: 3/29/2026
+Lich Support: Yes!
 
 <kbd><a href="screenshots/sekmeht-main.png"><img src="screenshots/sekmeht-main.png" width="350"/></a></kbd>
 
