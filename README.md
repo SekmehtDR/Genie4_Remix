@@ -2,12 +2,12 @@
 
 Modified version of the public release of Genie4 (https://github.com/GenieClient/). This was meant to be a personal tribute edition for Djordje, the eventual goal will be to merge this into Genie's public release of the client, but for now i'm sharing it here.
 
+<kbd><a href="screenshots/sekmeht-main.png"><img src="screenshots/sekmeht-main.png" width="350"/></a></kbd>
+
 - Extract this folder somewhere on your PC, open the folder and double-click Genie.exe.
 - In this version of Genie, click File > Open Directory
 - Copy over your Config, Maps, Plugins and Scripts folder from your working version of Genie.
 - Close and relaunch this new version of Genie.
-
-<kbd><a href="screenshots/sekmeht-main.png"><img src="screenshots/sekmeht-main.png" width="350"/></a></kbd>
 
 <!-- CHANGELOG -->
 ## Changelog
