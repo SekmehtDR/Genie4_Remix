@@ -4,7 +4,7 @@ Modified version of the public release of Genie4 (https://github.com/GenieClient
 <br>`Latest Version: 4.0.3.0` / `Release: 3/29/2026` / `Lich Support: Yes!` / `Stable? YES!`</br>
 
 <kbd><a href="screenshots/sekmeht-main.png"><img src="screenshots/sekmeht-main.png" width="350"/></a></kbd>
-- Download the latest ZIP file.
+- Download the latest (ZIP)[Genie-0403-b1.zip] file.
 - Extract this folder somewhere on your PC, open the folder and double-click Genie.exe.
 - In this version of Genie, click File > Open Directory
 - Copy over your `Config`, `Icons`, `Logs`, `Maps`, `Plugins` and `Scripts` folder from your working version of Genie.
