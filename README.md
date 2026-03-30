@@ -35,6 +35,16 @@ Additionally:
 - **AutoMapper regex cache** — `IsExitSet()` now caches compiled exit regexes in a `Dictionary<string, Regex>` instead of recompiling on every call.
 - **Non-blocking UI text dispatch** — Switched `AddText` from synchronous `Control.Invoke` to `Control.BeginInvoke`. The network thread no longer blocks waiting for each line to render before parsing the next, eliminating the stutter and jerkiness visible during bursts of incoming game text (movement, combat, room descriptions).
 
+#### AutoMapper
+- **Description matching robustness** — Room descriptions are now normalized before comparison (whitespace collapsed, case-insensitive). Minor game text updates no longer cause the mapper to lose position or create duplicate rooms.
+- **Movement queue timeout visibility** — When the movement queue is cleared due to timeout, a message is always shown in the game window so players know the mapper may need a resync. Previously this was silent unless debug mode was enabled.
+- **File handle leak fixed** — `StreamReader` instances in `RoomOnDisk` and `EchoRoomsOnDisk` are now properly disposed after use, preventing file handle exhaustion when scanning large map directories.
+- **`#mapper save` path bug fixed** — Saving a map by filename (e.g. `#mapper save mymap`) now correctly constructs the path. A typo (`==` instead of `\`) was silently producing invalid file paths and losing saves.
+- **Thread safety** — Map UI updates (`UpdateGraph`, `UpdateMap`, `SetNodeList`, `SetDestinationNode`) now marshal to the UI thread via `BeginInvoke`. Previously these were called directly from the game network thread, racing with the paint event and causing phantom position jumps, rendering glitches, and occasional crashes.
+- **`UpdateCurrentRoom` refactor** — The 640-line monolithic room-tracking method was split into 13 focused helper methods (`BuildCurrentNode`, `DequeueMove`, `LocateViaLinkedArc`, `LocateViaBlankMove`, `LocateViaUnlinkedDirection`, etc.). No logic changes — purely structural, making future bug fixes and improvements tractable.
+- **Fuzzy description matching** — When normalized exact match fails, a secondary fuzzy pass strips volatile segments (NPC presence lines, "also here:", "obvious exits:", article/number prefixes) before comparing. Catches cases where Simutronics adds or removes dynamic text without changing the room itself.
+- **Map directory index cache** — `#mapper find` and auto-load no longer open every `.xml` file on disk on each invocation. A lightweight in-memory index is built once on first use and invalidated when a map is loaded, making room searches near-instant on large map collections.
+
 #### Shutdown & Connectivity
 - **Clean exit via X button** — Clicking X while connected now prompts the user and, on confirmation, sends `quit` through the active connection (including Lich proxy) before closing. This gives Lich and all scripts the same clean shutdown signal as typing `quit` in game.
 - **Plugin shutdown ordering** — Plugins receive `ParentClosing()` only when the user confirms close, not on every X click. Prevents plugins (e.g. SpellTimer) from saving/exiting prematurely when the user cancels.
