@@ -26,6 +26,7 @@ Additionally:
 - **MDI background** — Updated to near-black (`#141416`) in dark mode.
 - **Status strip** — Flat style, grip hidden, themed to match active color mode.
 - **Plugins menu** — Removed stray blank separator that appeared when no plugins were loaded.
+- **AutoMapper theme integration** — The AutoMapper window now fully responds to Dark/Light/Custom theme switches. The map panel background, toolbar, status bar, node colors, exit lines, path highlight, and current position indicator all update when the theme changes. Custom mode restores whatever colors were set in `presets.cfg` at startup.
 
 #### Performance
 - **Regex compilation** — Frequently-used highlight and name patterns now use `RegexOptions.Compiled`.
@@ -44,6 +45,10 @@ Additionally:
 - **`UpdateCurrentRoom` refactor** — The 640-line monolithic room-tracking method was split into 13 focused helper methods (`BuildCurrentNode`, `DequeueMove`, `LocateViaLinkedArc`, `LocateViaBlankMove`, `LocateViaUnlinkedDirection`, etc.). No logic changes — purely structural, making future bug fixes and improvements tractable.
 - **Fuzzy description matching** — When normalized exact match fails, a secondary fuzzy pass strips volatile segments (NPC presence lines, "also here:", "obvious exits:", article/number prefixes) before comparing. Catches cases where Simutronics adds or removes dynamic text without changing the room itself.
 - **Map directory index cache** — `#mapper find` and auto-load no longer open every `.xml` file on disk on each invocation. A lightweight in-memory index is built once on first use and invalidated when a map is loaded, making room searches near-instant on large map collections.
+- **AutoMapper toolbar themed** — The mapper's toolbar and status bar now use the same flat `MenuRenderer` as the rest of Genie. Background, foreground, hover, and separator colors all match the active theme.
+- **Path visualization** — When a route is active, path nodes are highlighted with a thick colored border (preserving the node's original fill color, so cyan homes and other custom colors remain visible). The connecting exit lines along the route are also drawn in the path color at increased width, making the full route easy to follow at a glance.
+- **Current position indicator** — The "you are here" node is now rendered with a distinct thick border and inner dot in a dedicated `automapper.here` color (amber in Dark mode, deep red in Light mode), clearly separate from path nodes.
+- **`automapper.here` preset** — New preset key controls the current-room indicator color independently of the path color. Defaults to `Maroon` so it works in Custom/default themes without any config change.
 
 #### Shutdown & Connectivity
 - **Clean exit via X button** — Clicking X while connected now prompts the user and, on confirmation, sends `quit` through the active connection (including Lich proxy) before closing. This gives Lich and all scripts the same clean shutdown signal as typing `quit` in game.
