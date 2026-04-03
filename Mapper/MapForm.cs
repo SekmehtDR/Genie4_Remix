@@ -940,7 +940,7 @@ namespace GenieClient.Mapper
 
             try
             {
-                var xw = new XmlTextWriter(sPath, System.Text.Encoding.Unicode);
+                var xw = new XmlTextWriter(sPath, System.Text.Encoding.UTF8);
                 xw.Formatting = Formatting.Indented;
                 xw.WriteStartDocument();
                 xw.WriteStartElement("zone");
