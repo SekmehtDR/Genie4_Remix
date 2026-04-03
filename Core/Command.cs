@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Collections;
 using System.Collections.Generic;
@@ -907,7 +908,7 @@ namespace GenieClient.Genie
 
                                                         case "edit":
                                                             {
-                                                                Interaction.Shell("\"" + oGlobals.Config.sEditor + "\" \"" + oGlobals.Config.ConfigProfileDir + @"\variables.cfg""", AppWinStyle.NormalFocus, false);
+                                                                Process.Start(oGlobals.Config.sEditor, "\"" + oGlobals.Config.ConfigProfileDir + @"\variables.cfg""");
                                                                 break;
                                                             }
 
@@ -1196,7 +1197,7 @@ namespace GenieClient.Genie
 
                                                         case "edit":
                                                             {
-                                                                Interaction.Shell("\"" + oGlobals.Config.sEditor + "\" \"" + oGlobals.Config.ConfigProfileDir + @"\aliases.cfg""", AppWinStyle.NormalFocus, false);
+                                                                Process.Start(oGlobals.Config.sEditor, "\"" + oGlobals.Config.ConfigProfileDir + @"\aliases.cfg""");
                                                                 break;
                                                             }
 
@@ -1299,7 +1300,7 @@ namespace GenieClient.Genie
 
                                                         case "edit":
                                                             {
-                                                                Interaction.Shell("\"" + oGlobals.Config.sEditor + "\" \"" + oGlobals.Config.ConfigProfileDir + @"\classes.cfg""", AppWinStyle.NormalFocus, false);
+                                                                Process.Start(oGlobals.Config.sEditor, "\"" + oGlobals.Config.ConfigProfileDir + @"\classes.cfg""");
                                                                 break;
                                                             }
 
@@ -1396,7 +1397,7 @@ namespace GenieClient.Genie
 
                                                     case "edit":
                                                         {
-                                                            Interaction.Shell("\"" + oGlobals.Config.sEditor + "\" \"" + oGlobals.Config.ConfigDir + @"\triggers.cfg""", AppWinStyle.NormalFocus, false);
+                                                            Process.Start(oGlobals.Config.sEditor, "\"" + oGlobals.Config.ConfigDir + @"\triggers.cfg""");
                                                             break;
                                                         }
 
@@ -1480,7 +1481,7 @@ namespace GenieClient.Genie
 
                                                     case "edit":
                                                         {
-                                                            Interaction.Shell("\"" + oGlobals.Config.sEditor + "\" \"" + oGlobals.Config.ConfigDir + @"\settings.cfg""", AppWinStyle.NormalFocus, false);
+                                                            Process.Start(oGlobals.Config.sEditor, "\"" + oGlobals.Config.ConfigDir + @"\settings.cfg""");
                                                             break;
                                                         }
 
@@ -1614,7 +1615,7 @@ namespace GenieClient.Genie
 
                                                         case "edit":
                                                             {
-                                                                Interaction.Shell("\"" + oGlobals.Config.sEditor + "\" \"" + oGlobals.Config.ConfigProfileDir + @"\macros.cfg""", AppWinStyle.NormalFocus, false);
+                                                                Process.Start(oGlobals.Config.sEditor, "\"" + oGlobals.Config.ConfigProfileDir + @"\macros.cfg""");
                                                                 break;
                                                             }
 
@@ -1692,7 +1693,7 @@ namespace GenieClient.Genie
 
                                                         case "edit":
                                                             {
-                                                                Interaction.Shell("\"" + oGlobals.Config.sEditor + "\" \"" + oGlobals.Config.ConfigDir + @"\substitutes.cfg""", AppWinStyle.NormalFocus, false);
+                                                                Process.Start(oGlobals.Config.sEditor, "\"" + oGlobals.Config.ConfigDir + @"\substitutes.cfg""");
                                                                 break;
                                                             }
 
@@ -1775,7 +1776,7 @@ namespace GenieClient.Genie
 
                                                     case "edit":
                                                         {
-                                                            Interaction.Shell("\"" + oGlobals.Config.sEditor + "\" \"" + oGlobals.Config.ConfigProfileDir + @"\gags.cfg""", AppWinStyle.NormalFocus, false);
+                                                            Process.Start(oGlobals.Config.sEditor, "\"" + oGlobals.Config.ConfigProfileDir + @"\gags.cfg""");
                                                             break;
                                                         }
 
@@ -1840,7 +1841,7 @@ namespace GenieClient.Genie
 
                                                         case "edit":
                                                             {
-                                                                Interaction.Shell("\"" + oGlobals.Config.sEditor + "\" \"" + oGlobals.Config.ConfigDir + @"\presets.cfg""", AppWinStyle.NormalFocus, false);
+                                                                Process.Start(oGlobals.Config.sEditor, "\"" + oGlobals.Config.ConfigDir + @"\presets.cfg""");
                                                                 break;
                                                             }
 
@@ -1917,7 +1918,7 @@ namespace GenieClient.Genie
 
                                                     case "edit":
                                                         {
-                                                            Interaction.Shell("\"" + oGlobals.Config.sEditor + "\" \"" + oGlobals.Config.ConfigDir + @"\highlights.cfg""", AppWinStyle.NormalFocus, false);
+                                                            Process.Start(oGlobals.Config.sEditor, "\"" + oGlobals.Config.ConfigDir + @"\highlights.cfg""");
                                                             break;
                                                         }
 
@@ -2054,7 +2055,7 @@ namespace GenieClient.Genie
 
                                                         case "edit":
                                                             {
-                                                                Interaction.Shell("\"" + oGlobals.Config.sEditor + "\" \"" + oGlobals.Config.ConfigDir + @"\names.cfg""", AppWinStyle.NormalFocus, false);
+                                                                Process.Start(oGlobals.Config.sEditor, "\"" + oGlobals.Config.ConfigDir + @"\names.cfg""");
                                                                 break;
                                                             }
 
@@ -2111,7 +2112,7 @@ namespace GenieClient.Genie
                                                     }
                                                 }
 
-                                                Interaction.Shell("\"" + oGlobals.Config.sEditor + "\" \"" + sFile + "\"", AppWinStyle.NormalFocus, false);
+                                                Process.Start(oGlobals.Config.sEditor, "\"" + sFile + "\"");
                                             }
 
                                             break;
@@ -2139,7 +2140,7 @@ namespace GenieClient.Genie
                                                         sTemp = LocalDirectory.Path + @"\Help\" + sTemp;
                                                     }
 
-                                                    Interaction.Shell("\"" + oGlobals.Config.sEditor + "\" \"" + sTemp + "\"", AppWinStyle.NormalFocus, false);
+                                                    Process.Start(oGlobals.Config.sEditor, "\"" + sTemp + "\"");
                                                 }
                                                 else
                                                 {
