@@ -2299,7 +2299,7 @@ namespace GenieClient.Mapper
 
         public void SetAllowDuplicatesToggle(bool toggle)
         {
-            ToolStripButtonAllowDuplicates.Checked = !ToolStripButtonAllowDuplicates.Checked;
+            ToolStripButtonAllowDuplicates.Checked = toggle;
             ToggleAllowDuplicates?.Invoke(ToolStripButtonAllowDuplicates.Checked);
         }
 
