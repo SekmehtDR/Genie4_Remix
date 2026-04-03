@@ -55,6 +55,8 @@ namespace GenieClient.Genie
         public string sLogDir = "Logs";
         public string sArtDir = "Art";
         public bool bWebLinkSafety = true;
+        public int iHistorySize = 20;
+        public int iHistoryMinLength = 3;
 
         public bool SizeInputToGame { get; set; } = false;
         public bool UpdateMapperScripts { get; set; } = false;
@@ -405,7 +407,9 @@ namespace GenieClient.Genie
             ImagesEnabled,
             SizeInputToGame,
             AlwaysOnTop,
-            UpdateMapperScripts
+            UpdateMapperScripts,
+            HistorySize,
+            HistoryMinLength
         }
 
         public Font MonoFont
@@ -500,6 +504,9 @@ namespace GenieClient.Genie
                 oStreamWriter.WriteLine("#config {showlinks} {" + bShowLinks + "}");
                 oStreamWriter.WriteLine("#config {showimages} {" + bShowImages + "}");
                 oStreamWriter.WriteLine("#config {weblinksafety} {" + bWebLinkSafety + "}");
+                oStreamWriter.WriteLine("#config {historysize} {" + iHistorySize + "}");
+                oStreamWriter.WriteLine("#config {historyminlength} {" + iHistoryMinLength + "}");
+
                 oStreamWriter.WriteLine($"#config {{rubypath}} {{{RubyPath}}}");
                 oStreamWriter.WriteLine($"#config {{cmdpath}} {{{CmdPath}}}");
                 oStreamWriter.WriteLine($"#config {{lichpath}} {{{LichPath}}}");
@@ -1437,6 +1444,26 @@ namespace GenieClient.Genie
                                         }
                                 }
 
+                                break;
+                            }
+
+                        case "historysize":
+                            {
+                                if (sValue.Length > 0)
+                                {
+                                    iHistorySize = Conversions.ToInteger(sValue);
+                                }
+                                ConfigChanged?.Invoke(ConfigFieldUpdated.HistorySize);
+                                break;
+                            }
+
+                        case "historyminlength":
+                            {
+                                if (sValue.Length > 0)
+                                {
+                                    iHistoryMinLength = Conversions.ToInteger(sValue);
+                                }
+                                ConfigChanged?.Invoke(ConfigFieldUpdated.HistoryMinLength);
                                 break;
                             }
 

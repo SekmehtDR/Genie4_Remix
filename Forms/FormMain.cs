@@ -7244,6 +7244,16 @@ namespace GenieClient
                         alwaysOnTopToolStripMenuItem.Checked = m_oGlobals.Config.AlwaysOnTop;
                         break;
                     }
+                case Genie.Config.ConfigFieldUpdated.HistorySize:
+                    {
+                        TextBoxInput.SetHistorySize(m_oGlobals.Config.iHistorySize);
+                        break;
+                    }
+                case Genie.Config.ConfigFieldUpdated.HistoryMinLength:
+                    {
+                        TextBoxInput.SetHistoryMinLength(m_oGlobals.Config.iHistoryMinLength);
+                        break;
+                    }
             }
         }
 
@@ -8878,6 +8888,11 @@ namespace GenieClient
             Interaction.Shell("explorer.exe " + m_oGlobals.Config.ArtDir, AppWinStyle.NormalFocus, false);
         }
 
+        private void soundsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Interaction.Shell("explorer.exe " + m_oGlobals.Config.SoundDir, AppWinStyle.NormalFocus, false);
+        }
+
         private void toolStripMenuItemClassicConnect_Click(global::System.Object sender, global::System.EventArgs e)
         {
             m_oGlobals.Config.bClassicConnect = ClassicConnectToolStripMenuItem.Checked;
@@ -8959,5 +8974,6 @@ namespace GenieClient
         {
             m_oGlobals.Config.UpdateMapperScripts = updateScriptsWithMapsToolStripMenuItem.Checked;
         }
+
     }
 }
