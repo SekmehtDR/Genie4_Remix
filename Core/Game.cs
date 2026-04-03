@@ -632,7 +632,7 @@ namespace GenieClient.Genie
                                 {
                                     if (!string.IsNullOrWhiteSpace(sBoldBuffer))
                                     {
-                                        sBoldBuffer = ParseSubstitutions(sBoldBuffer);
+                                        if (m_oGlobals.Config.bSubstitutesEnabled) sBoldBuffer = ParseSubstitutions(sBoldBuffer);
                                         m_oGlobals.VolatileHighlights.Add(new VolatileHighlight(sBoldBuffer, "creatures", iBoldIndex));
                                     }
                                 }
@@ -791,7 +791,7 @@ namespace GenieClient.Genie
                 else if (!string.IsNullOrWhiteSpace(sBoldBuffer))
                 {
                     if (sBoldBuffer.EndsWith("\r\n")) sBoldBuffer = sBoldBuffer.Substring(0, sBoldBuffer.Length - "\r\n".Length);
-                    sBoldBuffer = ParseSubstitutions(sBoldBuffer);
+                    if (m_oGlobals.Config.bSubstitutesEnabled) sBoldBuffer = ParseSubstitutions(sBoldBuffer);
                     m_oGlobals.VolatileHighlights.Add(new VolatileHighlight(sBoldBuffer, "creatures", iBoldIndex)); //trim because excessive whitespace seems to be breaking this
                     sBoldBuffer = string.Empty;
                 }
@@ -2791,7 +2791,7 @@ namespace GenieClient.Genie
                 }
 
                 // Line contains
-                if (!Information.IsNothing(m_oGlobals.HighlightList.RegexLine) && !string.IsNullOrWhiteSpace(m_oGlobals.HighlightList.RegexLine.ToString()))
+                if (m_oGlobals.Config.bHighlightsEnabled && !Information.IsNothing(m_oGlobals.HighlightList.RegexLine) && !string.IsNullOrWhiteSpace(m_oGlobals.HighlightList.RegexLine.ToString()))
                 {
                     m_oMatchCollection = m_oGlobals.HighlightList.RegexLine.Matches(sText);
                     Highlights.Highlight oHighlightString;
@@ -2966,7 +2966,7 @@ namespace GenieClient.Genie
                 }
             }
 
-            text = ParseSubstitutions(text);
+            if (m_oGlobals.Config.bSubstitutesEnabled) text = ParseSubstitutions(text);
             if (0 == 1)//(text.Trim().Length > 0)
             {
                 // Substitute Lists Switch this to text = ParseSubstrings(text) so theres only one place subs are processed at

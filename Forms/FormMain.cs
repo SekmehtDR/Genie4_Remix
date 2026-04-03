@@ -7645,6 +7645,16 @@ namespace GenieClient
             m_oGlobals.Config.bGagsEnabled = IgnoresEnabledToolStripMenuItem.Checked;
         }
 
+        private void HighlightsEnabledToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            m_oGlobals.Config.bHighlightsEnabled = HighlightsEnabledToolStripMenuItem.Checked;
+        }
+
+        private void SubstitutesEnabledToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            m_oGlobals.Config.bSubstitutesEnabled = SubstitutesEnabledToolStripMenuItem.Checked;
+        }
+
         private void LoadSettingsOpenToolStripMenuItem_Click(object sender, EventArgs e)
         {
             OpenFileDialogLayout.InitialDirectory = Path.GetDirectoryName(LoadedLayout);

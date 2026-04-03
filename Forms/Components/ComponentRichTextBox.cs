@@ -665,6 +665,7 @@ namespace GenieClient
         }
         private void ParseHighlights()
         {
+            if (!m_oParentForm.Globals.Config.bHighlightsEnabled) return;
             MatchCollection oMatchCollection;
             ParseLineHighlights(m_oRichTextBuffer.SelectionStart, m_oRichTextBuffer.Text);
             // Highlight String

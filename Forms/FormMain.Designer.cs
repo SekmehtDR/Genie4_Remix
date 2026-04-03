@@ -65,6 +65,8 @@ namespace GenieClient
             _AutoReconnectToolStripMenuItem = new ToolStripMenuItem();
             ClassicConnectToolStripMenuItem = new ToolStripMenuItem();
             _IgnoresEnabledToolStripMenuItem = new ToolStripMenuItem();
+            _HighlightsEnabledToolStripMenuItem = new ToolStripMenuItem();
+            _SubstitutesEnabledToolStripMenuItem = new ToolStripMenuItem();
             _ToolStripMenuItemTriggers = new ToolStripMenuItem();
             _PluginsEnabledToolStripMenuItem = new ToolStripMenuItem();
             _AutoMapperEnabledToolStripMenuItem = new ToolStripMenuItem();
@@ -316,7 +318,7 @@ namespace GenieClient
             // 
             // _FileToolStripMenuItem
             // 
-            _FileToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { _ConnectToolStripMenuItem, _ConnectToolStripMenuItemConnectDialog, _ToolStripSeparator7, _OpenUserDataDirectoryToolStripMenuItem, _ToolStripMenuItem4, _AutoLogToolStripMenuItem, _OpenLogInEditorToolStripMenuItem, _ToolStripSeparator13, _AutoReconnectToolStripMenuItem, ClassicConnectToolStripMenuItem, _IgnoresEnabledToolStripMenuItem, _ToolStripMenuItemTriggers, _PluginsEnabledToolStripMenuItem, _AutoMapperEnabledToolStripMenuItem, _ImagesEnabledToolStripMenuItem, _MuteSoundsToolStripMenuItem, _ToolStripSeparator8, _ToolStripMenuItemShowXML, _ToolStripMenuItem1, _ToolStripSeparator1, _ExitToolStripMenuItem });
+            _FileToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { _ConnectToolStripMenuItem, _ConnectToolStripMenuItemConnectDialog, _ToolStripSeparator7, _OpenUserDataDirectoryToolStripMenuItem, _ToolStripMenuItem4, _AutoLogToolStripMenuItem, _OpenLogInEditorToolStripMenuItem, _ToolStripSeparator13, _AutoReconnectToolStripMenuItem, ClassicConnectToolStripMenuItem, _IgnoresEnabledToolStripMenuItem, _HighlightsEnabledToolStripMenuItem, _SubstitutesEnabledToolStripMenuItem, _ToolStripMenuItemTriggers, _PluginsEnabledToolStripMenuItem, _AutoMapperEnabledToolStripMenuItem, _ImagesEnabledToolStripMenuItem, _MuteSoundsToolStripMenuItem, _ToolStripSeparator8, _ToolStripMenuItemShowXML, _ToolStripMenuItem1, _ToolStripSeparator1, _ExitToolStripMenuItem });
             _FileToolStripMenuItem.Name = "_FileToolStripMenuItem";
             _FileToolStripMenuItem.Size = new Size(37, 20);
             _FileToolStripMenuItem.Text = "&File";
@@ -444,9 +446,29 @@ namespace GenieClient
             _IgnoresEnabledToolStripMenuItem.CheckState = CheckState.Checked;
             _IgnoresEnabledToolStripMenuItem.Name = "_IgnoresEnabledToolStripMenuItem";
             _IgnoresEnabledToolStripMenuItem.Size = new Size(205, 22);
-            _IgnoresEnabledToolStripMenuItem.Text = "&Ignores/Gags Enabled";
+            _IgnoresEnabledToolStripMenuItem.Text = "&Gags Enabled";
             _IgnoresEnabledToolStripMenuItem.Click += IgnoresEnabledToolStripMenuItem_Click;
-            // 
+            //
+            // _HighlightsEnabledToolStripMenuItem
+            //
+            _HighlightsEnabledToolStripMenuItem.Checked = true;
+            _HighlightsEnabledToolStripMenuItem.CheckOnClick = true;
+            _HighlightsEnabledToolStripMenuItem.CheckState = CheckState.Checked;
+            _HighlightsEnabledToolStripMenuItem.Name = "_HighlightsEnabledToolStripMenuItem";
+            _HighlightsEnabledToolStripMenuItem.Size = new Size(205, 22);
+            _HighlightsEnabledToolStripMenuItem.Text = "&Highlights Enabled";
+            _HighlightsEnabledToolStripMenuItem.Click += HighlightsEnabledToolStripMenuItem_Click;
+            //
+            // _SubstitutesEnabledToolStripMenuItem
+            //
+            _SubstitutesEnabledToolStripMenuItem.Checked = true;
+            _SubstitutesEnabledToolStripMenuItem.CheckOnClick = true;
+            _SubstitutesEnabledToolStripMenuItem.CheckState = CheckState.Checked;
+            _SubstitutesEnabledToolStripMenuItem.Name = "_SubstitutesEnabledToolStripMenuItem";
+            _SubstitutesEnabledToolStripMenuItem.Size = new Size(205, 22);
+            _SubstitutesEnabledToolStripMenuItem.Text = "&Substitutes Enabled";
+            _SubstitutesEnabledToolStripMenuItem.Click += SubstitutesEnabledToolStripMenuItem_Click;
+            //
             // _ToolStripMenuItemTriggers
             // 
             _ToolStripMenuItemTriggers.Checked = true;
@@ -3522,6 +3544,58 @@ namespace GenieClient
                 if (_IgnoresEnabledToolStripMenuItem != null)
                 {
                     _IgnoresEnabledToolStripMenuItem.Click += IgnoresEnabledToolStripMenuItem_Click;
+                }
+            }
+        }
+
+        private ToolStripMenuItem _HighlightsEnabledToolStripMenuItem;
+
+        internal ToolStripMenuItem HighlightsEnabledToolStripMenuItem
+        {
+            [MethodImpl(MethodImplOptions.Synchronized)]
+            get
+            {
+                return _HighlightsEnabledToolStripMenuItem;
+            }
+
+            [MethodImpl(MethodImplOptions.Synchronized)]
+            set
+            {
+                if (_HighlightsEnabledToolStripMenuItem != null)
+                {
+                    _HighlightsEnabledToolStripMenuItem.Click -= HighlightsEnabledToolStripMenuItem_Click;
+                }
+
+                _HighlightsEnabledToolStripMenuItem = value;
+                if (_HighlightsEnabledToolStripMenuItem != null)
+                {
+                    _HighlightsEnabledToolStripMenuItem.Click += HighlightsEnabledToolStripMenuItem_Click;
+                }
+            }
+        }
+
+        private ToolStripMenuItem _SubstitutesEnabledToolStripMenuItem;
+
+        internal ToolStripMenuItem SubstitutesEnabledToolStripMenuItem
+        {
+            [MethodImpl(MethodImplOptions.Synchronized)]
+            get
+            {
+                return _SubstitutesEnabledToolStripMenuItem;
+            }
+
+            [MethodImpl(MethodImplOptions.Synchronized)]
+            set
+            {
+                if (_SubstitutesEnabledToolStripMenuItem != null)
+                {
+                    _SubstitutesEnabledToolStripMenuItem.Click -= SubstitutesEnabledToolStripMenuItem_Click;
+                }
+
+                _SubstitutesEnabledToolStripMenuItem = value;
+                if (_SubstitutesEnabledToolStripMenuItem != null)
+                {
+                    _SubstitutesEnabledToolStripMenuItem.Click += SubstitutesEnabledToolStripMenuItem_Click;
                 }
             }
         }

@@ -31,6 +31,8 @@ namespace GenieClient.Genie
         public bool bIgnoreScriptWarnings = false;
         public bool bIgnoreCloseAlert = false;
         public bool bGagsEnabled = true;
+        public bool bHighlightsEnabled = true;
+        public bool bSubstitutesEnabled = true;
         public bool bKeepInput = false;
         public bool bPlaySounds = true;
         public bool bAbortDupeScript = true;
