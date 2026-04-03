@@ -91,6 +91,8 @@ namespace GenieClient.Genie
 
         public delegate void EventStreamWindowEventHandler(object sID, object sTitle, object sIfClosed);
 
+        public event Action EventGameDisconnected;
+
         private Connection _m_oSocket;
 
         private Connection m_oSocket
@@ -195,6 +197,7 @@ namespace GenieClient.Genie
         private bool m_bUpdatingRoom = false;
         private bool m_bUpdateRoomOnStreamEnd = false;
         private string m_sRoomTitle = string.Empty;
+        private string m_sRoomUid = string.Empty;
         // private Match m_oRegMatch;
         private Hashtable m_oIndicatorHash = new Hashtable();
         private Hashtable m_oCompassHash = new Hashtable();
@@ -1397,24 +1400,43 @@ namespace GenieClient.Genie
                                     }
 
                                 case "room":
-                                    {
+                                   {
                                         string argstrAttributeName4 = "subtitle";
                                         m_sRoomTitle = GetAttributeData(oXmlNode, argstrAttributeName4);
-                                        if (m_sRoomTitle.StartsWith(" - "))
+                                        m_sRoomUid = "0";
+
+                                        Regex m_RoomNameRegex = new Regex(@"\[(?<roomname>[^\]]+)\](?: \((?<roomuid>\d+)\))?");
+                                        System.Text.RegularExpressions.Match o_Match = m_RoomNameRegex.Match(m_sRoomTitle);
+                                        if (o_Match.Success)
                                         {
-                                            m_sRoomTitle = m_sRoomTitle.Substring(3);
+                                            m_sRoomTitle = o_Match.Groups["roomname"].Value;
+                                            m_sRoomUid = o_Match.Groups["roomuid"].Success ? o_Match.Groups["roomuid"].Value : "0";
+                                        }
+                                        else
+                                        {
+                                            if (m_sRoomTitle.StartsWith(" - "))
+                                            {
+                                                m_sRoomTitle = m_sRoomTitle.Substring(3);
+                                            }
+
+                                            if (m_sRoomTitle.StartsWith("["))
+                                            {
+                                                m_sRoomTitle = m_sRoomTitle.Substring(1, m_sRoomTitle.Length - 2);
+                                            }
+
+                                            m_sRoomTitle = m_sRoomTitle.Trim();
                                         }
 
-                                        if (m_sRoomTitle.StartsWith("["))
-                                        {
-                                            m_sRoomTitle = m_sRoomTitle.Substring(1, m_sRoomTitle.Length - 2);
-                                        }
-
-                                        m_sRoomTitle = m_sRoomTitle.Trim();
-                                        string argkey = "roomname";
-                                        m_oGlobals.VariableList.Add(argkey, m_sRoomTitle, Globals.Variables.VariableType.Reserved);
+                                        string argkey1 = "roomname";
+                                        m_oGlobals.VariableList.Add(argkey1, m_sRoomTitle, Globals.Variables.VariableType.Reserved);
                                         string argsVariable1 = "$roomname";
                                         VariableChanged(argsVariable1);
+
+                                        string argkey2 = "uid";
+                                        m_oGlobals.VariableList.Add(argkey2, m_sRoomUid, Globals.Variables.VariableType.Reserved);
+                                        string argsVariable2 = "$uid";
+                                        VariableChanged(argsVariable2);
+
                                         m_bUpdatingRoom = true;
                                         break;
                                     }
@@ -3059,20 +3081,17 @@ namespace GenieClient.Genie
                         {
                             if (sl.IsActive && !Information.IsNothing(sl.SubstituteRegex))
                             {
-                                if (sl.SubstituteRegex.Match(Utility.Trim(text)).Success)
+                                bool bNewLineStart = text.StartsWith(System.Environment.NewLine);
+                                bool bNewLineEnd = text.EndsWith(System.Environment.NewLine);
+                                string trimmed = Utility.Trim(text);
+                                string replaced = sl.SubstituteRegex.Replace(trimmed, m_oGlobals.ParseGlobalVars(sl.sReplaceBy).ToString());
+                                if (!ReferenceEquals(replaced, trimmed))
                                 {
-                                    bool bNewLineStart = text.StartsWith(System.Environment.NewLine);
-                                    bool bNewLineEnd = text.EndsWith(System.Environment.NewLine);
-                                    text = sl.SubstituteRegex.Replace(Utility.Trim(text), m_oGlobals.ParseGlobalVars(sl.sReplaceBy).ToString());
-                                    if (bNewLineStart == true)
-                                    {
+                                    text = replaced;
+                                    if (bNewLineStart)
                                         text = System.Environment.NewLine + text;
-                                    }
-
-                                    if (bNewLineEnd == true)
-                                    {
+                                    if (bNewLineEnd)
                                         text += System.Environment.NewLine;
-                                    }
                                 }
                             }
                         }
@@ -3214,6 +3233,7 @@ namespace GenieClient.Genie
                 VariableChanged(argsVariable);
                 m_bStatusPromptEnabled = false;
             }
+            EventGameDisconnected?.Invoke();
         }
 
         private void GameSocket_EventExit()
@@ -3328,6 +3348,7 @@ namespace GenieClient.Genie
 
         private void GameSocket_EventConnectionLost()
         {
+            EventGameDisconnected?.Invoke();
             if (m_oGlobals.Config.bReconnect == true & m_bManualDisconnect == false)
             {
                 if (m_iConnectAttempts == 0) // Attempt to connect right away

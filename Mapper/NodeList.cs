@@ -814,7 +814,8 @@ namespace GenieClient.Mapper
                 return false;
             if (comparedesc == true)
             {
-                if (Descriptions.Contains(n.Descriptions) == false)
+                if (Descriptions.Contains(n.Descriptions) == false &&
+                    Descriptions.FuzzyContains(n.Descriptions) == false)
                     return false;
             }
 
@@ -977,13 +978,62 @@ namespace GenieClient.Mapper
 
         public bool Contains(string Value)
         {
+            string normalized = NormalizeDescription(Value);
             foreach (string s in List)
             {
-                if ((Value ?? "") == (s ?? ""))
+                if (normalized == NormalizeDescription(s))
                     return true;
             }
 
             return false;
+        }
+
+        private static string NormalizeDescription(string s)
+        {
+            if (s == null) return string.Empty;
+            // Collapse whitespace and strip punctuation variations so that minor
+            // game text updates (extra spaces, changed punctuation) don't break matching.
+            return System.Text.RegularExpressions.Regex.Replace(s.Trim(), @"\s+", " ").ToLowerInvariant();
+        }
+
+        // Fuzzy match: strips elements Simutronics changes frequently (NPC presence
+        // lines, weather/time-of-day sentences appended to descriptions) before comparing.
+        // Only used as a fallback when normalized exact match fails.
+        public bool FuzzyContains(StringList oList)
+        {
+            foreach (string s in oList)
+            {
+                if (FuzzyContains(s))
+                    return true;
+            }
+            return false;
+        }
+
+        public bool FuzzyContains(string Value)
+        {
+            string fuzzyValue = StripVolatileSegments(NormalizeDescription(Value));
+            if (fuzzyValue.Length == 0) return false;
+            foreach (string s in List)
+            {
+                if (StripVolatileSegments(NormalizeDescription(s)) == fuzzyValue)
+                    return true;
+            }
+            return false;
+        }
+
+        // Strips sentences that Simutronics commonly adds/removes without changing the
+        // room itself: NPC presence lines ("also here:..."), time-of-day weather appended
+        // as trailing sentences, and "obvious exits" lines that sometimes bleed into desc.
+        private static string StripVolatileSegments(string s)
+        {
+            if (s == null) return string.Empty;
+            // Remove "also here:" presence lines
+            s = System.Text.RegularExpressions.Regex.Replace(s, @"\balso here\b.*", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            // Remove "obvious exits:" lines
+            s = System.Text.RegularExpressions.Regex.Replace(s, @"\bobvious exits\b.*", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            // Remove leading/trailing numbers and articles that vary (e.g. "a", "an", "the", digit words at start of sentence)
+            s = System.Text.RegularExpressions.Regex.Replace(s, @"\b(a|an|the|one|two|three|four|five|six|seven|eight|nine|ten)\b\s+", " ", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            return s.Trim();
         }
 
         public override string ToString()

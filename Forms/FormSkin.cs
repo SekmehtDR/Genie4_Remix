@@ -35,20 +35,14 @@ namespace GenieClient
 
         public int TriggerDistance = 5;
         public int SnapDistance = 15;
-        private Bitmap oTopLeft;
-        private Bitmap oTopRight;
-        private Bitmap oTop;
-        private Bitmap oLeft;
-        private Bitmap oRight;
-        private Bitmap oBottom;
-        private Bitmap oBottomLeft;
-        private Bitmap oBottomRight;
+        // Layout constants — controls title bar height and border widths
+        private const int TitleHeight  = 18;
+        private const int BorderWidth  = 1;
+        private const int BorderBottom = 1;
 
         public ToolStripMenuItem WindowMenuItem = null;
 
-        // int windowCloseX, windowCloseY, windowCloseWidth, windowCloseHeight; 
-
-        private Font oTitleFont = new Font("Microsoft Sans Serif", 8.25F, FontStyle.Regular, GraphicsUnit.Point, Conversions.ToByte(0));
+        private Font oTitleFont = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
         private DragType oDragType;
 
         private enum DragType
@@ -66,15 +60,7 @@ namespace GenieClient
 
         public void LoadSkin()
         {
-            oTopLeft = GetResourceBitmap("GenieClient.Resources.skin_topleft.bmp");
-            oTopRight = GetResourceBitmap("GenieClient.Resources.skin_topright.bmp");
-            oTop = GetResourceBitmap("GenieClient.Resources.skin_top.bmp");
-            oLeft = GetResourceBitmap("GenieClient.Resources.skin_left.bmp");
-            oRight = GetResourceBitmap("GenieClient.Resources.skin_right.bmp");
-            oBottom = GetResourceBitmap("GenieClient.Resources.skin_bottom.bmp");
-            oBottomLeft = GetResourceBitmap("GenieClient.Resources.skin_bottomleft.bmp");
-            oBottomRight = GetResourceBitmap("GenieClient.Resources.skin_bottomright.bmp");
-            Padding = new Padding(oLeft.Width, oTop.Height, oRight.Width, oBottom.Height);
+            Padding = new Padding(BorderWidth, TitleHeight, BorderWidth, BorderBottom);
         }
 
         private string _IfClosed = string.Empty;
@@ -149,13 +135,6 @@ namespace GenieClient
             Text = sTitle;
         }
 
-        private Bitmap GetResourceBitmap(string sRef)
-        {
-            var ResStream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream(sRef);
-            var resourceName = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceNames();
-            //Console.Write(resourceName);
-            return (Bitmap)Image.FromStream(ResStream);
-        }
 
         protected override void WndProc(ref Message m)
         {
@@ -246,7 +225,7 @@ namespace GenieClient
                                         // Snap to other windows
                                         if ((Name ?? "") != (withBlock.MdiChildren[i].Name ?? ""))
                                         {
-                                            if (bSnappedX == false & pos.x + pos.cx + SnapDistance > withBlock.MdiChildren[i].Left)
+                                            if (bSnappedX == false && pos.x + pos.cx + SnapDistance > withBlock.MdiChildren[i].Left)
                                             {
                                                 if (pos.x + pos.cx - SnapDistance < withBlock.MdiChildren[i].Left)
                                                 {
@@ -263,7 +242,7 @@ namespace GenieClient
                                                 }
                                             }
 
-                                            if (bSnappedX == false & pos.x + SnapDistance > withBlock.MdiChildren[i].Left + withBlock.MdiChildren[i].Width)
+                                            if (bSnappedX == false && pos.x + SnapDistance > withBlock.MdiChildren[i].Left + withBlock.MdiChildren[i].Width)
                                             {
                                                 if (pos.x - SnapDistance < withBlock.MdiChildren[i].Left + withBlock.MdiChildren[i].Width)
                                                 {
@@ -282,7 +261,7 @@ namespace GenieClient
                                                 }
                                             }
 
-                                            if (bSnappedY == false & pos.y + pos.cy + SnapDistance > withBlock.MdiChildren[i].Top)
+                                            if (bSnappedY == false && pos.y + pos.cy + SnapDistance > withBlock.MdiChildren[i].Top)
                                             {
                                                 if (pos.y + pos.cy - SnapDistance < withBlock.MdiChildren[i].Top)
                                                 {
@@ -299,7 +278,7 @@ namespace GenieClient
                                                 }
                                             }
 
-                                            if (bSnappedY == false & pos.y + SnapDistance > withBlock.MdiChildren[i].Top + withBlock.MdiChildren[i].Height)
+                                            if (bSnappedY == false && pos.y + SnapDistance > withBlock.MdiChildren[i].Top + withBlock.MdiChildren[i].Height)
                                             {
                                                 if (pos.y - SnapDistance < withBlock.MdiChildren[i].Top + withBlock.MdiChildren[i].Height)
                                                 {
@@ -343,26 +322,9 @@ namespace GenieClient
 
         private void SetRegion()
         {
-            if (Information.IsNothing(oTopLeft))
-                return;
-
-            // Make topleft and topright transparent 
-            var oRegion = new Region();
-            var oRegtionTemp = new Region();
-            oRegion.MakeEmpty();
-            oRegtionTemp.MakeEmpty();
-            oRegion.Union(GetRegion(oTopLeft, Color.Magenta));
-            var rc = new Rectangle(oTopLeft.Width, 0, Width - oTopLeft.Width - oTopRight.Width, oTopLeft.Height);
-            oRegion.Union(rc);
-            oRegtionTemp = GetRegion(oTopRight, Color.Magenta);
-            oRegtionTemp.Translate(Width - oTopRight.Width, 0);
-            oRegion.Union(oRegtionTemp);
-            rc = new Rectangle(0, oTopLeft.Height, Width, Height - oTopLeft.Height);
-            oRegion.Union(rc);
-            Region = oRegion;
+            Region = null; // No clipping — flat rectangular windows
             Invalidate();
             RichTextBoxOutput.Invalidate();
-
         }
 
         private void GetMinMaxInfoHelper(Message m)
@@ -396,54 +358,63 @@ namespace GenieClient
             }
         }
 
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            DarkModeManager.ApplyToWindow(Handle);
+        }
+
         private void FormSkin_Load(object sender, EventArgs e)
         {
         }
 
+        // Sleek title bar — colours are swapped by SetTheme() on mode change
+        private static Color TitleBarColor    = Color.FromArgb(40, 40, 42);
+        private static Color TitleAccentColor = Color.FromArgb(70, 70, 75);
+        private static Color TitleTextColor   = Color.FromArgb(210, 210, 215);
+
+        public static void SetTheme(bool dark)
+        {
+            if (dark)
+            {
+                TitleBarColor    = Color.FromArgb(40, 40, 42);
+                TitleAccentColor = Color.FromArgb(70, 70, 75);
+                TitleTextColor   = Color.FromArgb(210, 210, 215);
+            }
+            else
+            {
+                TitleBarColor    = Color.FromArgb(230, 230, 235);
+                TitleAccentColor = Color.FromArgb(175, 175, 180);
+                TitleTextColor   = Color.FromArgb(40, 40, 42);
+            }
+        }
+
         private void FormSkin_Paint(object sender, PaintEventArgs e)
         {
-            if (Information.IsNothing(oTopLeft))
-                return;
-            int j;
-            int i;
-            e.Graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
-            e.Graphics.DrawImage(oTopLeft, 0, 0, oTopLeft.Width, oTopLeft.Height);
-            j = Width - oTopRight.Width + 100;
-            i = oTopLeft.Width;
-            while (i < j)
-            {
-                e.Graphics.DrawImage(oTop, i, 0, oTop.Width, oTop.Height);
-                i += oTop.Width;
-            }
+            int titleHeight  = TitleHeight;
+            int borderLeft   = BorderWidth;
+            int borderRight  = BorderWidth;
+            int borderBottom = BorderBottom;
 
-            e.Graphics.DrawImage(oTopRight, Width - oTopRight.Width, 0, oTopRight.Width, oTopRight.Height);
-            j = Height - oBottomLeft.Height + 100;
-            i = oTopLeft.Height;
-            while (i < j)
-            {
-                e.Graphics.DrawImage(oLeft, 0, i, oLeft.Width, oLeft.Height);
-                i += oLeft.Height;
-            }
+            e.Graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
 
-            e.Graphics.DrawImage(oBottomLeft, 0, Height - oBottomLeft.Height, oBottomLeft.Width, oBottomLeft.Height);
-            j = Width - oTopRight.Width + 100;
-            i = oBottomLeft.Width;
-            while (i < j)
-            {
-                e.Graphics.DrawImage(oBottom, i, Height - oBottom.Height, oBottom.Width, oBottom.Height);
-                i += oBottom.Width;
-            }
+            using var titleBrush  = new SolidBrush(TitleBarColor);
+            using var accentBrush = new SolidBrush(TitleAccentColor);
 
-            j = Height - oBottomLeft.Height + 100;
-            i = oTopRight.Height;
-            while (i < j)
-            {
-                e.Graphics.DrawImage(oRight, Width - oRight.Width, i, oRight.Width, oRight.Height);
-                i += oRight.Height;
-            }
+            // Title bar
+            e.Graphics.FillRectangle(titleBrush, 0, 0, Width, titleHeight);
+            // 1px accent line at the bottom of the title bar
+            e.Graphics.FillRectangle(accentBrush, 0, titleHeight - 1, Width, 1);
+            // Side and bottom borders (visible separator between adjacent windows)
+            e.Graphics.FillRectangle(titleBrush, 0, titleHeight, borderLeft, Height - titleHeight - borderBottom);
+            e.Graphics.FillRectangle(titleBrush, Width - borderRight, titleHeight, borderRight, Height - titleHeight - borderBottom);
+            e.Graphics.FillRectangle(accentBrush, 0, Height - borderBottom, Width, borderBottom);
 
-            e.Graphics.DrawImage(oBottomRight, Width - oBottomRight.Width, Height - oBottomRight.Height, oBottomRight.Width, oBottomRight.Height);
-            e.Graphics.DrawString(Text, oTitleFont, new SolidBrush(Color.White), 5, 2);
+            // Title text — vertically centered in the title bar
+            using var textBrush = new SolidBrush(TitleTextColor);
+            float textY = (titleHeight - oTitleFont.GetHeight(e.Graphics)) / 2f;
+            e.Graphics.DrawString(Text, oTitleFont, textBrush, 5, textY);
+
             if (bIsBitsSet == false)
             {
                 SetStyle(ControlStyles.DoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.Opaque, true);
@@ -462,45 +433,6 @@ namespace GenieClient
             }
         }
 
-        private Region GetRegion(Bitmap _img, Color clr)
-        {
-            var _matchColor = Color.FromArgb(clr.R, clr.G, clr.B);
-            var rgn = new Region();
-            rgn.MakeEmpty();
-            var rc = new Rectangle(0, 0, 0, 0);
-            bool inimage = false;
-            for (int y = 0, loopTo = _img.Height - 1; y <= loopTo; y++)
-            {
-                for (int x = 0, loopTo1 = _img.Width - 1; x <= loopTo1; x++)
-                {
-                    if (!inimage)
-                    {
-                        if (_img.GetPixel(x, y) != _matchColor)
-                        {
-                            inimage = true;
-                            rc.X = x;
-                            rc.Y = y;
-                            rc.Height = 1;
-                        }
-                    }
-                    else if (_img.GetPixel(x, y) == _matchColor)
-                    {
-                        inimage = false;
-                        rc.Width = x - rc.X;
-                        rgn.Union(rc);
-                    }
-                }
-
-                if (inimage)
-                {
-                    inimage = false;
-                    rc.Width = _img.Width - rc.X;
-                    rgn.Union(rc);
-                }
-            }
-
-            return rgn;
-        }
 
         private void FormSkin_MouseMove(object sender, MouseEventArgs e)
         {

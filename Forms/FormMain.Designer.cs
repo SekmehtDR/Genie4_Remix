@@ -196,7 +196,7 @@ namespace GenieClient
             _Castbar.BorderColorRT = Color.White;
             _Castbar.ForegroundColor = Color.Magenta;
             _Castbar.IsConnected = false;
-            _Castbar.Location = new Point(1172, 7);
+            _Castbar.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             _Castbar.Margin = new Padding(5);
             _Castbar.Name = "_Castbar";
             _Castbar.Size = new Size(117, 30);
@@ -204,8 +204,8 @@ namespace GenieClient
             // 
             // _StatusStripMain
             // 
-            _StatusStripMain.BackColor = SystemColors.Control;
-            _StatusStripMain.GripStyle = ToolStripGripStyle.Visible;
+            _StatusStripMain.BackColor = Color.FromArgb(30, 30, 32);
+            _StatusStripMain.GripStyle = ToolStripGripStyle.Hidden;
             _StatusStripMain.Items.AddRange(new ToolStripItem[] { _ToolStripStatusLabel1, _ToolStripStatusLabel2, _ToolStripStatusLabel3, _ToolStripStatusLabel4, _ToolStripStatusLabel5, _ToolStripStatusLabel6, _ToolStripStatusLabel7, _ToolStripStatusLabel8, _ToolStripStatusLabel9, _ToolStripStatusLabel10 });
             _StatusStripMain.Location = new Point(0, 744);
             _StatusStripMain.Name = "_StatusStripMain";
@@ -216,7 +216,7 @@ namespace GenieClient
             // _ToolStripStatusLabel1
             // 
             _ToolStripStatusLabel1.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel1.BorderStyle = Border3DStyle.SunkenOuter;
+            _ToolStripStatusLabel1.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel1.Name = "_ToolStripStatusLabel1";
             _ToolStripStatusLabel1.Size = new Size(1432, 19);
             _ToolStripStatusLabel1.Spring = true;
@@ -226,7 +226,7 @@ namespace GenieClient
             // _ToolStripStatusLabel2
             // 
             _ToolStripStatusLabel2.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel2.BorderStyle = Border3DStyle.SunkenOuter;
+            _ToolStripStatusLabel2.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel2.Name = "_ToolStripStatusLabel2";
             _ToolStripStatusLabel2.Size = new Size(4, 19);
             _ToolStripStatusLabel2.TextAlign = ContentAlignment.MiddleLeft;
@@ -235,7 +235,7 @@ namespace GenieClient
             // _ToolStripStatusLabel3
             // 
             _ToolStripStatusLabel3.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel3.BorderStyle = Border3DStyle.SunkenOuter;
+            _ToolStripStatusLabel3.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel3.Name = "_ToolStripStatusLabel3";
             _ToolStripStatusLabel3.Size = new Size(4, 19);
             _ToolStripStatusLabel3.TextAlign = ContentAlignment.MiddleLeft;
@@ -244,7 +244,7 @@ namespace GenieClient
             // _ToolStripStatusLabel4
             // 
             _ToolStripStatusLabel4.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel4.BorderStyle = Border3DStyle.SunkenOuter;
+            _ToolStripStatusLabel4.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel4.Name = "_ToolStripStatusLabel4";
             _ToolStripStatusLabel4.Size = new Size(4, 19);
             _ToolStripStatusLabel4.TextAlign = ContentAlignment.MiddleLeft;
@@ -253,7 +253,7 @@ namespace GenieClient
             // _ToolStripStatusLabel5
             // 
             _ToolStripStatusLabel5.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel5.BorderStyle = Border3DStyle.SunkenOuter;
+            _ToolStripStatusLabel5.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel5.Name = "_ToolStripStatusLabel5";
             _ToolStripStatusLabel5.Size = new Size(4, 19);
             _ToolStripStatusLabel5.TextAlign = ContentAlignment.MiddleLeft;
@@ -262,7 +262,7 @@ namespace GenieClient
             // _ToolStripStatusLabel6
             // 
             _ToolStripStatusLabel6.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel6.BorderStyle = Border3DStyle.SunkenOuter;
+            _ToolStripStatusLabel6.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel6.Name = "_ToolStripStatusLabel6";
             _ToolStripStatusLabel6.Size = new Size(4, 19);
             _ToolStripStatusLabel6.TextAlign = ContentAlignment.MiddleLeft;
@@ -271,7 +271,7 @@ namespace GenieClient
             // _ToolStripStatusLabel7
             // 
             _ToolStripStatusLabel7.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel7.BorderStyle = Border3DStyle.SunkenOuter;
+            _ToolStripStatusLabel7.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel7.Name = "_ToolStripStatusLabel7";
             _ToolStripStatusLabel7.Size = new Size(4, 19);
             _ToolStripStatusLabel7.TextAlign = ContentAlignment.MiddleLeft;
@@ -280,7 +280,7 @@ namespace GenieClient
             // _ToolStripStatusLabel8
             // 
             _ToolStripStatusLabel8.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel8.BorderStyle = Border3DStyle.SunkenOuter;
+            _ToolStripStatusLabel8.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel8.Name = "_ToolStripStatusLabel8";
             _ToolStripStatusLabel8.Size = new Size(4, 19);
             _ToolStripStatusLabel8.TextAlign = ContentAlignment.MiddleLeft;
@@ -289,7 +289,7 @@ namespace GenieClient
             // _ToolStripStatusLabel9
             // 
             _ToolStripStatusLabel9.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel9.BorderStyle = Border3DStyle.SunkenOuter;
+            _ToolStripStatusLabel9.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel9.Name = "_ToolStripStatusLabel9";
             _ToolStripStatusLabel9.Size = new Size(4, 19);
             _ToolStripStatusLabel9.TextAlign = ContentAlignment.MiddleLeft;
@@ -298,7 +298,7 @@ namespace GenieClient
             // _ToolStripStatusLabel10
             // 
             _ToolStripStatusLabel10.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel10.BorderStyle = Border3DStyle.SunkenOuter;
+            _ToolStripStatusLabel10.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel10.Name = "_ToolStripStatusLabel10";
             _ToolStripStatusLabel10.Size = new Size(4, 19);
             _ToolStripStatusLabel10.TextAlign = ContentAlignment.MiddleLeft;
@@ -1241,7 +1241,6 @@ namespace GenieClient
             // _PanelStatus
             // 
             _PanelStatus.BackColor = Color.Black;
-            _PanelStatus.Controls.Add(_Castbar);
             _PanelStatus.Controls.Add(_TableLayoutPanelFlow);
             _PanelStatus.Dock = DockStyle.Bottom;
             _PanelStatus.Location = new Point(0, 658);
@@ -1254,7 +1253,7 @@ namespace GenieClient
             // _TableLayoutPanelFlow
             // 
             _TableLayoutPanelFlow.BackColor = Color.Transparent;
-            _TableLayoutPanelFlow.ColumnCount = 7;
+            _TableLayoutPanelFlow.ColumnCount = 8;
             _TableLayoutPanelFlow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 408F));
             _TableLayoutPanelFlow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 12F));
             _TableLayoutPanelFlow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33334F));
@@ -1262,6 +1261,7 @@ namespace GenieClient
             _TableLayoutPanelFlow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33333F));
             _TableLayoutPanelFlow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 12F));
             _TableLayoutPanelFlow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33333F));
+            _TableLayoutPanelFlow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 127F));
             _TableLayoutPanelFlow.Controls.Add(_LabelSpellC, 6, 0);
             _TableLayoutPanelFlow.Controls.Add(_PanelFixed, 0, 0);
             _TableLayoutPanelFlow.Controls.Add(_LabelSpell, 5, 0);
@@ -1269,15 +1269,15 @@ namespace GenieClient
             _TableLayoutPanelFlow.Controls.Add(_LabelLH, 1, 0);
             _TableLayoutPanelFlow.Controls.Add(_LabelLHC, 2, 0);
             _TableLayoutPanelFlow.Controls.Add(_LabelRH, 3, 0);
+            _TableLayoutPanelFlow.Controls.Add(_Castbar, 7, 0);
             _TableLayoutPanelFlow.Dock = DockStyle.Fill;
             _TableLayoutPanelFlow.Location = new Point(0, 0);
             _TableLayoutPanelFlow.Margin = new Padding(0);
-            _TableLayoutPanelFlow.MaximumSize = new Size(1167, 115);
             _TableLayoutPanelFlow.Name = "_TableLayoutPanelFlow";
             _TableLayoutPanelFlow.RowCount = 1;
             _TableLayoutPanelFlow.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             _TableLayoutPanelFlow.RowStyles.Add(new RowStyle(SizeType.Absolute, 20F));
-            _TableLayoutPanelFlow.Size = new Size(1167, 43);
+            _TableLayoutPanelFlow.Size = new Size(1449, 43);
             _TableLayoutPanelFlow.TabIndex = 0;
             // 
             // _PanelFixed
@@ -1420,7 +1420,7 @@ namespace GenieClient
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            BackColor = SystemColors.ControlDarkDark;
+            BackColor = Color.FromArgb(20, 20, 22);
             ClientSize = new Size(1449, 768);
             Controls.Add(_PanelStatus);
             Controls.Add(_PanelInput);

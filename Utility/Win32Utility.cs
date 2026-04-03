@@ -5,6 +5,9 @@ namespace GenieClient
 {
     public class Win32Utility
     {
+        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
+        public static extern int SetWindowTheme(IntPtr hwnd, string pszSubAppName, string pszSubIdList);
+
         [DllImport("user32")]
         private static extern int GetTopWindow(int hwnd);
         [DllImport("user32", EntryPoint = "GetWindow")]

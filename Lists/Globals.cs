@@ -506,6 +506,7 @@ namespace GenieClient.Genie
                 Add("automapper.linego", "Blue, White");
                 Add("automapper.node", "White, White");
                 Add("automapper.path", "Green, LightGreen");
+                Add("automapper.here", "Maroon, Maroon");
                 Add("castbar", "Magenta");
                 Add("concentration", "Navy");
                 Add("creatures", "Cyan");
@@ -522,9 +523,9 @@ namespace GenieClient.Genie
                 Add("spirit", "Purple");
                 Add("stamina", "Green");
                 Add("thoughts", "Cyan");
-                Add("ui.menu", "Black, #EEEEEE");
-                Add("ui.menu.checked", "LightBlue");
-                Add("ui.menu.highlight", "LightBlue");
+                Add("ui.menu", "#1C1C1E, #E8E8EA");
+                Add("ui.menu.checked", "#4A4A52");
+                Add("ui.menu.highlight", "#3A3A3E");
                 Add("ui.window", "Black, #EEEEEE");
                 Add("ui.status", "Black, #EEEEEE");
                 Add("ui.textbox", "Black, White");

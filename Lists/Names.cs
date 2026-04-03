@@ -94,23 +94,21 @@ namespace GenieClient.Genie
             foreach (string s in base.Keys)
                 al.Add(s);
             al.Sort();
-            string sList = string.Empty;
+            var sb = new System.Text.StringBuilder();
             foreach (string s in al)
             {
-                if (sList.Length > 0)
-                {
-                    sList += "|";
-                }
-
-                sList += s;
+                if (sb.Length > 0)
+                    sb.Append('|');
+                sb.Append(s);
             }
 
-            if (sList.Length > 0)
+            if (sb.Length > 0)
             {
-                sList = @"\b(" + sList + @")\b";
+                sb.Insert(0, @"\b(");
+                sb.Append(@")\b");
             }
 
-            m_oRegexNames = new Regex(sList, MyRegexOptions.options);
+            m_oRegexNames = new Regex(sb.ToString(), MyRegexOptions.options | RegexOptions.Compiled);
         }
 
         public bool Load(string sFileName = "names.cfg")

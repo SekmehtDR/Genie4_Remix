@@ -11,12 +11,11 @@ namespace GenieClient
 
         public static void CheckUserDirectory()
         {
-            string dir = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config");
-            if (!System.IO.Directory.Exists(dir))
-            {
-                // No local settings, change to user data directory
-                SetUserDataDirectory();
-            }
+            // Always run in portable mode — data lives next to the exe.
+            // If the Config folder doesn't exist yet, CreateGenieFolders() will
+            // build the full directory structure on this startup.
+            // Users migrating from AppData can copy their Genie4 AppData folder
+            // contents into the application directory manually.
         }
 
         public static void SetUserDataDirectory()

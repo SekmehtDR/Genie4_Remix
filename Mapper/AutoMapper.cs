@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -40,6 +41,8 @@ namespace GenieClient.Mapper
         public event EventVariableChangedEventHandler EventVariableChanged;
 
         public delegate void EventVariableChangedEventHandler(string sVariable);
+
+        private readonly Dictionary<string, Regex> _exitRegexCache = new Dictionary<string, Regex>();
 
         private MapForm _m_Form;
 
@@ -240,117 +243,51 @@ namespace GenieClient.Mapper
 
         private string RoomOnDisk(Node oNode)
         {
-            try
-            {
-                var xdoc = new XmlDocument();
-                XmlNodeList xnlist;
-                var diDirectory = new DirectoryInfo(m_oGlobals.Config.MapDir);
-                foreach (FileInfo dif in diDirectory.GetFiles())
-                {
-                    try
-                    {
-                        if ((dif.Extension.ToLower() ?? "") == ".xml")
-                    {
-                        xdoc = new XmlDocument();
-                        
-                        xdoc.Load(new StreamReader(dif.FullName,true));
-                        xnlist = xdoc.SelectNodes("zone/node");
-                        foreach (XmlNode xn in xnlist)
-                        {
-                            // Don't match linked node rooms as they are duplicates.
-                            if (!GetValue(xn, "note").Contains(".xml"))
-                            {
-                                if ((oNode.Name ?? "") == (GetValue(xn, "name") ?? ""))
-                                {
-                                    bool bDescMatch = false;
-                                    var xDescs = xn.SelectNodes("description");
-                                    foreach (XmlNode xdesc in xDescs)
-                                    {
-                                        if (!Information.IsNothing(xdesc))
-                                        {
-                                            if ((oNode.Descriptions[0] ?? "") == (xdesc.InnerText ?? ""))
-                                            {
-                                                bDescMatch = true;
-                                            }
-                                        }
-                                    }
+            if (oNode.Descriptions.Count == 0) return string.Empty;
+            string searchName = oNode.Name ?? "";
+            string searchDesc = oNode.Descriptions[0] ?? "";
 
-                                    if (bDescMatch == true)
-                                    {
-                                        // Check exits here in a later version
-                                        return dif.FullName;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    }
-                    catch (Exception ex)
-                    {
-                        EchoText("[" + Name + "] Invalid maps in genie map directory: " + Path.GetFileName(dif.FullName) + " {" + ex.Message + "}");
-                    }
+            foreach (var entry in GetMapIndex())
+            {
+                if (entry.IsLinkedFile) continue;
+                if (entry.Name != searchName) continue;
+                foreach (string d in entry.Descriptions)
+                {
+                    if (d == searchDesc)
+                        return entry.FilePath;
                 }
             }
-            catch
-            {
-                //EchoText("[" + Name + "] Invalid maps in genie map directory:");
-            }
-
             return string.Empty;
         }
 
         private void EchoRoomsOnDisk(Node oNode)
         {
-            var xdoc = new XmlDocument();
-            XmlNodeList xnlist;
-            var diDirectory = new DirectoryInfo(m_oGlobals.Config.MapDir);
+            string searchName = oNode.Name ?? "";
             bool bMatch = false;
-            foreach (FileInfo dif in diDirectory.GetFiles())
-            {
-                if ((dif.Extension.ToLower() ?? "") == ".xml")
-                {
-                    xdoc = new XmlDocument();
-                    xdoc.Load(new StreamReader(dif.FullName, true));
-                    xnlist = xdoc.SelectNodes("zone/node");
-                    foreach (XmlNode xn in xnlist)
-                    {
-                        if ((oNode.Name ?? "") == (GetValue(xn, "name") ?? ""))
-                        {
-                            bool bDescMatch = false;
-                            if (oNode.Descriptions.Count > 0)
-                            {
-                                var xDescs = xn.SelectNodes("description");
-                                foreach (XmlNode xdesc in xDescs)
-                                {
-                                    if (!Information.IsNothing(xdesc))
-                                    {
-                                        if ((oNode.Descriptions[0] ?? "") == (xdesc.InnerText ?? ""))
-                                        {
-                                            bDescMatch = true;
-                                        }
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                bDescMatch = true;
-                            } // No desc on node to match to. Assume match.
 
-                            if (bDescMatch == true)
-                            {
-                                // Check exits here in a later version
-                                bMatch = true;
-                                this.EchoText("[" + Name + "] Found room #" + GetValue(xn, "id") + " on map: " + dif.FullName, true);
-                            }
-                        }
+            foreach (var entry in GetMapIndex())
+            {
+                if (entry.Name != searchName) continue;
+
+                bool bDescMatch = oNode.Descriptions.Count == 0; // no desc = assume match
+                if (!bDescMatch && oNode.Descriptions.Count > 0)
+                {
+                    string searchDesc = oNode.Descriptions[0] ?? "";
+                    foreach (string d in entry.Descriptions)
+                    {
+                        if (d == searchDesc) { bDescMatch = true; break; }
                     }
+                }
+
+                if (bDescMatch)
+                {
+                    bMatch = true;
+                    EchoText("[" + Name + "] Found room #" + entry.NodeId + " on map: " + entry.FilePath, true);
                 }
             }
 
-            if (bMatch == false)
-            {
+            if (!bMatch)
                 EchoText("[" + Name + "] No matches.", true);
-            }
         }
 
         private void UpdateCurrentRoom(bool bMapChanged = false)
@@ -361,84 +298,60 @@ namespace GenieClient.Mapper
                 m_Form.SetNodeList(m_Nodes);
             m_RoomUpdated = false;
 
-            // -----------------------------------------------------
-            // Set up a new oNode
-            // -----------------------------------------------------
+            var oNode = BuildCurrentNode();
+            string sMove = DequeueMove(oNode);
+            var oDirMove = DirectionFromName(sMove);
+            var oDirReverseMove = Arc.ReverseDirection(oDirMove);
+            if (m_DebugEnabled)
+                EchoText("[" + Name + "] Move = " + sMove);
 
+            SetNewNodePosition(oNode, oDirMove);
+
+            int iFindCount = m_Nodes.FindCount(oNode);
+            if (m_DebugEnabled)
+                EchoText("[" + Name + "] Find count = " + iFindCount.ToString());
+
+            if (TryLoadMapFromDisk(oNode, iFindCount, bMapChanged))
+                return;
+
+            Node result;
+            if (!Information.IsNothing(m_LastNode))
+                result = LocateNodeFromLastNode(oNode, sMove, oDirMove, oDirReverseMove, iFindCount);
+            else
+                result = LocateNodeWithoutLastNode(oNode, iFindCount);
+
+            if (UpdateGraphAndSetLastNode(result, bMapChanged))
+                return;
+
+            SetRoomVariables(result);
+        }
+
+        private Node BuildCurrentNode()
+        {
             var oNode = new Node();
             oNode.ID = m_Nodes.NextID;
             oNode.Name = get_GlobalVariable("roomname");
             oNode.Descriptions.Add(get_GlobalVariable("roomdesc"));
             oNode.RisingMists = m_RisingMists;
 
-            // Set up all the exits
-            if (IsExitSet("north"))
-            {
-                Node argdest = null;
-                oNode.AddArc(Direction.North, "north", argdest);
-            }
+            Node argdest = null;
+            if (IsExitSet("north"))     oNode.AddArc(Direction.North,     "north",     argdest);
+            if (IsExitSet("northeast")) oNode.AddArc(Direction.NorthEast, "northeast", argdest);
+            if (IsExitSet("east"))      oNode.AddArc(Direction.East,      "east",      argdest);
+            if (IsExitSet("southeast")) oNode.AddArc(Direction.SouthEast, "southeast", argdest);
+            if (IsExitSet("south"))     oNode.AddArc(Direction.South,     "south",     argdest);
+            if (IsExitSet("southwest")) oNode.AddArc(Direction.SouthWest, "southwest", argdest);
+            if (IsExitSet("west"))      oNode.AddArc(Direction.West,      "west",      argdest);
+            if (IsExitSet("northwest")) oNode.AddArc(Direction.NorthWest, "northwest", argdest);
+            if (IsExitSet("up"))        oNode.AddArc(Direction.Up,        "up",        argdest);
+            if (IsExitSet("down"))      oNode.AddArc(Direction.Down,      "down",      argdest);
+            if (IsExitSet("out"))       oNode.AddArc(Direction.Out,       "out",       argdest);
 
-            if (IsExitSet("northeast"))
-            {
-                Node argdest1 = null;
-                oNode.AddArc(Direction.NorthEast, "northeast", argdest1);
-            }
+            return oNode;
+        }
 
-            if (IsExitSet("east"))
-            {
-                Node argdest2 = null;
-                oNode.AddArc(Direction.East, "east", argdest2);
-            }
-
-            if (IsExitSet("southeast"))
-            {
-                Node argdest3 = null;
-                oNode.AddArc(Direction.SouthEast, "southeast", argdest3);
-            }
-
-            if (IsExitSet("south"))
-            {
-                Node argdest4 = null;
-                oNode.AddArc(Direction.South, "south", argdest4);
-            }
-
-            if (IsExitSet("southwest"))
-            {
-                Node argdest5 = null;
-                oNode.AddArc(Direction.SouthWest, "southwest", argdest5);
-            }
-
-            if (IsExitSet("west"))
-            {
-                Node argdest6 = null;
-                oNode.AddArc(Direction.West, "west", argdest6);
-            }
-
-            if (IsExitSet("northwest"))
-            {
-                Node argdest7 = null;
-                oNode.AddArc(Direction.NorthWest, "northwest", argdest7);
-            }
-
-            if (IsExitSet("up"))
-            {
-                Node argdest8 = null;
-                oNode.AddArc(Direction.Up, "up", argdest8);
-            }
-
-            if (IsExitSet("down"))
-            {
-                Node argdest9 = null;
-                oNode.AddArc(Direction.Down, "down", argdest9);
-            }
-
-            if (IsExitSet("out"))
-            {
-                Node argdest10 = null;
-                oNode.AddArc(Direction.Out, "out", argdest10);
-            }
-
-            // Get first movement command in list
+        private string DequeueMove(Node oNode)
+        {
             string sMove = string.Empty;
             while (!Information.IsNothing(m_Movement) && m_Movement.Count > 0)
             {
@@ -451,16 +364,13 @@ namespace GenieClient.Mapper
                 else if (m_LastNode.ContainsLinkedArc(DirectionFromName(sMove), sMove))
                 {
                     if (oNode.Compare(m_LastNode.Arcs[DirectionFromName(sMove)].Destination, false) == true)
-                    {
                         break;
-                    }
-                    // Remove one more move.
-                    else if (m_DebugEnabled == true)
+                    else if (m_DebugEnabled)
                         EchoText("[" + Name + "] Removing move: " + sMove);
                 }
                 else if (m_LastNode.ContainsArc(DirectionFromName(sMove)) == false)
                 {
-                    if (m_DebugEnabled == true)
+                    if (m_DebugEnabled)
                         EchoText("[" + Name + "] Removing move: " + sMove);
                 }
                 else
@@ -468,376 +378,372 @@ namespace GenieClient.Mapper
                     break;
                 }
             }
+            return sMove;
+        }
 
-            var oDirMove = DirectionFromName(sMove);
-            var oDirReverseMove = Arc.ReverseDirection(oDirMove);
-            if (m_DebugEnabled == true)
-                EchoText("[" + Name + "] Move = " + sMove);
-
-            // Set position
+        private void SetNewNodePosition(Node oNode, Direction oDirMove)
+        {
             if (m_Recording == true && !Information.IsNothing(m_LastNode))
             {
-                if (!Information.IsNothing(m_LastNode.Position))
+                if (!Information.IsNothing(m_LastNode.Position) && Information.IsNothing(oNode.Position))
                 {
-                    if (Information.IsNothing(oNode.Position))
-                    {
-                        oNode.Position = new Point3D(m_LastNode.Position);
-                        if (oDirMove != Direction.None && oDirMove != Direction.Climb && oDirMove != Direction.Go)
-                        {
-                            oNode.Position.Offset(oDirMove);
-                        }
-                        else
-                        {
-                            oNode.Position.Offset(m_eLastMovement);
-                        }
-                    }
+                    oNode.Position = new Point3D(m_LastNode.Position);
+                    if (oDirMove != Direction.None && oDirMove != Direction.Climb && oDirMove != Direction.Go)
+                        oNode.Position.Offset(oDirMove);
+                    else
+                        oNode.Position.Offset(m_eLastMovement);
                 }
             }
+        }
 
-            // -----------------------------------------------------
-            // Locate the room
-            // -----------------------------------------------------
-
-            int iFindCount = m_Nodes.FindCount(oNode);
-            if (m_DebugEnabled == true)
-                EchoText("[" + Name + "] Find count = " + iFindCount.ToString());
-            if (bMapChanged == false && iFindCount == 0 && Information.IsNothing(m_LastNode) && m_Recording == false) // Locate room on disk and load map
+        private bool TryLoadMapFromDisk(Node oNode, int iFindCount, bool bMapChanged)
+        {
+            if (bMapChanged == false && iFindCount == 0 && Information.IsNothing(m_LastNode) && m_Recording == false)
             {
-                if (m_DebugEnabled == true)
+                if (m_DebugEnabled)
                     EchoText("[" + Name + "] Checking Map On Disk");
                 string sMap = RoomOnDisk(oNode);
                 if (sMap.Length > 0)
                 {
                     EchoText("[" + Name + "] Activating Map: " + sMap);
+                    InvalidateMapIndex();
                     if (m_Form.LoadXML(sMap) == true)
                     {
                         UpdateCurrentRoom(true);
-                        // iFindCount = m_Nodes.FindCount(oNode)
-                        return;
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private Node LocateNodeFromLastNode(Node oNode, string sMove, Direction oDirMove, Direction oDirReverseMove, int iFindCount)
+        {
+            if (m_DebugEnabled)
+                EchoText("[" + Name + "] Last node #" + m_LastNode.ID);
+
+            Node result;
+            if (m_LastNode.ContainsLinkedArc(oDirMove, sMove))
+                result = LocateViaLinkedArc(oNode, oDirMove, sMove, iFindCount);
+            else if (sMove.Length == 0)
+                result = LocateViaBlankMove(oNode, iFindCount);
+            else
+                result = LocateViaUnlinkedDirection(oNode, oDirMove, oDirReverseMove, sMove, iFindCount);
+
+            if (!Information.IsNothing(result))
+            {
+                EchoMappedExits(result);
+                if (m_Recording)
+                    LinkExitsInRecordingMode(result, oDirMove, oDirReverseMove, sMove);
+            }
+
+            return result;
+        }
+
+        private Node LocateViaLinkedArc(Node oNode, Direction oDirMove, string sMove, int iFindCount)
+        {
+            if (iFindCount > 1)
+            {
+                var n = m_LastNode.Arcs[oDirMove].Destination;
+                if (m_DebugEnabled)
+                    EchoText("[" + Name + "] Located node (using arc) #" + n.ID);
+                return n;
+            }
+            else if (iFindCount == 1)
+            {
+                var n = m_Nodes.Find(oNode);
+                if (m_DebugEnabled)
+                    EchoText("[" + Name + "] Located node #" + n.ID);
+                return n;
+            }
+            else if (!Information.IsNothing(m_LastNode.Arcs[oDirMove].Destination))
+            {
+                if (oNode.Compare(m_LastNode.Arcs[oDirMove].Destination, false) == true)
+                {
+                    var n = m_LastNode.Arcs[oDirMove].Destination;
+                    EchoText("[" + Name + "] Room description mismatch #" + n.ID);
+                    if (m_Recording)
+                    {
+                        n.Descriptions.Add(get_GlobalVariable("roomdesc"));
+                        EchoText("[" + Name + "] Adding new description to room #" + n.ID);
+                    }
+                    return n;
+                }
+                else
+                {
+                    if (m_DebugEnabled)
+                        EchoText("[" + Name + "] ERROR in destination. Please investigate arcs from node #" + m_LastNode.ID);
+                    return null;
+                }
+            }
+            else
+            {
+                if (m_DebugEnabled)
+                    EchoText("[" + Name + "] ERROR in arc (" + sMove + ") Please investigate node #" + m_LastNode.ID);
+                return null;
+            }
+        }
+
+        private Node LocateViaBlankMove(Node oNode, int iFindCount)
+        {
+            if (m_DebugEnabled)
+                EchoText("[" + Name + "] Blank move direction #" + oNode.ID);
+
+            Node oMatchNode = null;
+            bool bMultiMatch = false;
+            foreach (Arc a in m_LastNode.Arcs)
+            {
+                if (!Information.IsNothing(a.Destination))
+                {
+                    if (oNode.Compare(a.Destination, true))
+                    {
+                        if (Information.IsNothing(oMatchNode))
+                            oMatchNode = a.Destination;
+                        else
+                            bMultiMatch = true;
                     }
                 }
             }
 
-            // Let's see if the node we walked from has an exit in this direction.
-            if (!Information.IsNothing(m_LastNode))
+            if (!Information.IsNothing(oMatchNode) && bMultiMatch == false)
             {
-                if (m_DebugEnabled == true)
-                    EchoText("[" + Name + "] Last node #" + m_LastNode.ID);
+                if (m_DebugEnabled)
+                    EchoText("[" + Name + "] Located node #" + oMatchNode.ID);
+                return oMatchNode;
+            }
+            else if (iFindCount == 1)
+            {
+                var n = m_Nodes.Find(oNode);
+                if (m_DebugEnabled)
+                    EchoText("[" + Name + "] Located node #" + n.ID);
+                return n;
+            }
+            else
+            {
+                if (m_DebugEnabled)
+                    EchoText("[" + Name + "] Unknown node.");
+                return null;
+            }
+        }
 
-                // Does the last room have this exit already?
-                if (m_LastNode.ContainsLinkedArc(oDirMove, sMove))
-                {
-                    if (iFindCount > 1) // More then one room with same details in list
-                    {
-                        oNode = m_LastNode.Arcs[oDirMove].Destination;
-                        if (m_DebugEnabled == true)
-                            EchoText("[" + Name + "] Located node (using arc) #" + oNode.ID);
-                    }
-                    else if (iFindCount == 1) // Move us here
-                    {
-                        oNode = m_Nodes.Find(oNode);
-                        if (m_DebugEnabled == true)
-                            EchoText("[" + Name + "] Located node #" + oNode.ID);
-                    }
-                    else if (!Information.IsNothing(m_LastNode.Arcs[oDirMove].Destination))
-                    {
-                        if (oNode.Compare(m_LastNode.Arcs[oDirMove].Destination, false) == true)
-                        {
-                            // Assume same node that changed desc (And if we are recording, add the desc)
-                            oNode = m_LastNode.Arcs[oDirMove].Destination;
-                            EchoText("[" + Name + "] Room description mismatch #" + oNode.ID);
-                            if (m_Recording == true)
-                            {
-                                oNode.Descriptions.Add(get_GlobalVariable("roomdesc"));
-                                EchoText("[" + Name + "] Adding new description to room #" + oNode.ID);
-                            }
-                        }
-                        else
-                        {
-                            if (m_DebugEnabled == true)
-                                EchoText("[" + Name + "] ERROR in destination. Please investigate arcs from node #" + m_LastNode.ID);
-                            oNode = null;
-                        }
-                    }
-                    else
-                    {
-                        if (m_DebugEnabled == true)
-                            EchoText("[" + Name + "] ERROR in arc (" + sMove + ") Please investigate node #" + m_LastNode.ID);
-                        oNode = null;
-                    }
-                }
-                else if (sMove.Length == 0) // Empty move - Try and locate ANY exit from lastnode to this room.
-                {
-                    if (m_DebugEnabled == true)
-                        EchoText("[" + Name + "] Blank move direction #" + oNode.ID);
-                    Node oMatchNode = null;
-                    bool bMultiMatch = false;
-                    foreach (Arc a in m_LastNode.Arcs)
-                    {
-                        if (!Information.IsNothing(a.Destination))
-                        {
-                            if (oNode.Compare(a.Destination, true))
-                            {
-                                if (Information.IsNothing(oMatchNode))
-                                {
-                                    oMatchNode = a.Destination;
-                                }
-                                else
-                                {
-                                    bMultiMatch = true;
-                                }
-                            }
-                        }
-                    }
+        private Node LocateViaUnlinkedDirection(Node oNode, Direction oDirMove, Direction oDirReverseMove, string sMove, int iFindCount)
+        {
+            if (m_DebugEnabled)
+                EchoText("[" + Name + "] No exit linked in this direction from the last node.");
 
-                    if (!Information.IsNothing(oMatchNode) && bMultiMatch == false)
-                    {
-                        oNode = oMatchNode;
-                        if (m_DebugEnabled == true)
-                            EchoText("[" + Name + "] Located node #" + oNode.ID);
-                    }
-                    else if (iFindCount == 1) // Move us here
-                    {
-                        oNode = m_Nodes.Find(oNode);
-                        if (m_DebugEnabled == true)
-                            EchoText("[" + Name + "] Located node #" + oNode.ID);
-                    }
-                    else
-                    {
-                        oNode = null;
-                        if (m_DebugEnabled == true)
-                            EchoText("[" + Name + "] Unknown node.");
-                    }
-                }
-                else // End ContainsLinkedArc()
+            Node oMatchNode = null;
+            Node oMatchLink = null;
+            bool bMultiMatch = false;
+            foreach (Node n in m_Nodes)
+            {
+                if (n.ID != m_LastNode.ID)
                 {
-                    if (m_DebugEnabled == true)
-                        EchoText("[" + Name + "] No exit linked in this direction from the last node.");
-
-                    // kolla alla matchande rum efter exit till lastroom
-                    Node oMatchNode = null;
-                    Node oMatchLink = null;
-                    bool bMultiMatch = false;
-                    foreach (Node n in m_Nodes)
+                    if (n.Compare(oNode))
                     {
-                        if (n.ID != m_LastNode.ID) // Länka inte från samma rum till samma rum
+                        foreach (Arc a in n.Arcs)
                         {
-                            if (n.Compare(oNode))
+                            if (a.Direction == oDirReverseMove)
                             {
-                                foreach (Arc a in n.Arcs)
+                                if (!Information.IsNothing(a.Destination))
                                 {
-                                    if (a.Direction == oDirReverseMove) // Noder som matchar och som har en exit åt motsatt håll
+                                    if (a.DestinationID == m_LastNode.ID)
                                     {
-                                        if (!Information.IsNothing(a.Destination)) // Linked exit
-                                        {
-                                            if (a.DestinationID == m_LastNode.ID) // Motsatsen länkar till vårat rum
-                                            {
-                                                if (Information.IsNothing(oMatchNode))
-                                                {
-                                                    oMatchNode = n;
-                                                }
-                                                else
-                                                {
-                                                    bMultiMatch = true;
-                                                }
-                                            }
-                                        }
-                                        else if (Information.IsNothing(oMatchLink)) // Unlinked exit
-                                        {
-                                            oMatchLink = n;
-                                        }
+                                        if (Information.IsNothing(oMatchNode))
+                                            oMatchNode = n;
                                         else
-                                        {
                                             bMultiMatch = true;
-                                        }
                                     }
                                 }
+                                else if (Information.IsNothing(oMatchLink))
+                                    oMatchLink = n;
+                                else
+                                    bMultiMatch = true;
                             }
-                        }
-                    }
-
-                    if (m_Recording == true && iFindCount == 0)
-                    {
-                        EchoText("[" + Name + "] Added new node #" + oNode.ID);
-                        m_Nodes.Add(oNode);
-                    }
-                    else if (bMultiMatch == false && m_AllowDuplicates == true)
-                    {
-                        EchoText("[" + Name + "] Added duplicate room #" + oNode.ID);
-                        m_Nodes.Add(oNode);
-                    }
-                    else if (bMultiMatch == true)
-                    {
-                        if (m_Recording == true && m_AllowDuplicates == true && oDirMove != Direction.Climb && oDirMove != Direction.Go && oDirMove != Direction.None && oDirMove != Direction.Out)
-                        {
-                            EchoText("[" + Name + "] Added new multi match room #" + oNode.ID);
-                            m_Nodes.Add(oNode);
-                        }
-                        else if (iFindCount == 1)
-                        {
-                            oNode = m_Nodes.Find(oNode);
-                            if (m_DebugEnabled == true)
-                                EchoText("[" + Name + "] Located room to #" + oNode.ID);
-                        }
-                        else
-                        {
-                            if (m_DebugEnabled == true)
-                                EchoText("[" + Name + "] Unlinked and unknown node.");
-                            oNode = null;
-                        }
-                    }
-                    else if (!Information.IsNothing(oMatchNode)) // Not recording and multimatch
-                    {
-                        oNode = oMatchNode;
-                        if (m_DebugEnabled == true)
-                            EchoText("[" + Name + "] Found reverse node #" + oNode.ID);
-                    }
-                    else if (!Information.IsNothing(oMatchLink)) // Link
-                    {
-                        oNode = oMatchLink;
-                        if (m_DebugEnabled == true)
-                            EchoText("[" + Name + "] Located link node to #" + oNode.ID);
-                    }
-                    else if (m_Recording == true && m_AllowDuplicates == true && oDirMove != Direction.Climb && oDirMove != Direction.Go && oDirMove != Direction.None && oDirMove != Direction.Out)
-                    {
-                        EchoText("[" + Name + "] Added new multi match room #" + oNode.ID);
-                        m_Nodes.Add(oNode);
-                    }
-                    else if (iFindCount == 1)
-                    {
-                        oNode = m_Nodes.Find(oNode);
-                        if (m_DebugEnabled == true)
-                            EchoText("[" + Name + "] Located node #" + oNode.ID);
-                    }
-                    else
-                    {
-                        oNode = null;
-                        if (m_DebugEnabled == true)
-                            EchoText("[" + Name + "] Unlinked and unknown node.");
-                    }
-                }
-
-                if (!Information.IsNothing(oNode))
-                {
-                    string sDirections = string.Empty;
-                    string sPortals = string.Empty;
-                    foreach (Arc oArc in oNode.Arcs)
-                    {
-                        if (Information.IsNothing(oArc.Destination))
-                        {
-                            if (m_Recording == true)
-                                EchoText(oArc.Direction.ToString() + ": <not set>");
-                        }
-                        else if (oArc.Direction == Direction.Go || oArc.Direction == Direction.Climb)
-                        {
-                            sPortals += Interaction.IIf(sPortals.Length > 0, ", ", "") + oArc.Move;
-                        }
-                        else
-                        {
-                            sDirections += Interaction.IIf(sDirections.Length > 0, ", ", "") + oArc.Move;
-                        }
-                    }
-
-                    if (m_RisingMists && sDirections.Length > 0)
-                        EchoText("Mapped directions: " + sDirections, true);
-                    if (sPortals.Length > 0)
-                        EchoText("Mapped exits: " + sPortals, true);
-                    set_GlobalVariable("roomportals", sPortals.Replace(", ", "|"));
-                    if (m_Recording == true)
-                    {
-                        bool bExitAdded = false;
-                        if (oDirMove == Direction.Go || oDirMove == Direction.Climb)
-                        {
-                            if (m_LastNode.Arcs.Contains(sMove) == false)
-                            {
-                                m_LastNode.AddArc(oDirMove, sMove, oNode);
-                                bExitAdded = true;
-                            }
-                        }
-                        else
-                        {
-                            // Cardinal
-                            bExitAdded = SetArc(oNode, oDirMove);
-
-                            // Automatically set return in opposite direction on Duplicate mode TEMP TEMP TEMP TEMP
-                            if (m_AllowDuplicates == true)
-                            {
-                                if (!Information.IsNothing(oDirReverseMove) && !Information.IsNothing(m_LastNode))
-                                {
-                                    if (oNode.Arcs.Contains(oDirReverseMove))
-                                    {
-                                        if (Information.IsNothing(oNode.Arcs[oDirReverseMove].Destination))
-                                        {
-                                            oNode.Arcs[oDirReverseMove].SetDestination(m_LastNode);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        if (bExitAdded)
-                        {
-                            EchoText("[" + Name + "] Linking exit from #" + m_LastNode.ID + " to #" + oNode.ID + ": " + sMove);
                         }
                     }
                 }
             }
-            else // End: If Not IsNothing(m_LastNode)
-            {
-                if (m_DebugEnabled == true)
-                    EchoText("[" + Name + "] Last node not known!");
 
-                // First room?
-                if (m_Recording == true)
+            if (m_Recording == true && iFindCount == 0)
+            {
+                EchoText("[" + Name + "] Added new node #" + oNode.ID);
+                m_Nodes.Add(oNode);
+                return oNode;
+            }
+            else if (bMultiMatch == false && m_AllowDuplicates == true)
+            {
+                EchoText("[" + Name + "] Added duplicate room #" + oNode.ID);
+                m_Nodes.Add(oNode);
+                return oNode;
+            }
+            else if (bMultiMatch == true)
+            {
+                if (m_Recording == true && m_AllowDuplicates == true && oDirMove != Direction.Climb && oDirMove != Direction.Go && oDirMove != Direction.None && oDirMove != Direction.Out)
                 {
-                    if (m_Nodes.Count == 0)
-                    {
-                        EchoText("[" + Name + "] Added first node #" + oNode.ID);
-                        oNode.Position = new Point3D();
-                        m_Nodes.Add(oNode);
-                    }
-                    else if (iFindCount == 1)
-                    {
-                        oNode = m_Nodes.Find(oNode);
-                        if (m_DebugEnabled == true)
-                            EchoText("[" + Name + "] Located node #" + oNode.ID);
-                    }
-                    else
-                    {
-                        oNode = null;
-                        if (m_DebugEnabled == true)
-                            EchoText("[" + Name + "] Unknown node.");
-                    }
-                }
-                else if (iFindCount > 1)
-                {
-                    if (m_DebugEnabled == true)
-                        EchoText("[" + Name + "] Unable to locate specific node.");
-                    oNode = null;
+                    EchoText("[" + Name + "] Added new multi match room #" + oNode.ID);
+                    m_Nodes.Add(oNode);
+                    return oNode;
                 }
                 else if (iFindCount == 1)
                 {
-                    oNode = m_Nodes.Find(oNode);
-                    if (m_DebugEnabled == true)
-                        EchoText("[" + Name + "] Located node #" + oNode.ID);
+                    var n = m_Nodes.Find(oNode);
+                    if (m_DebugEnabled)
+                        EchoText("[" + Name + "] Located room to #" + n.ID);
+                    return n;
                 }
-                else if (iFindCount == 0)
+                else
                 {
-                    if (m_Nodes.Count > 0)
+                    if (m_DebugEnabled)
+                        EchoText("[" + Name + "] Unlinked and unknown node.");
+                    return null;
+                }
+            }
+            else if (!Information.IsNothing(oMatchNode))
+            {
+                if (m_DebugEnabled)
+                    EchoText("[" + Name + "] Found reverse node #" + oMatchNode.ID);
+                return oMatchNode;
+            }
+            else if (!Information.IsNothing(oMatchLink))
+            {
+                if (m_DebugEnabled)
+                    EchoText("[" + Name + "] Located link node to #" + oMatchLink.ID);
+                return oMatchLink;
+            }
+            else if (m_Recording == true && m_AllowDuplicates == true && oDirMove != Direction.Climb && oDirMove != Direction.Go && oDirMove != Direction.None && oDirMove != Direction.Out)
+            {
+                EchoText("[" + Name + "] Added new multi match room #" + oNode.ID);
+                m_Nodes.Add(oNode);
+                return oNode;
+            }
+            else if (iFindCount == 1)
+            {
+                var n = m_Nodes.Find(oNode);
+                if (m_DebugEnabled)
+                    EchoText("[" + Name + "] Located node #" + n.ID);
+                return n;
+            }
+            else
+            {
+                if (m_DebugEnabled)
+                    EchoText("[" + Name + "] Unlinked and unknown node.");
+                return null;
+            }
+        }
+
+        private void EchoMappedExits(Node oNode)
+        {
+            string sDirections = string.Empty;
+            string sPortals = string.Empty;
+            foreach (Arc oArc in oNode.Arcs)
+            {
+                if (Information.IsNothing(oArc.Destination))
+                {
+                    if (m_Recording)
+                        EchoText(oArc.Direction.ToString() + ": <not set>");
+                }
+                else if (oArc.Direction == Direction.Go || oArc.Direction == Direction.Climb)
+                    sPortals += Interaction.IIf(sPortals.Length > 0, ", ", "") + oArc.Move;
+                else
+                    sDirections += Interaction.IIf(sDirections.Length > 0, ", ", "") + oArc.Move;
+            }
+
+            if (m_RisingMists && sDirections.Length > 0)
+                EchoText("Mapped directions: " + sDirections, true);
+            if (sPortals.Length > 0)
+                EchoText("Mapped exits: " + sPortals, true);
+            set_GlobalVariable("roomportals", sPortals.Replace(", ", "|"));
+        }
+
+        private void LinkExitsInRecordingMode(Node oNode, Direction oDirMove, Direction oDirReverseMove, string sMove)
+        {
+            bool bExitAdded = false;
+            if (oDirMove == Direction.Go || oDirMove == Direction.Climb)
+            {
+                if (m_LastNode.Arcs.Contains(sMove) == false)
+                {
+                    m_LastNode.AddArc(oDirMove, sMove, oNode);
+                    bExitAdded = true;
+                }
+            }
+            else
+            {
+                bExitAdded = SetArc(oNode, oDirMove);
+
+                // Automatically set return in opposite direction on Duplicate mode
+                if (m_AllowDuplicates == true)
+                {
+                    if (!Information.IsNothing(oDirReverseMove) && !Information.IsNothing(m_LastNode))
                     {
-                        if (m_DebugEnabled == true)
-                            EchoText("[" + Name + "] Unknown node.");
+                        if (oNode.Arcs.Contains(oDirReverseMove))
+                        {
+                            if (Information.IsNothing(oNode.Arcs[oDirReverseMove].Destination))
+                                oNode.Arcs[oDirReverseMove].SetDestination(m_LastNode);
+                        }
                     }
-                    else if (m_DebugEnabled == true)
-                        EchoText("[" + Name + "] Empty map.");
-                    oNode = null;
                 }
             }
 
-            // -----------------------------------------------------
-            // Update Graph
-            // -----------------------------------------------------
+            if (bExitAdded)
+                EchoText("[" + Name + "] Linking exit from #" + m_LastNode.ID + " to #" + oNode.ID + ": " + sMove);
+        }
 
+        private Node LocateNodeWithoutLastNode(Node oNode, int iFindCount)
+        {
+            if (m_DebugEnabled)
+                EchoText("[" + Name + "] Last node not known!");
+
+            if (m_Recording == true)
+            {
+                if (m_Nodes.Count == 0)
+                {
+                    EchoText("[" + Name + "] Added first node #" + oNode.ID);
+                    oNode.Position = new Point3D();
+                    m_Nodes.Add(oNode);
+                    return oNode;
+                }
+                else if (iFindCount == 1)
+                {
+                    var n = m_Nodes.Find(oNode);
+                    if (m_DebugEnabled)
+                        EchoText("[" + Name + "] Located node #" + n.ID);
+                    return n;
+                }
+                else
+                {
+                    if (m_DebugEnabled)
+                        EchoText("[" + Name + "] Unknown node.");
+                    return null;
+                }
+            }
+            else if (iFindCount > 1)
+            {
+                if (m_DebugEnabled)
+                    EchoText("[" + Name + "] Unable to locate specific node.");
+                return null;
+            }
+            else if (iFindCount == 1)
+            {
+                var n = m_Nodes.Find(oNode);
+                if (m_DebugEnabled)
+                    EchoText("[" + Name + "] Located node #" + n.ID);
+                return n;
+            }
+            else
+            {
+                if (m_Nodes.Count > 0)
+                {
+                    if (m_DebugEnabled)
+                        EchoText("[" + Name + "] Unknown node.");
+                }
+                else if (m_DebugEnabled)
+                    EchoText("[" + Name + "] Empty map.");
+                return null;
+            }
+        }
+
+        private bool UpdateGraphAndSetLastNode(Node oNode, bool bMapChanged)
+        {
             if (!Information.IsNothing(oNode) && oNode.IsLabelFile == true)
             {
                 m_LastNode = null;
@@ -853,10 +759,11 @@ namespace GenieClient.Mapper
                         }
                     }
 
+                    InvalidateMapIndex();
                     if (m_Form.LoadXML(sFile) == true)
                     {
                         UpdateCurrentRoom(true);
-                        return;
+                        return true;
                     }
                     else
                     {
@@ -867,17 +774,14 @@ namespace GenieClient.Mapper
             else
             {
                 if (!Information.IsNothing(m_Form))
-                {
                     m_Form.UpdateGraph(oNode, m_Nodes, m_eLastMovement);
-                }
-
                 m_LastNode = oNode;
             }
+            return false;
+        }
 
-            // -----------------------------------------------------
-            // Set global variables
-            // -----------------------------------------------------
-
+        private void SetRoomVariables(Node oNode)
+        {
             if (!Information.IsNothing(oNode))
             {
                 if (m_DebugEnabled)
@@ -888,99 +792,21 @@ namespace GenieClient.Mapper
                 if (roomColor.ToUpper() == "TRANSPARENT") roomColor = m_oGlobals.PresetList["automapper.node"].BgColor.Name;
                 else if (roomColor.ToUpper().StartsWith("FF")) roomColor = $"#{roomColor.Substring(2)}";
                 set_GlobalVariable("roomcolor", roomColor);
-                if (oNode.ContainsArc(Direction.North))
-                {
-                    set_GlobalVariable("northid", oNode.Arcs[Direction.North].DestinationID.ToString());
-                }
-                else
-                {
-                    set_GlobalVariable("northid", "-1");
-                }
 
-                if (oNode.ContainsArc(Direction.NorthEast))
-                {
-                    set_GlobalVariable("northeastid", oNode.Arcs[Direction.NorthEast].DestinationID.ToString());
-                }
-                else
-                {
-                    set_GlobalVariable("northeastid", "-1");
-                }
-
-                if (oNode.ContainsArc(Direction.East))
-                {
-                    set_GlobalVariable("eastid", oNode.Arcs[Direction.East].DestinationID.ToString());
-                }
-                else
-                {
-                    set_GlobalVariable("eastid", "-1");
-                }
-
-                if (oNode.ContainsArc(Direction.SouthEast))
-                {
-                    set_GlobalVariable("southeastid", oNode.Arcs[Direction.SouthEast].DestinationID.ToString());
-                }
-                else
-                {
-                    set_GlobalVariable("southeastid", "-1");
-                }
-
-                if (oNode.ContainsArc(Direction.South))
-                {
-                    set_GlobalVariable("southid", oNode.Arcs[Direction.South].DestinationID.ToString());
-                }
-                else
-                {
-                    set_GlobalVariable("southid", "-1");
-                }
-
-                if (oNode.ContainsArc(Direction.SouthWest))
-                {
-                    set_GlobalVariable("southwestid", oNode.Arcs[Direction.SouthWest].DestinationID.ToString());
-                }
-                else
-                {
-                    set_GlobalVariable("southwestid", "-1");
-                }
-
-                if (oNode.ContainsArc(Direction.West))
-                {
-                    set_GlobalVariable("westid", oNode.Arcs[Direction.West].DestinationID.ToString());
-                }
-                else
-                {
-                    set_GlobalVariable("westid", "-1");
-                }
-
-                if (oNode.ContainsArc(Direction.NorthWest))
-                {
-                    set_GlobalVariable("northwestid", oNode.Arcs[Direction.NorthWest].DestinationID.ToString());
-                }
-                else
-                {
-                    set_GlobalVariable("northwestid", "-1");
-                }
-
-                if (oNode.ContainsArc(Direction.Up))
-                {
-                    set_GlobalVariable("upid", oNode.Arcs[Direction.Up].DestinationID.ToString());
-                }
-                else
-                {
-                    set_GlobalVariable("upid", "-1");
-                }
-
-                if (oNode.ContainsArc(Direction.Down))
-                {
-                    set_GlobalVariable("downid", oNode.Arcs[Direction.Down].DestinationID.ToString());
-                }
-                else
-                {
-                    set_GlobalVariable("downid", "-1");
-                }
+                set_GlobalVariable("northid",     oNode.ContainsArc(Direction.North)     ? oNode.Arcs[Direction.North].DestinationID.ToString()     : "-1");
+                set_GlobalVariable("northeastid", oNode.ContainsArc(Direction.NorthEast) ? oNode.Arcs[Direction.NorthEast].DestinationID.ToString() : "-1");
+                set_GlobalVariable("eastid",      oNode.ContainsArc(Direction.East)      ? oNode.Arcs[Direction.East].DestinationID.ToString()      : "-1");
+                set_GlobalVariable("southeastid", oNode.ContainsArc(Direction.SouthEast) ? oNode.Arcs[Direction.SouthEast].DestinationID.ToString() : "-1");
+                set_GlobalVariable("southid",     oNode.ContainsArc(Direction.South)     ? oNode.Arcs[Direction.South].DestinationID.ToString()     : "-1");
+                set_GlobalVariable("southwestid", oNode.ContainsArc(Direction.SouthWest) ? oNode.Arcs[Direction.SouthWest].DestinationID.ToString() : "-1");
+                set_GlobalVariable("westid",      oNode.ContainsArc(Direction.West)      ? oNode.Arcs[Direction.West].DestinationID.ToString()      : "-1");
+                set_GlobalVariable("northwestid", oNode.ContainsArc(Direction.NorthWest) ? oNode.Arcs[Direction.NorthWest].DestinationID.ToString() : "-1");
+                set_GlobalVariable("upid",        oNode.ContainsArc(Direction.Up)        ? oNode.Arcs[Direction.Up].DestinationID.ToString()        : "-1");
+                set_GlobalVariable("downid",      oNode.ContainsArc(Direction.Down)      ? oNode.Arcs[Direction.Down].DestinationID.ToString()      : "-1");
             }
             else
             {
-                set_GlobalVariable("roomid", "0"); // Unknown
+                set_GlobalVariable("roomid", "0");
                 set_GlobalVariable("northid", "-1");
                 set_GlobalVariable("northeastid", "-1");
                 set_GlobalVariable("eastid", "-1");
@@ -997,6 +823,63 @@ namespace GenieClient.Mapper
 
         private bool m_DebugEnabled = false;
         private int m_TimeOutMS = 1500;
+
+        // --- Map directory index cache ---
+        // Rebuilt once on first use, invalidated when any map is loaded.
+        // Each entry holds the minimum data needed for RoomOnDisk / EchoRoomsOnDisk
+        // so neither method needs to open a file.
+        private struct MapIndexEntry
+        {
+            public string FilePath;
+            public string NodeId;
+            public string Name;
+            public List<string> Descriptions;
+            public bool IsLinkedFile; // note contains ".xml" — excluded from auto-load matches
+        }
+        private List<MapIndexEntry> _mapIndex = null;
+
+        private void InvalidateMapIndex() => _mapIndex = null;
+
+        private List<MapIndexEntry> GetMapIndex()
+        {
+            if (_mapIndex != null) return _mapIndex;
+
+            _mapIndex = new List<MapIndexEntry>();
+            try
+            {
+                var diDirectory = new DirectoryInfo(m_oGlobals.Config.MapDir);
+                foreach (FileInfo dif in diDirectory.GetFiles("*.xml"))
+                {
+                    try
+                    {
+                        var xdoc = new XmlDocument();
+                        using (var sr = new StreamReader(dif.FullName, true))
+                            xdoc.Load(sr);
+                        foreach (XmlNode xn in xdoc.SelectNodes("zone/node"))
+                        {
+                            var entry = new MapIndexEntry
+                            {
+                                FilePath = dif.FullName,
+                                NodeId = GetValue(xn, "id"),
+                                Name = GetValue(xn, "name"),
+                                Descriptions = new List<string>(),
+                                IsLinkedFile = GetValue(xn, "note").Contains(".xml")
+                            };
+                            foreach (XmlNode xdesc in xn.SelectNodes("description"))
+                                if (!Information.IsNothing(xdesc))
+                                    entry.Descriptions.Add(xdesc.InnerText);
+                            _mapIndex.Add(entry);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        EchoText("[" + Name + "] Skipping invalid map file: " + Path.GetFileName(dif.FullName) + " {" + ex.Message + "}");
+                    }
+                }
+            }
+            catch { }
+            return _mapIndex;
+        }
 
         public void ParseCommand(string cmd, FormMain form)
         {
@@ -1043,6 +926,7 @@ namespace GenieClient.Mapper
                                     sArg += ".xml";
                                 }
 
+                                InvalidateMapIndex();
                                 if (m_Form.LoadXML(sArg) == true)
                                 {
                                     EchoText("[" + Name + "] Successfully loaded map: " + sArg, true);
@@ -1065,7 +949,7 @@ namespace GenieClient.Mapper
                                 // Filename is specified:
                                 if (sArg.Contains(@"\") == false)
                                 {
-                                    sArg = m_oGlobals.Config.MapDir + "==" + sArg;
+                                    sArg = m_oGlobals.Config.MapDir + "\\" + sArg;
                                 }
                                 if (sArg.ToLower().EndsWith(".xml") == false)
                                 {
@@ -1787,8 +1671,7 @@ namespace GenieClient.Mapper
                 if (m_Movement.Count > 0 && Utility.GetTimeDiffInMilliseconds(m_LastInputTime, argoDateEnd) > m_TimeOutMS)
                 {
                     m_Movement.Clear();
-                    if (m_DebugEnabled == true)
-                        EchoText("[" + Name + "] Clearing move queue (timeout).");
+                    EchoText("[" + Name + "] Move queue cleared (timeout). Mapper position may need resync.");
                 }
 
                 m_LastInputTime = DateTime.Now;
@@ -1937,15 +1820,12 @@ namespace GenieClient.Mapper
             string sExits = get_GlobalVariable("roomexits");
             if (sExits.Length > 0)
             {
-                var oRegEx = new Regex(@"\b" + name + @"\b");
-                if (oRegEx.Match(sExits).Success)
+                if (!_exitRegexCache.TryGetValue(name, out Regex oRegEx))
                 {
-                    return true;
+                    oRegEx = new Regex(@"\b" + name + @"\b", RegexOptions.Compiled);
+                    _exitRegexCache[name] = oRegEx;
                 }
-                else
-                {
-                    return false;
-                }
+                return oRegEx.IsMatch(sExits);
             }
             else
             {

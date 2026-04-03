@@ -63,6 +63,9 @@ namespace GenieClient.Mapper
             // This call is required by the Windows Form Designer.
             m_oGlobals = Globals;
             InitializeComponent();
+            _ToolStripMain.Renderer   = new GenieClient.Forms.Components.MenuRenderer(m_oGlobals.PresetList);
+            _ToolStripMaps.Renderer   = new GenieClient.Forms.Components.MenuRenderer(m_oGlobals.PresetList);
+            _StatusStripMain.Renderer = new GenieClient.Forms.Components.MenuRenderer(m_oGlobals.PresetList);
             UpdatePanelColor();
             // Add any initialization after the InitializeComponent() call.
         }
@@ -98,6 +101,7 @@ namespace GenieClient.Mapper
 
         public void SetNodeList(NodeList nl)
         {
+            if (InvokeRequired) { BeginInvoke(new Action(() => SetNodeList(nl))); return; }
             m_NodeList = nl;
         }
 
@@ -110,12 +114,32 @@ namespace GenieClient.Mapper
         }
         public void UpdatePanelColor()
         {
-            PanelBase.BackColor = m_oGlobals.PresetList["automapper.panel"].BgColor;
-            PanelMap.BackColor = m_oGlobals.PresetList["automapper.panel"].BgColor;
+            var panelBg = m_oGlobals.PresetList["automapper.panel"].BgColor;
+            PanelBase.BackColor = panelBg;
+            PanelMap.BackColor  = panelBg;
+
+            var menuBg = m_oGlobals.PresetList["ui.menu"].BgColor;
+            var menuFg = m_oGlobals.PresetList["ui.menu"].FgColor;
+            _ToolStripMain.BackColor = menuBg;
+            _ToolStripMain.ForeColor = menuFg;
+            _ToolStripMaps.BackColor = menuBg;
+            _ToolStripMaps.ForeColor = menuFg;
+            _StatusStripMain.BackColor = m_oGlobals.PresetList["ui.status"].BgColor;
+            _StatusStripMain.ForeColor = m_oGlobals.PresetList["ui.status"].FgColor;
+
+            _ToolStripMain.Invalidate();
+            _ToolStripMaps.Invalidate();
+            _StatusStripMain.Invalidate();
             PanelMap.Invalidate();
         }
         public void UpdateGraph(Node n, NodeList nl, Direction dir)
         {
+            if (InvokeRequired)
+            {
+                BeginInvoke(new Action(() => UpdateGraph(n, nl, dir)));
+                return;
+            }
+
             m_AllowRecord = false;
             m_CurrentNode = n;
             m_NodeList = nl;
@@ -1167,6 +1191,7 @@ namespace GenieClient.Mapper
 
         public void SetDestinationNode(Node n)
         {
+            if (InvokeRequired) { BeginInvoke(new Action(() => SetDestinationNode(n))); return; }
             m_PathDestination = n;
         }
 
@@ -1561,11 +1586,18 @@ namespace GenieClient.Mapper
                         {
                             var pt1 = new Point3D(n.Position);
 
+                            // Detect if this arc is part of the active path
+                            bool bPathLine = !Information.IsNothing(m_PathDestination)
+                                && n.State == Node.States.EndPath
+                                && !Information.IsNothing(a.Destination)
+                                && a.Destination.State == Node.States.EndPath
+                                && (ReferenceEquals(a.Destination.Origin, n) || ReferenceEquals(n.Origin, a.Destination));
+
                             // Draw stumps for cardinal directions
                             if (Arc.IsCardinalDirection(a.Direction))
                             {
                                 pt1.Offset(a.Direction, 10);
-                                var oLinePen = new Pen(oColorLine);
+                                using var oLinePen = new Pen(oColorLine);
                                 if (Information.IsNothing(a.Destination))
                                 {
                                     oLinePen.Color = oColorLineStump;
@@ -1574,6 +1606,12 @@ namespace GenieClient.Mapper
                                 if (a.HideArc == true)
                                 {
                                     oLinePen.EndCap = System.Drawing.Drawing2D.LineCap.SquareAnchor;
+                                }
+
+                                if (bPathLine)
+                                {
+                                    oLinePen.Color = m_oGlobals.PresetList["automapper.path"].FgColor;
+                                    oLinePen.Width = 2;
                                 }
 
                                 e.Graphics.DrawLine(oLinePen, ConvertPoint(n.Position), ConvertPoint(pt1));
@@ -1597,16 +1635,18 @@ namespace GenieClient.Mapper
                                             }
                                         }
 
-                                        var oLinePen = new Pen(oColorLine);
-                                        // oLinePen.StartCap = Drawing2D.LineCap.ArrowAnchor
-                                        // oLinePen.EndCap = Drawing2D.LineCap.ArrowAnchor
+                                        using var oLinePen = new Pen(oColorLine);
                                         if (a.Direction == Direction.Climb)
                                             oLinePen.Color = oColorLineClimb;
                                         if (a.Direction == Direction.Go || a.Direction == Direction.Up || a.Direction == Direction.Down || a.Direction == Direction.Out)
                                             oLinePen.Color = oColorLineGo;
-                                        e.Graphics.DrawLine(oLinePen, ConvertPoint(pt1), ConvertPoint(pt2));
+                                        if (bPathLine)
+                                        {
+                                            oLinePen.Color = m_oGlobals.PresetList["automapper.path"].FgColor;
+                                            oLinePen.Width = 2;
+                                        }
 
-                                        // Debug.WriteLine("Drawing line from "&& n.Position.ToString&& " to "&& a.Destination.Position.ToString)
+                                        e.Graphics.DrawLine(oLinePen, ConvertPoint(pt1), ConvertPoint(pt2));
                                     }
                                 }
                             }
@@ -1628,13 +1668,15 @@ namespace GenieClient.Mapper
                             {
                                 var pt = new Point3D(n.Position);
                                 pt.Offset(a.Direction, 10);
-                                var oLinePen = new Pen(m_oGlobals.PresetList["automapper.linestump"].FgColor);
                                 if (m_ToggleMoveNodes == true || m_ToggleRecording == true)
                                 {
-                                    oLinePen = Pens.Red;
+                                    e.Graphics.DrawLine(Pens.Red, ConvertPoint(n.Position), ConvertPoint(pt));
                                 }
-
-                                e.Graphics.DrawLine(oLinePen, ConvertPoint(n.Position), ConvertPoint(pt));
+                                else
+                                {
+                                    using var oLinePen = new Pen(m_oGlobals.PresetList["automapper.linestump"].FgColor);
+                                    e.Graphics.DrawLine(oLinePen, ConvertPoint(n.Position), ConvertPoint(pt));
+                                }
                             }
                         }
                     }
@@ -1669,19 +1711,16 @@ namespace GenieClient.Mapper
                             oColorRoomBorder = m_oGlobals.PresetList["automapper.line"].BgColor;
                         }
 
+                        bool bPathNode = false;
                         if (!Information.IsNothing(m_SelectedNodes.Find(n.ID)))
                         {
-                            oColorRoom = Color.Blue;
+                            bPathNode = true;
                         }
                         else if (!Information.IsNothing(m_PathDestination))
                         {
-                            if (m_PathDestination.Equals(n))
+                            if (m_PathDestination.Equals(n) || n.State == Node.States.EndPath)
                             {
-                                oColorRoom = m_oGlobals.PresetList["automapper.path"].FgColor;
-                            }
-                            else if (n.State == Node.States.EndPath)
-                            {
-                                oColorRoom = m_oGlobals.PresetList["automapper.path"].BgColor;
+                                bPathNode = true;
                             }
                         }
 
@@ -1697,19 +1736,35 @@ namespace GenieClient.Mapper
                         if (n.IsLabelFile == true && n.Position.Z == m_CurrentLevelZ) // Other map
                         {
                             var oWhere = ConvertPoint(n.Position, 4 * m_Scale);
-                            e.Graphics.FillRectangle(new SolidBrush(oColorRoom), oWhere.X + 1, oWhere.Y + 1, 8 * m_Scale, 8 * m_Scale);
-                            e.Graphics.DrawRectangle(new Pen(Color.Blue, 2), oWhere.X, oWhere.Y, 8 * m_Scale, 8 * m_Scale);
+                            using var labelFillBrush = new SolidBrush(oColorRoom);
+                            e.Graphics.FillRectangle(labelFillBrush, oWhere.X + 1, oWhere.Y + 1, 8 * m_Scale, 8 * m_Scale);
+                            using var labelBorderPen = new Pen(m_oGlobals.PresetList["automapper.linego"].FgColor, 2);
+                            e.Graphics.DrawRectangle(labelBorderPen, oWhere.X, oWhere.Y, 8 * m_Scale, 8 * m_Scale);
                         }
                         else
                         {
-                            // Debug.WriteLine("Drawing node at "&& n.Position.ToString())
                             var oWhere = ConvertPoint(n.Position, 4 * m_Scale);
-                            e.Graphics.FillRectangle(new SolidBrush(oColorRoom), oWhere.X + 1, oWhere.Y + 1, 8 * m_Scale, 8 * m_Scale);
-                            e.Graphics.DrawRectangle(new Pen(oColorRoomBorder), oWhere.X, oWhere.Y, 8 * m_Scale, 8 * m_Scale);
+                            using var roomBrush = new SolidBrush(oColorRoom);
+                            e.Graphics.FillRectangle(roomBrush, oWhere.X + 1, oWhere.Y + 1, 8 * m_Scale, 8 * m_Scale);
                             int iSpace = 2 * m_Scale;
-                            if (bCurrentRoom == true) // Draw "HERE" dot
+                            if (bCurrentRoom == true) // Draw "HERE" — thick border + X glyph
                             {
-                                e.Graphics.FillRectangle(Brushes.Magenta, oWhere.X + iSpace, oWhere.Y + iSpace, 8 * m_Scale - 2 * iSpace + 1, 8 * m_Scale - 2 * iSpace + 1);
+                                var hereColor = m_oGlobals.PresetList["automapper.here"].FgColor;
+                                using var hereBorderPen = new Pen(hereColor, 3);
+                                e.Graphics.DrawRectangle(hereBorderPen, oWhere.X, oWhere.Y, 8 * m_Scale, 8 * m_Scale);
+                                using var xPen = new Pen(ControlPaint.DarkDark(hereColor), 2);
+                                e.Graphics.DrawLine(xPen, oWhere.X + iSpace, oWhere.Y + iSpace, oWhere.X + 8 * m_Scale - iSpace, oWhere.Y + 8 * m_Scale - iSpace);
+                                e.Graphics.DrawLine(xPen, oWhere.X + 8 * m_Scale - iSpace, oWhere.Y + iSpace, oWhere.X + iSpace, oWhere.Y + 8 * m_Scale - iSpace);
+                            }
+                            else if (bPathNode)
+                            {
+                                using var pathBorderPen = new Pen(m_oGlobals.PresetList["automapper.path"].FgColor, 3);
+                                e.Graphics.DrawRectangle(pathBorderPen, oWhere.X, oWhere.Y, 8 * m_Scale, 8 * m_Scale);
+                            }
+                            else
+                            {
+                                using var borderPen = new Pen(oColorRoomBorder);
+                                e.Graphics.DrawRectangle(borderPen, oWhere.X, oWhere.Y, 8 * m_Scale, 8 * m_Scale);
                             }
                         }
                     }
@@ -1744,19 +1799,16 @@ namespace GenieClient.Mapper
                             oColorRoomBorder = m_oGlobals.PresetList["automapper.line"].BgColor;
                         }
 
+                        bool bPathNode = false;
                         if (!Information.IsNothing(m_SelectedNodes.Find(n.ID)))
                         {
-                            oColorRoom = Color.Blue;
+                            bPathNode = true;
                         }
                         else if (!Information.IsNothing(m_PathDestination))
                         {
-                            if (m_PathDestination.Equals(n))
+                            if (m_PathDestination.Equals(n) || n.State == Node.States.EndPath)
                             {
-                                oColorRoom = m_oGlobals.PresetList["automapper.path"].FgColor;
-                            }
-                            else if (n.State == Node.States.EndPath)
-                            {
-                                oColorRoom = m_oGlobals.PresetList["automapper.path"].BgColor;
+                                bPathNode = true;
                             }
                         }
 
@@ -1772,19 +1824,35 @@ namespace GenieClient.Mapper
                         if (n.IsLabelFile == true && n.Position.Z == m_CurrentLevelZ) // Other map
                         {
                             var oWhere = ConvertPoint(n.Position, 4 * m_Scale);
-                            e.Graphics.FillRectangle(new SolidBrush(oColorRoom), oWhere.X + 1, oWhere.Y + 1, 8 * m_Scale, 8 * m_Scale);
-                            e.Graphics.DrawRectangle(new Pen(Color.Blue, 2), oWhere.X, oWhere.Y, 8 * m_Scale, 8 * m_Scale);
+                            using var labelFillBrush = new SolidBrush(oColorRoom);
+                            e.Graphics.FillRectangle(labelFillBrush, oWhere.X + 1, oWhere.Y + 1, 8 * m_Scale, 8 * m_Scale);
+                            using var labelBorderPen = new Pen(m_oGlobals.PresetList["automapper.linego"].FgColor, 2);
+                            e.Graphics.DrawRectangle(labelBorderPen, oWhere.X, oWhere.Y, 8 * m_Scale, 8 * m_Scale);
                         }
                         else
                         {
-                            // Debug.WriteLine("Drawing node at "&& n.Position.ToString())
                             var oWhere = ConvertPoint(n.Position, 4 * m_Scale);
-                            e.Graphics.FillRectangle(new SolidBrush(oColorRoom), oWhere.X + 1, oWhere.Y + 1, 8 * m_Scale, 8 * m_Scale);
-                            e.Graphics.DrawRectangle(new Pen(oColorRoomBorder), oWhere.X, oWhere.Y, 8 * m_Scale, 8 * m_Scale);
+                            using var roomBrush = new SolidBrush(oColorRoom);
+                            e.Graphics.FillRectangle(roomBrush, oWhere.X + 1, oWhere.Y + 1, 8 * m_Scale, 8 * m_Scale);
                             int iSpace = 2 * m_Scale;
-                            if (bCurrentRoom == true) // Draw "HERE" dot
+                            if (bCurrentRoom == true) // Draw "HERE" — thick border + X glyph
                             {
-                                e.Graphics.FillRectangle(Brushes.Magenta, oWhere.X + iSpace, oWhere.Y + iSpace, 8 * m_Scale - 2 * iSpace + 1, 8 * m_Scale - 2 * iSpace + 1);
+                                var hereColor = m_oGlobals.PresetList["automapper.here"].FgColor;
+                                using var hereBorderPen = new Pen(hereColor, 3);
+                                e.Graphics.DrawRectangle(hereBorderPen, oWhere.X, oWhere.Y, 8 * m_Scale, 8 * m_Scale);
+                                using var xPen = new Pen(ControlPaint.DarkDark(hereColor), 2);
+                                e.Graphics.DrawLine(xPen, oWhere.X + iSpace, oWhere.Y + iSpace, oWhere.X + 8 * m_Scale - iSpace, oWhere.Y + 8 * m_Scale - iSpace);
+                                e.Graphics.DrawLine(xPen, oWhere.X + 8 * m_Scale - iSpace, oWhere.Y + iSpace, oWhere.X + iSpace, oWhere.Y + 8 * m_Scale - iSpace);
+                            }
+                            else if (bPathNode)
+                            {
+                                using var pathBorderPen = new Pen(m_oGlobals.PresetList["automapper.path"].FgColor, 3);
+                                e.Graphics.DrawRectangle(pathBorderPen, oWhere.X, oWhere.Y, 8 * m_Scale, 8 * m_Scale);
+                            }
+                            else
+                            {
+                                using var borderPen = new Pen(oColorRoomBorder);
+                                e.Graphics.DrawRectangle(borderPen, oWhere.X, oWhere.Y, 8 * m_Scale, 8 * m_Scale);
                             }
                         }
                     }
@@ -1817,7 +1885,7 @@ namespace GenieClient.Mapper
             // End If
 
             // Draw labels
-            Font LabelText = new Font(m_Font.Name, (m_Font.Size * m_Scale));
+            using Font LabelText = new Font(m_Font.Name, (m_Font.Size * m_Scale));
 
             if (!Information.IsNothing(m_NodeList))
             {
@@ -1841,17 +1909,20 @@ namespace GenieClient.Mapper
                         // r.X = PanelMap.Width - r.Width
                         // End If
 
-                        var b = Brushes.White;
-                        var bt = new SolidBrush(m_oGlobals.PresetList["automapper.panel"].FgColor);
                         if (m_SelectedLabels.Contains(l))
                         {
-                            b = Brushes.Blue;
-                            bt = new SolidBrush(Color.White);
-                            e.Graphics.FillRectangle(b, l.Rectangle.X, l.Rectangle.Y, l.Rectangle.Width, l.Rectangle.Height);
-                            e.Graphics.DrawRectangle(Pens.Black, l.Rectangle.X, l.Rectangle.Y, l.Rectangle.Width, l.Rectangle.Height);
+                            using var selBrush = new SolidBrush(m_oGlobals.PresetList["automapper.path"].FgColor);
+                            using var selTextBrush = new SolidBrush(m_oGlobals.PresetList["automapper.panel"].BgColor);
+                            using var selPen = new Pen(m_oGlobals.PresetList["automapper.line"].FgColor);
+                            e.Graphics.FillRectangle(selBrush, l.Rectangle.X, l.Rectangle.Y, l.Rectangle.Width, l.Rectangle.Height);
+                            e.Graphics.DrawRectangle(selPen, l.Rectangle.X, l.Rectangle.Y, l.Rectangle.Width, l.Rectangle.Height);
+                            e.Graphics.DrawString(l.Text, LabelText, selTextBrush, l.Rectangle.X + 1, l.Rectangle.Y + 1);
                         }
-
-                        e.Graphics.DrawString(l.Text, LabelText, bt, l.Rectangle.X + 1, l.Rectangle.Y + 1);
+                        else
+                        {
+                            using var textBrush = new SolidBrush(m_oGlobals.PresetList["automapper.panel"].FgColor);
+                            e.Graphics.DrawString(l.Text, LabelText, textBrush, l.Rectangle.X + 1, l.Rectangle.Y + 1);
+                        }
                     }
                 }
             }
@@ -1888,7 +1959,7 @@ namespace GenieClient.Mapper
             // Draw lasso
             if (!Information.IsNothing(m_LassoStart))
             {
-                var p = new Pen(m_oGlobals.PresetList["automapper.line"].FgColor);
+                using var p = new Pen(m_oGlobals.PresetList["automapper.line"].FgColor);
                 p.DashStyle = System.Drawing.Drawing2D.DashStyle.Dash;
                 e.Graphics.DrawRectangle(p, m_Lasso);
             }
@@ -2134,6 +2205,7 @@ namespace GenieClient.Mapper
 
         public void UpdateMap()
         {
+            if (InvokeRequired) { BeginInvoke(new Action(UpdateMap)); return; }
             PanelMap.Invalidate();
         }
 

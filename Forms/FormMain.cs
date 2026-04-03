@@ -36,6 +36,7 @@ namespace GenieClient
             m_PluginDialog = new FormPlugins(ref _m_oGlobals.PluginList);
             // This call is required by the Windows Form Designer.
             InitializeComponent();
+            Opacity = 0;
             RecolorUI();
             MapperSettings = new FormMapperSettings(ref _m_oGlobals) { MdiParent = this };
             MapperSettings.EventVariableChanged += ClassCommand_EventVariableChanged;
@@ -395,6 +396,7 @@ namespace GenieClient
                     _m_oGame.EventRoundTime -= Game_EventRoundtime;
                     _m_oGame.EventTriggerPrompt -= Game_EventTriggerPrompt;
                     _m_oGame.EventTriggerMove -= Game_EventTriggerMove;
+                    _m_oGame.EventGameDisconnected -= Game_EventGameDisconnected;
                 }
 
                 _m_oGame = value;
@@ -418,6 +420,7 @@ namespace GenieClient
                     _m_oGame.EventRoundTime += Game_EventRoundtime;
                     _m_oGame.EventTriggerPrompt += Game_EventTriggerPrompt;
                     _m_oGame.EventTriggerMove += Game_EventTriggerMove;
+                    _m_oGame.EventGameDisconnected += Game_EventGameDisconnected;
                 }
             }
         }
@@ -1210,16 +1213,17 @@ namespace GenieClient
             pluginUpdateItem.Click += updatePluginsToolStripMenuItem_Click;
             PluginsToolStripMenuItem.DropDownItems.Add(pluginUpdateItem);
 
-            ToolStripMenuItem pluginSeparator = new ToolStripMenuItem();
-            pluginSeparator.BackColor = m_oGlobals.PresetList["ui.menu"].BgColor;
-            pluginSeparator.ForeColor = m_oGlobals.PresetList["ui.menu"].FgColor;
-            pluginSeparator.Name = "ToolStripMenuItemPluginSeparator";
-            PluginsToolStripMenuItem.DropDownItems.Add(pluginSeparator);
+            bool separatorAdded = false;
             int I = 1;
             foreach (object oPlugin in m_oGlobals.PluginList)
             {
                 if (!Information.IsNothing(oPlugin))
                 {
+                    if (!separatorAdded)
+                    {
+                        PluginsToolStripMenuItem.DropDownItems.Add(new ToolStripSeparator());
+                        separatorAdded = true;
+                    }
                     pluginDialogItem = new ToolStripMenuItem();
                     pluginDialogItem.BackColor = m_oGlobals.PresetList["ui.menu"].BgColor;
                     pluginDialogItem.ForeColor = m_oGlobals.PresetList["ui.menu"].FgColor;
@@ -1559,44 +1563,6 @@ namespace GenieClient
             if (m.Msg == WM_CLOSE)
             {
                 bCloseAllDocument = true;
-                if (!Information.IsNothing(m_oAutoMapper))
-                {
-                    m_oAutoMapper.IsClosing = true;
-                }
-
-                foreach (object oPlugin in m_oGlobals.PluginList)
-                {
-                    if (oPlugin is GeniePlugin.Interfaces.IPlugin)
-                    {
-                        try
-                        {
-                            if ((oPlugin as GeniePlugin.Interfaces.IPlugin).Enabled)
-                                (oPlugin as GeniePlugin.Interfaces.IPlugin).ParentClosing();
-                        }
-                        /* TODO ERROR: Skipped IfDirectiveTrivia */
-                        catch (Exception ex)
-                        {
-                            ShowDialogPluginException((oPlugin as GeniePlugin.Interfaces.IPlugin), "ParentClosing", ex);
-                            (oPlugin as GeniePlugin.Interfaces.IPlugin).Enabled = false;
-                            /* TODO ERROR: Skipped ElseDirectiveTrivia *//* TODO ERROR: Skipped DisabledTextTrivia *//* TODO ERROR: Skipped EndIfDirectiveTrivia */
-                        }
-                    }
-                    else if (oPlugin is GeniePlugin.Plugins.IPlugin)
-                    {
-                        try
-                        {
-                            if ((oPlugin as GeniePlugin.Plugins.IPlugin).Enabled)
-                                (oPlugin as GeniePlugin.Plugins.IPlugin).ParentClosing();
-                        }
-                        /* TODO ERROR: Skipped IfDirectiveTrivia */
-                        catch (Exception ex)
-                        {
-                            ShowDialogPluginException((oPlugin as GeniePlugin.Plugins.IPlugin), "ParentClosing", ex);
-                            (oPlugin as GeniePlugin.Plugins.IPlugin).Enabled = false;
-                            /* TODO ERROR: Skipped ElseDirectiveTrivia *//* TODO ERROR: Skipped DisabledTextTrivia *//* TODO ERROR: Skipped EndIfDirectiveTrivia */
-                        }
-                    }
-                }
             }
 
             base.WndProc(ref m);
@@ -1613,20 +1579,54 @@ namespace GenieClient
             {
                 if (m_oGame.IsConnected == true & m_oGlobals.Config.bIgnoreCloseAlert == false)
                 {
-                    if (Interaction.MsgBox("You are connected to the game. Are you sure you want to close?", MsgBoxStyle.YesNo, "Genie") == MsgBoxResult.No)
+                    if (Interaction.MsgBox("You are connected to the game. Click Yes to quit the game and close Genie, or No to return.", MsgBoxStyle.YesNo, "Genie") == MsgBoxResult.No)
                     {
                         e.Cancel = true;
                         return;
                     }
+
+                    bCloseNow = true;
+                    e.Cancel = true;
+                    NotifyPluginsClosing();
+                    m_oGame.SendText("quit");
+                    return;
                 }
 
-                // If m_oOutputMain.Visible = True Then ' Check so we have windows first.
-                // If HasSettingsChanged() = True Then
-                // If MsgBox("Your window settings has changed. Do you wish to save them?", MsgBoxStyle.YesNo, "Genie") = MsgBoxResult.Yes Then
-                // SaveXMLConfig()
-                // End If
-                // End If
-                // End If
+                // Not connected — nothing to send quit to, just exit directly.
+                if (m_oGame.IsConnected == false)
+                {
+                    bCloseNow = true;
+                    NotifyPluginsClosing();
+                    m_oGame.Disconnect(true);
+                }
+            }
+        }
+
+        private void NotifyPluginsClosing()
+        {
+            if (!Information.IsNothing(m_oAutoMapper))
+                m_oAutoMapper.IsClosing = true;
+
+            foreach (object oPlugin in m_oGlobals.PluginList)
+            {
+                if (oPlugin is GeniePlugin.Interfaces.IPlugin legacy)
+                {
+                    try { if (legacy.Enabled) legacy.ParentClosing(); }
+                    catch (Exception ex)
+                    {
+                        ShowDialogPluginException(legacy, "ParentClosing", ex);
+                        legacy.Enabled = false;
+                    }
+                }
+                else if (oPlugin is GeniePlugin.Plugins.IPlugin modern)
+                {
+                    try { if (modern.Enabled) modern.ParentClosing(); }
+                    catch (Exception ex)
+                    {
+                        ShowDialogPluginException(modern, "ParentClosing", ex);
+                        modern.Enabled = false;
+                    }
+                }
             }
         }
 
@@ -1962,6 +1962,205 @@ namespace GenieClient
             }
         }
 
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            DarkModeManager.ApplyToWindow(Handle);
+        }
+
+        private enum ThemeMode { Dark, Light, Custom }
+        private ThemeMode _currentTheme = ThemeMode.Dark;
+
+        // Snapshot of UI preset colors loaded from presets.cfg, captured before ApplyTheme overwrites them
+        private (Color Fg, Color Bg) _snapMenu;
+        private Color _snapMenuHighlight;
+        private Color _snapMenuChecked;
+        private (Color Fg, Color Bg) _snapTextbox;
+        private (Color Fg, Color Bg) _snapStatus;
+        private (Color Fg, Color Bg) _snapMapPanel;
+        private (Color Fg, Color Bg) _snapMapNode;
+        private (Color Fg, Color Bg) _snapMapLine;
+        private (Color Fg, Color Bg) _snapMapLineStump;
+        private (Color Fg, Color Bg) _snapMapLineClimb;
+        private (Color Fg, Color Bg) _snapMapLineGo;
+        private (Color Fg, Color Bg) _snapMapPath;
+        private (Color Fg, Color Bg) _snapMapHere;
+
+        private void CapturePresetSnapshot()
+        {
+            var p = m_oGlobals.PresetList;
+            _snapMenu            = (p["ui.menu"].FgColor, p["ui.menu"].BgColor);
+            _snapMenuHighlight   = p["ui.menu.highlight"].FgColor;
+            _snapMenuChecked     = p["ui.menu.checked"].FgColor;
+            _snapTextbox         = (p["ui.textbox"].FgColor, p["ui.textbox"].BgColor);
+            _snapStatus          = (p["ui.status"].FgColor, p["ui.status"].BgColor);
+            _snapMapPanel        = (p["automapper.panel"].FgColor,     p["automapper.panel"].BgColor);
+            _snapMapNode         = (p["automapper.node"].FgColor,      p["automapper.node"].BgColor);
+            _snapMapLine         = (p["automapper.line"].FgColor,      p["automapper.line"].BgColor);
+            _snapMapLineStump    = (p["automapper.linestump"].FgColor, p["automapper.linestump"].BgColor);
+            _snapMapLineClimb    = (p["automapper.lineclimb"].FgColor, p["automapper.lineclimb"].BgColor);
+            _snapMapLineGo       = (p["automapper.linego"].FgColor,    p["automapper.linego"].BgColor);
+            _snapMapPath         = (p["automapper.path"].FgColor,      p["automapper.path"].BgColor);
+            _snapMapHere         = (p["automapper.here"].FgColor,      p["automapper.here"].BgColor);
+        }
+
+        private ToolStripMenuItem _themeItemDark;
+        private ToolStripMenuItem _themeItemLight;
+        private ToolStripMenuItem _themeItemCustom;
+
+        private void AddColorThemesMenu()
+        {
+            _themeItemDark = new ToolStripMenuItem("Dark Mode")   { CheckOnClick = false };
+            _themeItemLight = new ToolStripMenuItem("Light Mode") { CheckOnClick = false };
+            _themeItemCustom = new ToolStripMenuItem("Custom")    { CheckOnClick = false };
+
+            _themeItemDark.Click   += (s, e) => SelectTheme(ThemeMode.Dark);
+            _themeItemLight.Click  += (s, e) => SelectTheme(ThemeMode.Light);
+            _themeItemCustom.Click += (s, e) => SelectTheme(ThemeMode.Custom);
+
+            var colorThemesMenu = new ToolStripMenuItem("Color Themes");
+            colorThemesMenu.DropDownItems.AddRange(new ToolStripItem[]
+            {
+                _themeItemDark,
+                _themeItemLight,
+                _themeItemCustom
+            });
+
+            LayoutToolStripMenuItem.DropDownItems.Add(new ToolStripSeparator());
+            LayoutToolStripMenuItem.DropDownItems.Add(colorThemesMenu);
+
+            UpdateThemeCheckmarks();
+        }
+
+        private void SelectTheme(ThemeMode mode)
+        {
+            _currentTheme = mode;
+
+            bool osDark = mode == ThemeMode.Dark;
+            var handles = new System.Collections.Generic.List<IntPtr> { Handle };
+            foreach (Form child in MdiChildren)
+                if (child.IsHandleCreated)
+                    handles.Add(child.Handle);
+
+            DarkModeManager.SetDarkMode(osDark, handles.ToArray());
+            ApplyTheme(_currentTheme);
+            UpdateThemeCheckmarks();
+        }
+
+        private void UpdateThemeCheckmarks()
+        {
+            _themeItemDark.Checked   = _currentTheme == ThemeMode.Dark;
+            _themeItemLight.Checked  = _currentTheme == ThemeMode.Light;
+            _themeItemCustom.Checked = _currentTheme == ThemeMode.Custom;
+        }
+
+        private void ApplyTheme(ThemeMode mode)
+        {
+            var p = m_oGlobals.PresetList;
+
+            switch (mode)
+            {
+                case ThemeMode.Dark:
+                    p["ui.menu"].BgColor            = Color.FromArgb(28, 28, 30);
+                    p["ui.menu"].FgColor            = Color.FromArgb(232, 232, 234);
+                    p["ui.menu.highlight"].FgColor  = Color.FromArgb(58, 58, 62);
+                    p["ui.menu.checked"].FgColor    = Color.FromArgb(74, 74, 82);
+                    p["ui.textbox"].BgColor         = Color.FromArgb(28, 28, 30);
+                    p["ui.textbox"].FgColor         = Color.FromArgb(232, 232, 234);
+                    p["ui.status"].BgColor          = Color.FromArgb(30, 30, 32);
+                    p["ui.status"].FgColor          = Color.FromArgb(208, 208, 212);
+                    p["automapper.panel"].FgColor      = Color.FromArgb(208, 208, 212);
+                    p["automapper.panel"].BgColor      = Color.FromArgb(26, 26, 28);
+                    p["automapper.node"].FgColor       = Color.FromArgb(160, 160, 168);
+                    p["automapper.node"].BgColor       = Color.FromArgb(80, 80, 88);
+                    p["automapper.line"].FgColor       = Color.FromArgb(112, 112, 120);
+                    p["automapper.line"].BgColor       = Color.FromArgb(64, 64, 72);
+                    p["automapper.linestump"].FgColor  = Color.FromArgb(0, 188, 212);
+                    p["automapper.linestump"].BgColor  = Color.FromArgb(0, 96, 112);
+                    p["automapper.lineclimb"].FgColor  = Color.FromArgb(102, 187, 106);
+                    p["automapper.lineclimb"].BgColor  = Color.FromArgb(46, 125, 50);
+                    p["automapper.linego"].FgColor     = Color.FromArgb(91, 155, 213);
+                    p["automapper.linego"].BgColor     = Color.FromArgb(30, 77, 122);
+                    p["automapper.path"].FgColor       = Color.FromArgb(0, 230, 118);
+                    p["automapper.path"].BgColor       = Color.FromArgb(0, 200, 100);
+                    p["automapper.here"].FgColor       = Color.FromArgb(255, 160, 0);
+                    p["automapper.here"].BgColor       = Color.FromArgb(255, 160, 0);
+                    break;
+
+                case ThemeMode.Light:
+                    p["ui.menu"].BgColor            = Color.FromArgb(232, 232, 234);
+                    p["ui.menu"].FgColor            = Color.FromArgb(28, 28, 30);
+                    p["ui.menu.highlight"].FgColor  = Color.FromArgb(200, 200, 208);
+                    p["ui.menu.checked"].FgColor    = Color.FromArgb(160, 160, 168);
+                    p["ui.textbox"].BgColor         = Color.White;
+                    p["ui.textbox"].FgColor         = Color.Black;
+                    p["ui.status"].BgColor          = Color.FromArgb(238, 238, 238);
+                    p["ui.status"].FgColor          = Color.Black;
+                    p["automapper.panel"].FgColor      = Color.Black;
+                    p["automapper.panel"].BgColor      = Color.PaleGoldenrod;
+                    p["automapper.node"].FgColor       = Color.White;
+                    p["automapper.node"].BgColor       = Color.White;
+                    p["automapper.line"].FgColor       = Color.Black;
+                    p["automapper.line"].BgColor       = Color.White;
+                    p["automapper.linestump"].FgColor  = Color.Cyan;
+                    p["automapper.linestump"].BgColor  = Color.White;
+                    p["automapper.lineclimb"].FgColor  = Color.Green;
+                    p["automapper.lineclimb"].BgColor  = Color.White;
+                    p["automapper.linego"].FgColor     = Color.Blue;
+                    p["automapper.linego"].BgColor     = Color.White;
+                    p["automapper.path"].FgColor       = Color.FromArgb(0, 150, 60);
+                    p["automapper.path"].BgColor       = Color.FromArgb(0, 180, 80);
+                    p["automapper.here"].FgColor       = Color.FromArgb(180, 0, 0);
+                    p["automapper.here"].BgColor       = Color.FromArgb(180, 0, 0);
+                    break;
+
+                case ThemeMode.Custom:
+                    // Restore exactly what presets.cfg contained
+                    p["ui.menu"].FgColor            = _snapMenu.Fg;
+                    p["ui.menu"].BgColor            = _snapMenu.Bg;
+                    p["ui.menu.highlight"].FgColor  = _snapMenuHighlight;
+                    p["ui.menu.checked"].FgColor    = _snapMenuChecked;
+                    p["ui.textbox"].FgColor         = _snapTextbox.Fg;
+                    p["ui.textbox"].BgColor         = _snapTextbox.Bg;
+                    p["ui.status"].FgColor          = _snapStatus.Fg;
+                    p["ui.status"].BgColor          = _snapStatus.Bg;
+                    p["automapper.panel"].FgColor      = _snapMapPanel.Fg;
+                    p["automapper.panel"].BgColor      = _snapMapPanel.Bg;
+                    p["automapper.node"].FgColor       = _snapMapNode.Fg;
+                    p["automapper.node"].BgColor       = _snapMapNode.Bg;
+                    p["automapper.line"].FgColor       = _snapMapLine.Fg;
+                    p["automapper.line"].BgColor       = _snapMapLine.Bg;
+                    p["automapper.linestump"].FgColor  = _snapMapLineStump.Fg;
+                    p["automapper.linestump"].BgColor  = _snapMapLineStump.Bg;
+                    p["automapper.lineclimb"].FgColor  = _snapMapLineClimb.Fg;
+                    p["automapper.lineclimb"].BgColor  = _snapMapLineClimb.Bg;
+                    p["automapper.linego"].FgColor     = _snapMapLineGo.Fg;
+                    p["automapper.linego"].BgColor     = _snapMapLineGo.Bg;
+                    p["automapper.path"].FgColor       = _snapMapPath.Fg;
+                    p["automapper.path"].BgColor       = _snapMapPath.Bg;
+                    p["automapper.here"].FgColor       = _snapMapHere.Fg;
+                    p["automapper.here"].BgColor       = _snapMapHere.Bg;
+                    break;
+            }
+
+            RecolorUI();
+
+            bool dark = mode == ThemeMode.Dark;
+
+            // MDI client background
+            foreach (Control ctl in Controls)
+                if (ctl is MdiClient)
+                    ctl.BackColor = dark ? Color.FromArgb(20, 20, 22) : Color.FromArgb(210, 210, 215);
+
+            // FormSkin child title bars
+            FormSkin.SetTheme(dark);
+            foreach (Form child in MdiChildren)
+                if (child.IsHandleCreated && child.Visible)
+                    child.Invalidate();
+
+            m_oAutoMapper?.UpdatePanelBackgroundColor();
+        }
+
         private void FormMain_Load(object sender, EventArgs e)
         {
             /* TODO ERROR: Skipped IfDirectiveTrivia */
@@ -1992,17 +2191,18 @@ namespace GenieClient
                 LayoutBasic();
             }
 
+            AddColorThemesMenu();
+
             ShowForm(m_oOutputMain);
             ShowOutputForms();
             TextBoxInput.Focus();
-            Application.DoEvents();
 
             AppendText("Using Encoding: " + Encoding.Default.EncodingName + System.Environment.NewLine);
             AppendText("Genie User Data Path: " + LocalDirectory.Path + System.Environment.NewLine + System.Environment.NewLine);
 
             // AppendText(vbNewLine & _
             // "THIS SOFTWARE AND THE ACCOMPANYING FILES ARE SENT ""AS IS"" AND WITHOUT WARRANTY AS TO PERFORMANCE OF MERCHANTABILITY OR ANY OTHER WARRANTIES WHETHER EXPRESSED OR IMPLIED." & vbNewLine & _
-            // "The software authors will not be held liable for any damage to your computer system, data files, gaming environment, or for any actions brought against you for using this software. The user must assume the entire risk of running this software." & vbNewLine & _
+            // "The software authors will not be held liable for any damage to your computer system, data files, gaming environment, or for any actions kept against you for using this software. The user must assume the entire risk of running this software." & vbNewLine & _
             // "You may not redistribute this software in any way shape or form without the written permission from the author." & vbNewLine & _
             // vbNewLine & _
             // "BY USING THIS SOFTWARE YOU AGREE TO THE ABOVE STATED TERMS " & vbNewLine & vbNewLine)
@@ -2017,6 +2217,11 @@ namespace GenieClient
             string argsPreset = "all";
             PresetChanged(argsPreset);
             RecolorUI();
+            // Snapshot what presets.cfg contained so Custom mode can restore it later,
+            // then apply dark theme over the top (saved UI colors would otherwise override it).
+            CapturePresetSnapshot();
+            ApplyTheme(_currentTheme);
+            Opacity = 1;
             AppendText("OK" + System.Environment.NewLine);
             Application.DoEvents();
             AppendText("Loading Global Variables...");
@@ -4777,7 +4982,7 @@ namespace GenieClient
             if (InvokeRequired == true)
             {
                 var parameters = new object[] { sText, oColor, oBgColor, oTargetWindow, bNoCache, bMono };
-                Invoke(new AddTextDelegate(InvokeAddText), parameters);
+                BeginInvoke(new AddTextDelegate(InvokeAddText), parameters);
             }
             else
             {
@@ -5963,6 +6168,20 @@ namespace GenieClient
         private void DisconnectFromGame()
         {
             m_oGame.Disconnect();
+        }
+
+        private void Game_EventGameDisconnected()
+        {
+            // If the user confirmed close (bCloseNow), exit as soon as the connection
+            // drops — regardless of whether it was a clean disconnect or Lich closing
+            // the socket before the <exit/> tag was fully parsed.
+            if (bCloseNow)
+            {
+                if (InvokeRequired)
+                    Invoke(new Action(() => Application.Exit()));
+                else
+                    Application.Exit();
+            }
         }
 
         private void DisconnectAndExit()
@@ -7375,7 +7594,7 @@ namespace GenieClient
             if (bVisible == true)
             {
                 TableLayoutPanelBars.ColumnCount = 5;
-                TableLayoutPanelFlow.ColumnCount = 7;
+                TableLayoutPanelFlow.ColumnCount = 8;
             }
             else
             {

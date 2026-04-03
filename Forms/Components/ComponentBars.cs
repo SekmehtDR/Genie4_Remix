@@ -17,8 +17,8 @@ namespace GenieClient
         private string m_Text = string.Empty;
         private Color m_BackgroundColor = Color.Black;
         private Color m_ForegroundColor = Color.Gray;
-        private Pen m_BorderColor = Pens.Gray;
-        private Pen m_BorderColorGrayScale = Pens.Gray;
+        private Pen m_BorderColor = new Pen(Color.Gray);
+        private Pen m_BorderColorGrayScale = new Pen(Color.Gray);
 
         // Private myImage As Image = Image.FromFile("RT.bmp")
 
@@ -28,7 +28,7 @@ namespace GenieClient
 
             if (m_CurrentValue > 0)
             {
-                var myTextureBrush = new SolidBrush((Color)Interaction.IIf(m_IsConnected, m_ForegroundColor, Genie.ColorCode.ColorToGrayscale(m_ForegroundColor)));
+                using var myTextureBrush = new SolidBrush((Color)Interaction.IIf(m_IsConnected, m_ForegroundColor, Genie.ColorCode.ColorToGrayscale(m_ForegroundColor)));
                 int w = Conversions.ToInteger(Math.Round(Width / (double)100 * m_CurrentValue));
                 e.Graphics.FillRectangle(myTextureBrush, 0, 0, w, PanelBar.Height);
                 Pen argp = (Pen)Interaction.IIf(m_IsConnected, m_BorderColor, m_BorderColorGrayScale);
@@ -105,6 +105,8 @@ namespace GenieClient
 
             set
             {
+                m_BorderColor.Dispose();
+                m_BorderColorGrayScale.Dispose();
                 m_BorderColor = new Pen(value);
                 m_BorderColorGrayScale = new Pen(Genie.ColorCode.ColorToGrayscale(value));
                 Invalidate();

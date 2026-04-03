@@ -158,23 +158,21 @@ namespace GenieClient.Genie
                     }
 
                     al.Sort();
-                    string sList = string.Empty;
+                    var sbString = new System.Text.StringBuilder();
                     foreach (string s in al)
                     {
-                        if (sList.Length > 0)
-                        {
-                            sList += "|";
-                        }
-
-                        sList += Regex.Replace(s, @"([^A-Za-z0-9\s])", @"\$1");
+                        if (sbString.Length > 0)
+                            sbString.Append('|');
+                        sbString.Append(Regex.Replace(s, @"([^A-Za-z0-9\s])", @"\$1"));
                     }
 
-                    if (sList.Length > 0)
+                    if (sbString.Length > 0)
                     {
-                        sList = "(" + sList + ")";
+                        sbString.Insert(0, '(');
+                        sbString.Append(')');
                     }
 
-                    RegexString = new Regex(sList);
+                    RegexString = new Regex(sbString.ToString(), RegexOptions.Compiled);
                 }
                 finally
                 {
@@ -206,23 +204,21 @@ namespace GenieClient.Genie
                     }
 
                     al.Sort();
-                    string sList = string.Empty;
+                    var sbLine = new System.Text.StringBuilder();
                     foreach (string s in al)
                     {
-                        if (sList.Length > 0)
-                        {
-                            sList += "|";
-                        }
-
-                        sList += Regex.Replace(s, @"([^A-Za-z0-9\s])", @"\$1");
+                        if (sbLine.Length > 0)
+                            sbLine.Append('|');
+                        sbLine.Append(Regex.Replace(s, @"([^A-Za-z0-9\s])", @"\$1"));
                     }
 
-                    if (sList.Length > 0)
+                    if (sbLine.Length > 0)
                     {
-                        sList = "(" + sList + ")";
+                        sbLine.Insert(0, '(');
+                        sbLine.Append(')');
                     }
 
-                    RegexLine = new Regex(sList);
+                    RegexLine = new Regex(sbLine.ToString(), RegexOptions.Compiled);
                 }
                 finally
                 {

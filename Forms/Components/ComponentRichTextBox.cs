@@ -133,6 +133,12 @@ namespace GenieClient
         /* TODO ERROR: Skipped EndRegionDirectiveTrivia */
         /* TODO ERROR: Skipped EndRegionDirectiveTrivia */
         private Win32Utility Win32Utility = new Win32Utility();
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            Win32Utility.SetWindowTheme(Handle, "DarkMode_Explorer", null);
+        }
         // private int m_iMaxScroll = int.MinValue;
         private int m_iEndLine = int.MinValue;
         private FormSkin m_oParentForm;
@@ -543,39 +549,44 @@ namespace GenieClient
                         m_oRichTextBuffer.SelectionBackColor = Highlight.BgColor;
                     }
                 }
+                if (Conversions.ToBoolean(Highlight.SoundFile.Length > 0 && m_oParentForm.Globals.Config.bPlaySounds))
+                    Sound.PlayWaveFile(Highlight.SoundFile);
             }
             
         }
 
         private void ParseVolatileHighlights(List<VolatileHighlight> highlightList)
         {
-            foreach (VolatileHighlight highlight in highlightList.ToArray())
+            VolatileHighlight[] highlights = highlightList.ToArray();
+            if (highlights.Length == 0) return;
+
+            // Snapshot the buffer text and split lines once — shared across all highlights
+            string bufferText = m_oRichTextBuffer.Text;
+            string[] lines = bufferText.Split('\n');
+
+            foreach (VolatileHighlight highlight in highlights)
             {
                 int runningPosition = 0;
                 int lineIndex = 0;
-                foreach (string line in m_oRichTextBuffer.Text.Split('\n'))
+                foreach (string line in lines)
                 {
                     int timestampOffset = 0;
-                    if (line.Length >= highlight.EndIndex + timestampOffset)
-                    {
-                        string sample = line.Substring(highlight.StartIndex + timestampOffset, highlight.Length);
-                    }
                     if (m_bTimeStamp)
                     {
                         timestampOffset += GetTimeString(line).Length;
                     }
                     if (m_oParentForm.Globals.PresetList[highlight.Preset].bHighlightLine && line.Contains(highlight.Text))
                     {
-                        int indexOfHighlight = m_oRichTextBuffer.Text.IndexOf(highlight);
-                        int lastNewLineIndex = m_oRichTextBuffer.Text.LastIndexOf("\n", indexOfHighlight);
-                        int nextNewLineIndex = m_oRichTextBuffer.Text.IndexOf("\n", indexOfHighlight);
+                        int indexOfHighlight = bufferText.IndexOf(highlight.Text);
+                        int lastNewLineIndex = bufferText.LastIndexOf("\n", indexOfHighlight);
+                        int nextNewLineIndex = bufferText.IndexOf("\n", indexOfHighlight);
                         if (lastNewLineIndex == -1) lastNewLineIndex = 0;
-                        if (nextNewLineIndex == -1) nextNewLineIndex = m_oRichTextBuffer.Text.Length;
+                        if (nextNewLineIndex == -1) nextNewLineIndex = bufferText.Length;
                         m_oRichTextBuffer.SelectionStart = lastNewLineIndex >= 0 ? lastNewLineIndex : 0;
                         m_oRichTextBuffer.SelectionLength = nextNewLineIndex - lastNewLineIndex;
                     }
                     else if (line.Length >= highlight.EndIndex + timestampOffset
-                        && line.Substring(highlight.StartIndex + timestampOffset, highlight.Length) == highlight)
+                        && line.Substring(highlight.StartIndex + timestampOffset, highlight.Length) == highlight.Text)
                     {
                         m_oRichTextBuffer.SelectionStart = runningPosition + timestampOffset + highlight.StartIndex;
                         m_oRichTextBuffer.SelectionLength = highlight.Length;
@@ -598,7 +609,6 @@ namespace GenieClient
                     lineIndex += 1;
                     runningPosition += line.Length + 1; //add 1 to account for the \n characters removed by the split
                 }
-
             }
         }
         private void ParseHighlights()
