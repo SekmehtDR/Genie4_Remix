@@ -372,11 +372,13 @@ namespace GenieClient
             Clipboard.Clear();
             Clipboard.SetDataObject(image);
             this.ReadOnly = false;
-            this.Select(this.TextLength,0);
+            this.Select(this.TextLength, 0);
             this.Paste(DataFormats.GetFormat(DataFormats.Bitmap));
             this.ReadOnly = true;
             Clipboard.Clear();
             Clipboard.SetDataObject(obj);
+            this.Select(this.TextLength, 0);
+            this.SelectedText = Environment.NewLine;
         }
         public void TryInvalidate()
         {
