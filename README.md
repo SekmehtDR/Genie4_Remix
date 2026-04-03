@@ -98,6 +98,7 @@
 
 ### v4.0.3.1
 #### Bug Fixes
+- **Merged upstream/Dev-4-0-2-10** — <a href="https://github.com/GenieClient/Genie4/commits/Dev-4-0-2-10/"> Merged upstream/Dev-4-0-2-10</a> branch.
 - **Automapper Maps Load without Lich** — Pull request code "Add support for ShowRoomID flag" was added - <a href="https://github.com/GenieClient/Genie4/pull/175"> Genie4/pull/175</a>.
 - **Fix sounds not playing for regex highlights** — Pull request code "Add support for ShowRoomIFix sounds not playing for regex highlights" was added - <a href="github.com/GenieClient/Genie4/pull/177"> Genie4/pull/177</a>.
 - **Running script context menu restored** — The dropdown arrow and context menu (Resume, Pause, Abort, Debug, Show Trace, Show Vars, Edit) on running script toolbar buttons were no longer visible after the custom `MenuRenderer` was introduced. The base `ToolStripRenderer` does not paint split button backgrounds, so the dropdown zone was invisible. Added `OnRenderSplitButtonBackground` to explicitly render the button area, a theme-adaptive tinted dropdown zone, a divider line, and a filled down-arrow glyph. Works correctly across Dark, Light, and Custom themes.
