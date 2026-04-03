@@ -3450,7 +3450,7 @@ namespace GenieClient
                             string argsTargetWindow = "";
                             AddText(argsText, argoColor, argoBgColor, oTargetWindow: argoTargetWindow, sTargetWindow: argsTargetWindow);
                             if (m_oGlobals.Config.bAutoLog)
-                                m_oGlobals.Log?.LogText(argsText, m_oGlobals.VariableList["charactername"].ToString(), m_oGlobals.VariableList["game"].ToString());
+                                m_oGlobals.Log?.LogText(System.Environment.NewLine + argsText, m_oGlobals.VariableList["charactername"].ToString(), m_oGlobals.VariableList["game"].ToString());
                             Genie.Game.WindowTarget argoTargetWindow1 = Genie.Game.WindowTarget.Main;
                             AddText(System.Environment.NewLine, oTargetWindow: argoTargetWindow1);
                         }
@@ -5467,7 +5467,7 @@ namespace GenieClient
             string argsTargetWindow = "";
             AddText(sText, oColor, oBgColor, oTargetWindow: argoTargetWindow, sTargetWindow: argsTargetWindow);
             if (m_oGlobals.Config.bAutoLog)
-                m_oGlobals.Log?.LogText(sText, m_oGlobals.VariableList["charactername"].ToString(), m_oGlobals.VariableList["game"].ToString());
+                m_oGlobals.Log?.LogText(System.Environment.NewLine + sText, m_oGlobals.VariableList["charactername"].ToString(), m_oGlobals.VariableList["game"].ToString());
         }
 
         private void Simutronics_EventEndUpdate()
