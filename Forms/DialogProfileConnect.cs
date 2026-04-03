@@ -175,24 +175,29 @@ namespace GenieClient
 
         private void EditNote_Click(object sender, EventArgs e)
         {
+            if (_profiles.SelectedNode == null || _profiles.SelectedNode.Level != 2) return;
 
-            if (_profiles.SelectedNode.Level == 2)
+            int noteStart = _profiles.SelectedNode.Text.IndexOf(" - ");
+            string noteText = string.Empty;
+            if (noteStart > 0) noteText = _profiles.SelectedNode.Text.Substring(noteStart + 3).Trim();
+            My.MyProject.Forms.DialogProfileNote.NoteText = noteText;
+
+            // DialogProfileConnect is TopMost=true. Temporarily release TopMost so that
+            // the note dialog can appear above this window instead of hiding behind it.
+            TopMost = false;
+            DialogResult result = My.MyProject.Forms.DialogProfileNote.ShowDialog(this);
+            TopMost = true;
+
+            if (result == DialogResult.OK)
             {
-                int noteStart = _profiles.SelectedNode.Text.IndexOf(" - ");
-                string noteText = "";
-                if (noteStart > 0) noteText = _profiles.SelectedNode.Text.Substring(noteStart + 3).Trim();
-                My.MyProject.Forms.DialogProfileNote.NoteText = noteText;
-                if (My.MyProject.Forms.DialogProfileNote.ShowDialog(Parent) == DialogResult.OK)
-                {
-                    string note = My.MyProject.Forms.DialogProfileNote.NoteText;
-                    string profileText = _profiles.SelectedNode.Name;
-                    if (!string.IsNullOrWhiteSpace(note)) profileText += $" - {note}";
-                    _profiles.SelectedNode.Text = profileText;
-                    Genie.XMLConfig xml = new XMLConfig();
-                    xml.LoadFile(_profiles.SelectedNode.Tag.ToString());
-                    xml.SetValue("Genie/Profile", "Note", note);
-                    xml.SaveToFile(_profiles.SelectedNode.Tag.ToString());
-                }
+                string note = My.MyProject.Forms.DialogProfileNote.NoteText;
+                string profileText = _profiles.SelectedNode.Name;
+                if (!string.IsNullOrWhiteSpace(note)) profileText += $" - {note}";
+                _profiles.SelectedNode.Text = profileText;
+                Genie.XMLConfig xml = new XMLConfig();
+                xml.LoadFile(_profiles.SelectedNode.Tag.ToString());
+                xml.SetValue("Genie/Profile", "Note", note);
+                xml.SaveToFile(_profiles.SelectedNode.Tag.ToString());
             }
         }
     }

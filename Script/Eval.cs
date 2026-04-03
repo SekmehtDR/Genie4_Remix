@@ -520,7 +520,21 @@ namespace GenieClient.Genie.Script
 
                         case ParseType.SeparatorType:
                             {
-                                iComparer = j;
+                                // Logical operators (&&, ||) are not comparison operators — they act as
+                                // group boundaries in this pass. Reset iArgLeft so the left operand of
+                                // one group cannot bleed into the right operand of an unrelated comparison
+                                // on the other side of the logical operator (fixes #145: contains() with
+                                // multi-condition evaluation).
+                                var sep = ((Sections)oSections[j]).sBlock;
+                                if (sep == "&&" || sep == "||")
+                                {
+                                    iArgLeft = -1;
+                                    iComparer = -1;
+                                }
+                                else
+                                {
+                                    iComparer = j;
+                                }
                                 break;
                             }
                     }

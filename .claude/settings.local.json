@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -E \"\\\\.cs$\")"
+      "Bash(grep -E \"\\\\.cs$\")",
+      "Bash(wc -l /c/temp/Genie_Remix/Genie4_Remix/Forms/FormMain.cs /c/temp/Genie_Remix/Genie4_Remix/Core/*.cs /c/temp/Genie_Remix/Genie4_Remix/Mapper/AutoMapper.cs /c/temp/Genie_Remix/Genie4_Remix/Lists/*.cs)",
+      "Bash(gh issue:*)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
