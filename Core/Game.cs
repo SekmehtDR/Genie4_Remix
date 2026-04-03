@@ -2281,6 +2281,10 @@ namespace GenieClient.Genie
                                 m_oGlobals.VariableList.Add(argkey41, argvalue17, Globals.Variables.VariableType.Reserved);
                                 string argsVariable39 = "$gametime";
                                 VariableChanged(argsVariable39);
+                                // Update $unixtime alongside $gametime so waiteval conditions
+                                // using $unixtime re-evaluate on each server tick (fixes #179).
+                                m_oGlobals.VariableList.Add("unixtime", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), Globals.Variables.VariableType.Reserved);
+                                VariableChanged("$unixtime");
                                 int rt = m_iRoundTime - m_iGameTime;
                                 if (rt > 0)
                                 {
