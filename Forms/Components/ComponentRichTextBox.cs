@@ -531,19 +531,72 @@ namespace GenieClient
             public string Command;
         }
 
+        // Matches a timestamp prefix like "[12:34 PM] " or "[14:30] " at the start of a line
+        private static readonly Regex _timestampPrefixRx = new Regex(@"^\[\d{1,2}:\d{2}[^\]]*\] ?");
+
+        /// <summary>
+        /// Builds a version of the buffer text with timestamp prefixes removed from each line,
+        /// along with a position map from stripped-text indices back to original-text indices.
+        /// Used so that user regex patterns with ^ / $ anchors work against game content, not timestamps.
+        /// </summary>
+        private (string strippedText, int[] positionMap) StripTimestampsForMatching(string text)
+        {
+            var sb = new System.Text.StringBuilder(text.Length);
+            var map = new int[text.Length + 1];
+            int strippedPos = 0;
+            int lineStart = 0;
+
+            while (lineStart <= text.Length)
+            {
+                int lineEnd = text.IndexOf('\n', lineStart);
+                bool lastLine = lineEnd < 0;
+                if (lastLine) lineEnd = text.Length;
+
+                string line = text.Substring(lineStart, lineEnd - lineStart);
+                Match tsMatch = _timestampPrefixRx.Match(line);
+                int tsLen = tsMatch.Success ? tsMatch.Length : 0;
+
+                for (int k = tsLen; k < line.Length; k++)
+                {
+                    map[strippedPos] = lineStart + k;
+                    sb.Append(line[k]);
+                    strippedPos++;
+                }
+
+                if (!lastLine)
+                {
+                    map[strippedPos] = lineEnd;
+                    sb.Append('\n');
+                    strippedPos++;
+                }
+
+                lineStart = lineEnd + 1;
+            }
+
+            return (sb.ToString(), map);
+        }
+
         private void ParseRegExpHighlight(HighlightRegExp.Highlight Highlight)
         {
-            foreach (Match oMatch in Highlight.HighlightRegex.Matches(m_oRichTextBuffer.Text))
+            string matchText = m_oRichTextBuffer.Text;
+            int[] positionMap = null;
+            if (m_bTimeStamp)
+            {
+                (matchText, positionMap) = StripTimestampsForMatching(matchText);
+            }
+
+            foreach (Match oMatch in Highlight.HighlightRegex.Matches(matchText))
             {
                 for (int i = 1; i < oMatch.Groups.Count; i++)
                 {
-                    m_oRichTextBuffer.SelectionStart = oMatch.Groups[i].Index;
+                    int idx = positionMap != null ? positionMap[oMatch.Groups[i].Index] : oMatch.Groups[i].Index;
+                    m_oRichTextBuffer.SelectionStart = idx;
                     m_oRichTextBuffer.SelectionLength = oMatch.Groups[i].Length;
                     if (Highlight.FgColor != Color.Transparent & Highlight.FgColor != m_oEmptyColor)
                     {
                         m_oRichTextBuffer.SelectionColor = Highlight.FgColor;
                     }
-    
+
                     if (Highlight.BgColor != Color.Transparent & Highlight.FgColor != m_oEmptyColor)
                     {
                         m_oRichTextBuffer.SelectionBackColor = Highlight.BgColor;
@@ -552,7 +605,6 @@ namespace GenieClient
                 if (Conversions.ToBoolean(Highlight.SoundFile.Length > 0 && m_oParentForm.Globals.Config.bPlaySounds))
                     Sound.PlayWaveFile(Highlight.SoundFile);
             }
-            
         }
 
         private void ParseVolatileHighlights(List<VolatileHighlight> highlightList)
