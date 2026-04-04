@@ -1187,11 +1187,11 @@ namespace GenieClient
             _TableLayoutPanelBars.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
             _TableLayoutPanelBars.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
             _TableLayoutPanelBars.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20F));
-            _TableLayoutPanelBars.Controls.Add(_ComponentBarsConc, 1, 0);
-            _TableLayoutPanelBars.Controls.Add(_ComponentBarsFatigue, 2, 0);
-            _TableLayoutPanelBars.Controls.Add(_ComponentBarsMana, 0, 0);
-            _TableLayoutPanelBars.Controls.Add(_ComponentBarsSpirit, 3, 0);
             _TableLayoutPanelBars.Controls.Add(_ComponentBarsHealth, 0, 0);
+            _TableLayoutPanelBars.Controls.Add(_ComponentBarsMana, 1, 0);
+            _TableLayoutPanelBars.Controls.Add(_ComponentBarsConc, 2, 0);
+            _TableLayoutPanelBars.Controls.Add(_ComponentBarsFatigue, 3, 0);
+            _TableLayoutPanelBars.Controls.Add(_ComponentBarsSpirit, 4, 0);
             _TableLayoutPanelBars.Dock = DockStyle.Fill;
             _TableLayoutPanelBars.Location = new Point(0, 0);
             _TableLayoutPanelBars.Margin = new Padding(0);
