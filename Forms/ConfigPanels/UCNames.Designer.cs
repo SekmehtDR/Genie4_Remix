@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.CompilerServices;
@@ -33,7 +33,6 @@ namespace GenieClient
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(UCName));
             this._ListViewBase = new System.Windows.Forms.ListView();
             this._ContextMenuStripBase = new System.Windows.Forms.ContextMenuStrip(this.components);
             this._AddToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -92,7 +91,7 @@ namespace GenieClient
             // 
             // _AddToolStripMenuItem
             // 
-            this._AddToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("_AddToolStripMenuItem.Image")));
+            this._AddToolStripMenuItem.Image = My.Resources.Resources.list_add;
             this._AddToolStripMenuItem.Name = "_AddToolStripMenuItem";
             this._AddToolStripMenuItem.Size = new System.Drawing.Size(117, 22);
             this._AddToolStripMenuItem.Text = "Add";
@@ -101,7 +100,7 @@ namespace GenieClient
             // _RemoveToolStripMenuItem
             // 
             this._RemoveToolStripMenuItem.Enabled = false;
-            this._RemoveToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("_RemoveToolStripMenuItem.Image")));
+            this._RemoveToolStripMenuItem.Image = My.Resources.Resources.user_trash;
             this._RemoveToolStripMenuItem.Name = "_RemoveToolStripMenuItem";
             this._RemoveToolStripMenuItem.Size = new System.Drawing.Size(117, 22);
             this._RemoveToolStripMenuItem.Text = "Remove";
@@ -130,7 +129,7 @@ namespace GenieClient
             // 
             // _ButtonColorBg
             // 
-            this._ButtonColorBg.Image = ((System.Drawing.Image)(resources.GetObject("_ButtonColorBg.Image")));
+            this._ButtonColorBg.Image = My.Resources.Resources.applications_graphics;
             this._ButtonColorBg.Location = new System.Drawing.Point(491, 36);
             this._ButtonColorBg.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this._ButtonColorBg.Name = "_ButtonColorBg";
@@ -154,7 +153,7 @@ namespace GenieClient
             // 
             // _ButtonColorFg
             // 
-            this._ButtonColorFg.Image = ((System.Drawing.Image)(resources.GetObject("_ButtonColorFg.Image")));
+            this._ButtonColorFg.Image = My.Resources.Resources.accessories_text_editor;
             this._ButtonColorFg.Location = new System.Drawing.Point(457, 36);
             this._ButtonColorFg.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             this._ButtonColorFg.Name = "_ButtonColorFg";
@@ -237,7 +236,7 @@ namespace GenieClient
             // 
             // _ToolStripButtonRefresh
             // 
-            this._ToolStripButtonRefresh.Image = ((System.Drawing.Image)(resources.GetObject("_ToolStripButtonRefresh.Image")));
+            this._ToolStripButtonRefresh.Image = My.Resources.Resources.view_refresh;
             this._ToolStripButtonRefresh.ImageTransparentColor = System.Drawing.Color.Magenta;
             this._ToolStripButtonRefresh.Name = "_ToolStripButtonRefresh";
             this._ToolStripButtonRefresh.Size = new System.Drawing.Size(66, 22);
@@ -250,7 +249,7 @@ namespace GenieClient
             // 
             // _ToolStripButtonAdd
             // 
-            this._ToolStripButtonAdd.Image = ((System.Drawing.Image)(resources.GetObject("_ToolStripButtonAdd.Image")));
+            this._ToolStripButtonAdd.Image = My.Resources.Resources.list_add;
             this._ToolStripButtonAdd.ImageTransparentColor = System.Drawing.Color.Magenta;
             this._ToolStripButtonAdd.Name = "_ToolStripButtonAdd";
             this._ToolStripButtonAdd.Size = new System.Drawing.Size(49, 22);
@@ -260,7 +259,7 @@ namespace GenieClient
             // _ToolStripButtonRemove
             // 
             this._ToolStripButtonRemove.Enabled = false;
-            this._ToolStripButtonRemove.Image = ((System.Drawing.Image)(resources.GetObject("_ToolStripButtonRemove.Image")));
+            this._ToolStripButtonRemove.Image = My.Resources.Resources.user_trash;
             this._ToolStripButtonRemove.ImageTransparentColor = System.Drawing.Color.Magenta;
             this._ToolStripButtonRemove.Name = "_ToolStripButtonRemove";
             this._ToolStripButtonRemove.Size = new System.Drawing.Size(70, 22);
@@ -274,7 +273,7 @@ namespace GenieClient
             // 
             // _ToolStripButtonLoad
             // 
-            this._ToolStripButtonLoad.Image = ((System.Drawing.Image)(resources.GetObject("_ToolStripButtonLoad.Image")));
+            this._ToolStripButtonLoad.Image = My.Resources.Resources.document_open;
             this._ToolStripButtonLoad.ImageTransparentColor = System.Drawing.Color.Magenta;
             this._ToolStripButtonLoad.Name = "_ToolStripButtonLoad";
             this._ToolStripButtonLoad.Size = new System.Drawing.Size(53, 22);
@@ -283,7 +282,7 @@ namespace GenieClient
             // 
             // _ToolStripButtonSave
             // 
-            this._ToolStripButtonSave.Image = ((System.Drawing.Image)(resources.GetObject("_ToolStripButtonSave.Image")));
+            this._ToolStripButtonSave.Image = My.Resources.Resources.document_save;
             this._ToolStripButtonSave.ImageTransparentColor = System.Drawing.Color.Magenta;
             this._ToolStripButtonSave.Name = "_ToolStripButtonSave";
             this._ToolStripButtonSave.Size = new System.Drawing.Size(51, 22);
