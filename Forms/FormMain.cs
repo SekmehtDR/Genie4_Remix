@@ -4775,6 +4775,12 @@ namespace GenieClient
                         SafeUpdateMainWindowTitle();
                         break;
                     }
+
+                case "$guild":
+                    {
+                        UpdateManaBarVisibility();
+                        break;
+                    }
             }
 
             if (m_bTriggersEnabled == true)
@@ -7599,22 +7605,22 @@ namespace GenieClient
             SetMagicPanels(MagicPanelsToolStripMenuItem.Checked);
         }
 
+        private void UpdateManaBarVisibility()
+        {
+            string guild = m_oGlobals.VariableList["guild"]?.ToString() ?? "";
+            bool hideManaBar = guild.Equals("Thief", StringComparison.OrdinalIgnoreCase)
+                            || guild.Equals("Commoner", StringComparison.OrdinalIgnoreCase);
+            ComponentBarsMana.Visible = !hideManaBar;
+            TableLayoutPanelBars.ColumnCount = hideManaBar ? 4 : 5;
+        }
+
         private void SetMagicPanels(bool bVisible)
         {
-            ComponentBarsMana.Visible = bVisible;
             Castbar.Visible = bVisible;
             LabelSpell.Visible = bVisible;
             LabelSpellC.Visible = bVisible;
-            if (bVisible == true)
-            {
-                TableLayoutPanelBars.ColumnCount = 5;
-                TableLayoutPanelFlow.ColumnCount = 8;
-            }
-            else
-            {
-                TableLayoutPanelBars.ColumnCount = 4;
-                TableLayoutPanelFlow.ColumnCount = 5;
-            }
+            UpdateManaBarVisibility();
+            TableLayoutPanelFlow.ColumnCount = bVisible ? 8 : 5;
         }
 
         private void ScriptExplorerToolStripMenuItem_Click(object sender, EventArgs e)
