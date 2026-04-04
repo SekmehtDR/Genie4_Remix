@@ -7611,7 +7611,22 @@ namespace GenieClient
             bool hideManaBar = guild.Equals("Thief", StringComparison.OrdinalIgnoreCase)
                             || guild.Equals("Commoner", StringComparison.OrdinalIgnoreCase);
             ComponentBarsMana.Visible = !hideManaBar;
-            TableLayoutPanelBars.ColumnCount = hideManaBar ? 4 : 5;
+            if (hideManaBar)
+            {
+                // Shift bars left to fill the Mana slot: Conc→1, Fatigue→2, Spirit→3
+                TableLayoutPanelBars.SetColumn(ComponentBarsConc, 1);
+                TableLayoutPanelBars.SetColumn(ComponentBarsFatigue, 2);
+                TableLayoutPanelBars.SetColumn(ComponentBarsSpirit, 3);
+                TableLayoutPanelBars.ColumnCount = 4;
+            }
+            else
+            {
+                // Restore normal positions: Mana→1, Conc→2, Fatigue→3, Spirit→4
+                TableLayoutPanelBars.SetColumn(ComponentBarsConc, 2);
+                TableLayoutPanelBars.SetColumn(ComponentBarsFatigue, 3);
+                TableLayoutPanelBars.SetColumn(ComponentBarsSpirit, 4);
+                TableLayoutPanelBars.ColumnCount = 5;
+            }
         }
 
         private void SetMagicPanels(bool bVisible)
