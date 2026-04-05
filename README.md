@@ -31,6 +31,7 @@ Genie4_Remix is an unofficial fork of [Genie4](https://github.com/GenieClient/Ge
 
 ### v4.0.3.1
 #### Bug Fixes
+- **Menu separators now visible in all menus** (`Forms/FormMain.cs`) — The `RecolorUI()` loop that applies theme colors to menu items was also running on `ToolStripSeparator` entries. Because separators have no `Text`, the `IsNullOrWhiteSpace` check flagged them, setting `AutoSize = false` and halving their height (`item.Height / 2`). Separators added statically in the designer were being crushed to zero or near-zero height and rendered invisible; only separators added dynamically after `RecolorUI()` ran (such as the one above Color Themes in the Layout menu) remained visible. Fixed by skipping separators in the loop — `MenuRenderer.OnRenderSeparator` already handles their rendering correctly at the natural 6px height.
 - **Merged upstream/Dev-4-0-2-10** — <a href="https://github.com/GenieClient/Genie4/commits/Dev-4-0-2-10/"> Merged upstream/Dev-4-0-2-10</a> branch.
 - **Automapper Maps Load without Lich** — Pull request code "Add support for ShowRoomID flag" was added - <a href="https://github.com/GenieClient/Genie4/pull/175"> Genie4/pull/175</a>.
 - **Fix sounds not playing for regex highlights** — Pull request code "Add support for ShowRoomIFix sounds not playing for regex highlights" was added - <a href="github.com/GenieClient/Genie4/pull/177"> Genie4/pull/177</a>.

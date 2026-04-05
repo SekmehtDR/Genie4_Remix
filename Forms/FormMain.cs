@@ -157,13 +157,9 @@ namespace GenieClient
             {
                 foreach (ToolStripItem item in menu.DropDownItems)
                 {
+                    if (item is ToolStripSeparator) continue;
                     item.BackColor = m_oGlobals.PresetList["ui.menu"].BgColor;
                     item.ForeColor = m_oGlobals.PresetList["ui.menu"].FgColor;
-                    if (string.IsNullOrWhiteSpace(item.Text))
-                    {
-                        item.AutoSize = false;
-                        item.Height = item.Height / 2;
-                    }
                 }
             }
         }
