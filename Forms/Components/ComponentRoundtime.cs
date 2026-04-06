@@ -10,17 +10,26 @@ namespace GenieClient
         public ComponentRoundtime()
         {
             InitializeComponent();
+            Disposed += (s, e) => DisposeOwnedPens();
+        }
+
+        private void DisposeOwnedPens()
+        {
+            m_BorderColor.Dispose();
+            m_BorderColorGrayScale.Dispose();
+            m_BorderColorRT.Dispose();
+            m_BorderColorRTGrayScale.Dispose();
         }
 
         private int RT = 0;
         private int StartRT = 0;
         private Color m_BackgroundColor = Color.Black;
         private Color m_ForegroundColor = Color.Gray;
-        private Pen m_BorderColor = Pens.Gray;
-        private Pen m_BorderColorGrayScale = Pens.Gray;
+        private Pen m_BorderColor = new Pen(Color.Gray);
+        private Pen m_BorderColorGrayScale = new Pen(Color.Gray);
         private Color m_BackgroundColorRT = Color.Black;
-        private Pen m_BorderColorRT = Pens.Gray;
-        private Pen m_BorderColorRTGrayScale = Pens.Gray;
+        private Pen m_BorderColorRT = new Pen(Color.Gray);
+        private Pen m_BorderColorRTGrayScale = new Pen(Color.Gray);
         private bool m_IsConnected = false;
 
         public bool IsConnected
@@ -88,6 +97,8 @@ namespace GenieClient
 
             set
             {
+                m_BorderColor.Dispose();
+                m_BorderColorGrayScale.Dispose();
                 m_BorderColor = new Pen(value);
                 m_BorderColorGrayScale = new Pen(Genie.ColorCode.ColorToGrayscale(value));
                 Invalidate();
@@ -103,6 +114,8 @@ namespace GenieClient
 
             set
             {
+                m_BorderColorRT.Dispose();
+                m_BorderColorRTGrayScale.Dispose();
                 m_BorderColorRT = new Pen(value);
                 m_BorderColorRTGrayScale = new Pen(Genie.ColorCode.ColorToGrayscale(value));
                 Invalidate();
@@ -119,7 +132,7 @@ namespace GenieClient
 
             if (RT > 0 & StartRT > 0)
             {
-                var myTextureBrush = new SolidBrush((Color)Interaction.IIf(m_IsConnected, m_ForegroundColor, Genie.ColorCode.ColorToGrayscale(m_ForegroundColor)));
+                using var myTextureBrush = new SolidBrush((Color)Interaction.IIf(m_IsConnected, m_ForegroundColor, Genie.ColorCode.ColorToGrayscale(m_ForegroundColor)));
                 w = (int)(PanelRT.Width / (double)StartRT * RT);
                 g.FillRectangle(myTextureBrush, 0, 0, w, PanelRT.Height);
                 Pen argp = (Pen)Interaction.IIf(m_IsConnected, m_BorderColorRT, m_BorderColorRTGrayScale);

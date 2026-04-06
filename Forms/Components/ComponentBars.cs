@@ -11,6 +11,11 @@ namespace GenieClient
         public ComponentBars()
         {
             InitializeComponent();
+            Disposed += (s, e) =>
+            {
+                m_BorderColor.Dispose();
+                m_BorderColorGrayScale.Dispose();
+            };
         }
 
         private int m_CurrentValue = 0;
