@@ -103,6 +103,7 @@ namespace GenieClient.Genie
         private SslStream sslStream;
 
         private Socket m_SocketClient;
+        private readonly object m_oSendLock = new object();
         private IPEndPoint m_IPEndPoint;
         private StringBuilder m_ParseBuffer = new StringBuilder();
         private StringBuilder m_RowBuffer = new StringBuilder();
@@ -463,7 +464,10 @@ namespace GenieClient.Genie
                 }
 
                 var ByteData = Encoding.Default.GetBytes(sText);
-                s.BeginSend(ByteData, 0, ByteData.Length, SocketFlags.None, new AsyncCallback(SendCallback), s);
+                lock (m_oSendLock)
+                {
+                    s.BeginSend(ByteData, 0, ByteData.Length, SocketFlags.None, new AsyncCallback(SendCallback), s);
+                }
             }
             catch (SocketException ex)
             {
@@ -485,7 +489,10 @@ namespace GenieClient.Genie
                     return;
                 }
 
-                s.BeginSend(ByteData, 0, ByteData.Length, SocketFlags.None, new AsyncCallback(SendCallback), s);
+                lock (m_oSendLock)
+                {
+                    s.BeginSend(ByteData, 0, ByteData.Length, SocketFlags.None, new AsyncCallback(SendCallback), s);
+                }
             }
             catch (SocketException ex)
             {
