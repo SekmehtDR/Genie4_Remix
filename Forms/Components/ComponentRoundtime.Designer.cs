@@ -54,7 +54,7 @@ namespace GenieClient
             // 
             _LabelRT.BackColor = Color.Transparent;
             _LabelRT.Dock = DockStyle.Fill;
-            _LabelRT.Font = new Font("Arial", 14.25F, FontStyle.Regular, GraphicsUnit.Point, Conversions.ToByte(0));
+            _LabelRT.Font = new Font("Segoe UI", 11F, FontStyle.Regular, GraphicsUnit.Point);
             _LabelRT.ForeColor = Color.White;
             _LabelRT.Location = new Point(0, 0);
             _LabelRT.Name = "LabelRT";

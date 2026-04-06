@@ -72,7 +72,10 @@ Genie4_Remix is an unofficial fork of [Genie4](https://github.com/GenieClient/Ge
 - **Window snap logic** — Corrected bitwise `&` operators to logical `&&` in FormSkin drag/snap conditions. Previously the snap guard (`bSnappedX/Y == false`) was not short-circuiting correctly, allowing double-snap in edge cases.
 - **AutoMapper GDI leaks** — All `Pen`, `SolidBrush`, and `Font` objects created in the map paint loop are now properly disposed via `using`. On large maps this eliminates hundreds of leaked GDI handles per second that could cause rendering corruption or exhaustion on long sessions.
 - **ComponentBars pen leak** — Border pens are now disposed before replacement when `BorderColor` is set, preventing accumulation of leaked GDI objects over the session.
+- **ComponentRoundtime pen leak** — All four border pens (`m_BorderColor`, `m_BorderColorGrayScale`, `m_BorderColorRT`, `m_BorderColorRTGrayScale`) are now disposed on component teardown and before replacement in setters.
 - **MenuRenderer check font** — `Font` and `StringFormat` for the checkmark glyph promoted to `static readonly` fields; previously recreated on every checked-item paint call.
+- **Status strip flat borders removed** — All 10 `ToolStripStatusLabel` controls had `BorderSides = All` + `Border3DStyle.Flat` which rendered as dated raised/etched borders in the status bar. Both properties removed; labels now sit flush against the status strip background for a clean modern look.
+- **Label fonts modernized** — `_LabelSpell`, `_LabelRH`, `_LabelLH`, `_LabelRT` (hand/spell/RT indicator labels) changed from `Microsoft Sans Serif 8.25pt Bold` + `Color.DimGray` to `Segoe UI 8.25pt Bold` + `Color.FromArgb(140,140,145)`. Roundtime countdown label changed from `Arial 14.25pt` to `Segoe UI 11pt` for consistent typography across the status panel.
 
 #### Performance
 - **Regex compilation** — Frequently-used highlight and name patterns now use `RegexOptions.Compiled`.

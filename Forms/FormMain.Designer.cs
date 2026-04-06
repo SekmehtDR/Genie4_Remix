@@ -218,8 +218,6 @@ namespace GenieClient
             // 
             // _ToolStripStatusLabel1
             // 
-            _ToolStripStatusLabel1.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel1.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel1.Name = "_ToolStripStatusLabel1";
             _ToolStripStatusLabel1.Size = new Size(1432, 19);
             _ToolStripStatusLabel1.Spring = true;
@@ -228,8 +226,6 @@ namespace GenieClient
             // 
             // _ToolStripStatusLabel2
             // 
-            _ToolStripStatusLabel2.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel2.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel2.Name = "_ToolStripStatusLabel2";
             _ToolStripStatusLabel2.Size = new Size(4, 19);
             _ToolStripStatusLabel2.TextAlign = ContentAlignment.MiddleLeft;
@@ -237,8 +233,6 @@ namespace GenieClient
             // 
             // _ToolStripStatusLabel3
             // 
-            _ToolStripStatusLabel3.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel3.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel3.Name = "_ToolStripStatusLabel3";
             _ToolStripStatusLabel3.Size = new Size(4, 19);
             _ToolStripStatusLabel3.TextAlign = ContentAlignment.MiddleLeft;
@@ -246,8 +240,6 @@ namespace GenieClient
             // 
             // _ToolStripStatusLabel4
             // 
-            _ToolStripStatusLabel4.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel4.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel4.Name = "_ToolStripStatusLabel4";
             _ToolStripStatusLabel4.Size = new Size(4, 19);
             _ToolStripStatusLabel4.TextAlign = ContentAlignment.MiddleLeft;
@@ -255,8 +247,6 @@ namespace GenieClient
             // 
             // _ToolStripStatusLabel5
             // 
-            _ToolStripStatusLabel5.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel5.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel5.Name = "_ToolStripStatusLabel5";
             _ToolStripStatusLabel5.Size = new Size(4, 19);
             _ToolStripStatusLabel5.TextAlign = ContentAlignment.MiddleLeft;
@@ -264,8 +254,6 @@ namespace GenieClient
             // 
             // _ToolStripStatusLabel6
             // 
-            _ToolStripStatusLabel6.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel6.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel6.Name = "_ToolStripStatusLabel6";
             _ToolStripStatusLabel6.Size = new Size(4, 19);
             _ToolStripStatusLabel6.TextAlign = ContentAlignment.MiddleLeft;
@@ -273,8 +261,6 @@ namespace GenieClient
             // 
             // _ToolStripStatusLabel7
             // 
-            _ToolStripStatusLabel7.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel7.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel7.Name = "_ToolStripStatusLabel7";
             _ToolStripStatusLabel7.Size = new Size(4, 19);
             _ToolStripStatusLabel7.TextAlign = ContentAlignment.MiddleLeft;
@@ -282,8 +268,6 @@ namespace GenieClient
             // 
             // _ToolStripStatusLabel8
             // 
-            _ToolStripStatusLabel8.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel8.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel8.Name = "_ToolStripStatusLabel8";
             _ToolStripStatusLabel8.Size = new Size(4, 19);
             _ToolStripStatusLabel8.TextAlign = ContentAlignment.MiddleLeft;
@@ -291,8 +275,6 @@ namespace GenieClient
             // 
             // _ToolStripStatusLabel9
             // 
-            _ToolStripStatusLabel9.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel9.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel9.Name = "_ToolStripStatusLabel9";
             _ToolStripStatusLabel9.Size = new Size(4, 19);
             _ToolStripStatusLabel9.TextAlign = ContentAlignment.MiddleLeft;
@@ -300,8 +282,6 @@ namespace GenieClient
             // 
             // _ToolStripStatusLabel10
             // 
-            _ToolStripStatusLabel10.BorderSides = ToolStripStatusLabelBorderSides.Left | ToolStripStatusLabelBorderSides.Top | ToolStripStatusLabelBorderSides.Right | ToolStripStatusLabelBorderSides.Bottom;
-            _ToolStripStatusLabel10.BorderStyle = Border3DStyle.Flat;
             _ToolStripStatusLabel10.Name = "_ToolStripStatusLabel10";
             _ToolStripStatusLabel10.Size = new Size(4, 19);
             _ToolStripStatusLabel10.TextAlign = ContentAlignment.MiddleLeft;
@@ -1120,8 +1100,8 @@ namespace GenieClient
             // _LabelSpell
             // 
             _LabelSpell.Dock = DockStyle.Fill;
-            _LabelSpell.Font = new Font("Microsoft Sans Serif", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
-            _LabelSpell.ForeColor = Color.DimGray;
+            _LabelSpell.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
+            _LabelSpell.ForeColor = Color.FromArgb(140, 140, 145);
             _LabelSpell.Location = new Point(913, 0);
             _LabelSpell.Margin = new Padding(0);
             _LabelSpell.Name = "_LabelSpell";
@@ -1133,8 +1113,8 @@ namespace GenieClient
             // _LabelRH
             // 
             _LabelRH.Dock = DockStyle.Fill;
-            _LabelRH.Font = new Font("Microsoft Sans Serif", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
-            _LabelRH.ForeColor = Color.DimGray;
+            _LabelRH.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
+            _LabelRH.ForeColor = Color.FromArgb(140, 140, 145);
             _LabelRH.Location = new Point(661, 0);
             _LabelRH.Margin = new Padding(0);
             _LabelRH.Name = "_LabelRH";
@@ -1146,8 +1126,8 @@ namespace GenieClient
             // _LabelLH
             // 
             _LabelLH.Dock = DockStyle.Fill;
-            _LabelLH.Font = new Font("Microsoft Sans Serif", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
-            _LabelLH.ForeColor = Color.DimGray;
+            _LabelLH.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
+            _LabelLH.ForeColor = Color.FromArgb(140, 140, 145);
             _LabelLH.Location = new Point(408, 0);
             _LabelLH.Margin = new Padding(0);
             _LabelLH.Name = "_LabelLH";
@@ -1158,8 +1138,8 @@ namespace GenieClient
             // 
             // _LabelRT
             // 
-            _LabelRT.Font = new Font("Microsoft Sans Serif", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
-            _LabelRT.ForeColor = Color.DimGray;
+            _LabelRT.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
+            _LabelRT.ForeColor = Color.FromArgb(140, 140, 145);
             _LabelRT.Location = new Point(1, 0);
             _LabelRT.Margin = new Padding(4, 0, 4, 0);
             _LabelRT.Name = "_LabelRT";
