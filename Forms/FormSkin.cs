@@ -13,12 +13,14 @@ namespace GenieClient
         public FormSkin()
         {
             InitializeComponent();
+            SetStyle(ControlStyles.DoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.Opaque, true);
         }
 
         public FormSkin(string sID, string sTitle, ref Genie.Globals oGlobal)
         {
             // This call is required by the Windows Form Designer.
             InitializeComponent();
+            SetStyle(ControlStyles.DoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.Opaque, true);
 
             // Add any initialization after the InitializeComponent() call.
             ID = sID;
@@ -415,14 +417,7 @@ namespace GenieClient
             float textY = (titleHeight - oTitleFont.GetHeight(e.Graphics)) / 2f;
             e.Graphics.DrawString(Text, oTitleFont, textBrush, 5, textY);
 
-            if (bIsBitsSet == false)
-            {
-                SetStyle(ControlStyles.DoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.Opaque, true);
-                bIsBitsSet = true;
-            }
         }
-
-        private bool bIsBitsSet = false;
 
         private void FormSkin_MouseDown(object sender, MouseEventArgs e)
         {

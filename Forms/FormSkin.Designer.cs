@@ -15,9 +15,10 @@ namespace GenieClient
         [DebuggerNonUserCode()]
         protected override void Dispose(bool disposing)
         {
-            if (disposing && components is object)
+            if (disposing)
             {
-                components.Dispose();
+                components?.Dispose();
+                oTitleFont?.Dispose();
             }
 
             base.Dispose(disposing);

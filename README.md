@@ -76,6 +76,8 @@ Genie4_Remix is an unofficial fork of [Genie4](https://github.com/GenieClient/Ge
 - **MenuRenderer check font** — `Font` and `StringFormat` for the checkmark glyph promoted to `static readonly` fields; previously recreated on every checked-item paint call.
 - **Status strip flat borders removed** — All 10 `ToolStripStatusLabel` controls had `BorderSides = All` + `Border3DStyle.Flat` which rendered as dated raised/etched borders in the status bar. Both properties removed; labels now sit flush against the status strip background for a clean modern look.
 - **Label fonts modernized** — `_LabelSpell`, `_LabelRH`, `_LabelLH`, `_LabelRT` (hand/spell/RT indicator labels) changed from `Microsoft Sans Serif 8.25pt Bold` + `Color.DimGray` to `Segoe UI 8.25pt Bold` + `Color.FromArgb(140,140,145)`. Roundtime countdown label changed from `Arial 14.25pt` to `Segoe UI 11pt` for consistent typography across the status panel.
+- **FormSkin title font disposal** — `oTitleFont` (used to draw MDI child title bar text) is now disposed in `FormSkin.Dispose()`, preventing a Font GDI handle leak each time a skin window is closed.
+- **SetStyle moved to constructor** — `ControlStyles` flags (`DoubleBuffer`, `AllPaintingInWmPaint`, `UserPaint`, `Opaque`) were being set inside the `Paint` event handler behind a one-time flag. Moved to both `FormSkin` constructors where they belong; removed the `bIsBitsSet` guard field.
 
 #### Performance
 - **Regex compilation** — Frequently-used highlight and name patterns now use `RegexOptions.Compiled`.
