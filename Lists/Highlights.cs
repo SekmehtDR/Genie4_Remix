@@ -8,32 +8,43 @@ namespace GenieClient.Genie
     public class Highlights : Collections.SortedList
     {
         private Regex m_oRegexString = null;
+        private Regex m_oRegexStringCI = null;
         private Regex m_oRegexLine = null;
+        private Regex m_oRegexLineCI = null;
 
         public Regex RegexString
         {
-            get
-            {
-                return m_oRegexString;
-            }
+            get { return m_oRegexString; }
+            set { m_oRegexString = value; }
+        }
 
-            set
-            {
-                m_oRegexString = value;
-            }
+        public Regex RegexStringCI
+        {
+            get { return m_oRegexStringCI; }
+            set { m_oRegexStringCI = value; }
         }
 
         public Regex RegexLine
         {
-            get
-            {
-                return m_oRegexLine;
-            }
+            get { return m_oRegexLine; }
+            set { m_oRegexLine = value; }
+        }
 
-            set
+        public Regex RegexLineCI
+        {
+            get { return m_oRegexLineCI; }
+            set { m_oRegexLineCI = value; }
+        }
+
+        // Finds a highlight by key using case-insensitive comparison, for use after a RegexStringCI/RegexLineCI match.
+        public Highlight GetCaseInsensitive(string matchedValue)
+        {
+            foreach (string key in base.Keys)
             {
-                m_oRegexLine = value;
+                if (string.Equals(key, matchedValue, StringComparison.OrdinalIgnoreCase))
+                    return (Highlight)base[key];
             }
+            return null;
         }
 
         public void ToggleClass(string ClassName, bool Value)
@@ -145,34 +156,39 @@ namespace GenieClient.Genie
             {
                 try
                 {
-                    var al = new ArrayList();
+                    var alCS = new ArrayList();
+                    var alCI = new ArrayList();
                     foreach (string s in base.Keys)
                     {
-                        if (((Highlight)base[s]).IsActive == true)
+                        Highlight h = (Highlight)base[s];
+                        if (h.IsActive && !h.HighlightWholeRow)
                         {
-                            if (((Highlight)base[s]).HighlightWholeRow == false)
-                            {
-                                al.Add(s);
-                            }
+                            if (h.CaseSensitive)
+                                alCS.Add(s);
+                            else
+                                alCI.Add(s);
                         }
                     }
 
-                    al.Sort();
-                    var sbString = new System.Text.StringBuilder();
-                    foreach (string s in al)
+                    alCS.Sort();
+                    var sbCS = new System.Text.StringBuilder();
+                    foreach (string s in alCS)
                     {
-                        if (sbString.Length > 0)
-                            sbString.Append('|');
-                        sbString.Append(Regex.Replace(s, @"([^A-Za-z0-9\s])", @"\$1"));
+                        if (sbCS.Length > 0) sbCS.Append('|');
+                        sbCS.Append(Regex.Replace(s, @"([^A-Za-z0-9\s])", @"\$1"));
                     }
+                    if (sbCS.Length > 0) { sbCS.Insert(0, '('); sbCS.Append(')'); }
+                    RegexString = sbCS.Length > 0 ? new Regex(sbCS.ToString(), RegexOptions.Compiled) : null;
 
-                    if (sbString.Length > 0)
+                    alCI.Sort();
+                    var sbCI = new System.Text.StringBuilder();
+                    foreach (string s in alCI)
                     {
-                        sbString.Insert(0, '(');
-                        sbString.Append(')');
+                        if (sbCI.Length > 0) sbCI.Append('|');
+                        sbCI.Append(Regex.Replace(s, @"([^A-Za-z0-9\s])", @"\$1"));
                     }
-
-                    RegexString = new Regex(sbString.ToString(), RegexOptions.Compiled);
+                    if (sbCI.Length > 0) { sbCI.Insert(0, '('); sbCI.Append(')'); }
+                    RegexStringCI = sbCI.Length > 0 ? new Regex(sbCI.ToString(), RegexOptions.Compiled | RegexOptions.IgnoreCase) : null;
                 }
                 finally
                 {
@@ -191,34 +207,39 @@ namespace GenieClient.Genie
             {
                 try
                 {
-                    var al = new ArrayList();
+                    var alCS = new ArrayList();
+                    var alCI = new ArrayList();
                     foreach (string s in base.Keys)
                     {
-                        if (((Highlight)base[s]).IsActive == true)
+                        Highlight h = (Highlight)base[s];
+                        if (h.IsActive && h.HighlightWholeRow)
                         {
-                            if (((Highlight)base[s]).HighlightWholeRow == true)
-                            {
-                                al.Add(s);
-                            }
+                            if (h.CaseSensitive)
+                                alCS.Add(s);
+                            else
+                                alCI.Add(s);
                         }
                     }
 
-                    al.Sort();
-                    var sbLine = new System.Text.StringBuilder();
-                    foreach (string s in al)
+                    alCS.Sort();
+                    var sbCS = new System.Text.StringBuilder();
+                    foreach (string s in alCS)
                     {
-                        if (sbLine.Length > 0)
-                            sbLine.Append('|');
-                        sbLine.Append(Regex.Replace(s, @"([^A-Za-z0-9\s])", @"\$1"));
+                        if (sbCS.Length > 0) sbCS.Append('|');
+                        sbCS.Append(Regex.Replace(s, @"([^A-Za-z0-9\s])", @"\$1"));
                     }
+                    if (sbCS.Length > 0) { sbCS.Insert(0, '('); sbCS.Append(')'); }
+                    RegexLine = sbCS.Length > 0 ? new Regex(sbCS.ToString(), RegexOptions.Compiled) : null;
 
-                    if (sbLine.Length > 0)
+                    alCI.Sort();
+                    var sbCI = new System.Text.StringBuilder();
+                    foreach (string s in alCI)
                     {
-                        sbLine.Insert(0, '(');
-                        sbLine.Append(')');
+                        if (sbCI.Length > 0) sbCI.Append('|');
+                        sbCI.Append(Regex.Replace(s, @"([^A-Za-z0-9\s])", @"\$1"));
                     }
-
-                    RegexLine = new Regex(sbLine.ToString(), RegexOptions.Compiled);
+                    if (sbCI.Length > 0) { sbCI.Insert(0, '('); sbCI.Append(')'); }
+                    RegexLineCI = sbCI.Length > 0 ? new Regex(sbCI.ToString(), RegexOptions.Compiled | RegexOptions.IgnoreCase) : null;
                 }
                 finally
                 {

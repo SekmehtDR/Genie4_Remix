@@ -670,7 +670,7 @@ namespace GenieClient
             if (!m_oParentForm.Globals.Config.bHighlightsEnabled) return;
             MatchCollection oMatchCollection;
             ParseLineHighlights(m_oRichTextBuffer.SelectionStart, m_oRichTextBuffer.Text);
-            // Highlight String
+            // Highlight String (case-sensitive)
             if (!Information.IsNothing(m_oParentForm.Globals.HighlightList.RegexString))
             {
                 oMatchCollection = (MatchCollection)m_oParentForm.Globals.HighlightList.RegexString.Matches(m_oRichTextBuffer.Text);
@@ -694,6 +694,34 @@ namespace GenieClient
 
                         if (Conversions.ToBoolean(oHighlightString.SoundFile.Length > 0 && m_oParentForm.Globals.Config.bPlaySounds))
                             Sound.PlayWaveFile(oHighlightString.SoundFile);
+                    }
+                }
+            }
+
+            // Highlight String (case-insensitive)
+            if (!Information.IsNothing(m_oParentForm.Globals.HighlightList.RegexStringCI))
+            {
+                oMatchCollection = (MatchCollection)m_oParentForm.Globals.HighlightList.RegexStringCI.Matches(m_oRichTextBuffer.Text);
+                Highlights.Highlight oHighlightStringCI;
+                foreach (Match oMatch in oMatchCollection)
+                {
+                    oHighlightStringCI = m_oParentForm.Globals.HighlightList.GetCaseInsensitive(oMatch.Value);
+                    if (oHighlightStringCI != null)
+                    {
+                        m_oRichTextBuffer.SelectionStart = oMatch.Index;
+                        m_oRichTextBuffer.SelectionLength = oMatch.Length;
+                        if (oHighlightStringCI.FgColor != Color.Transparent & oHighlightStringCI.FgColor != m_oEmptyColor)
+                        {
+                            m_oRichTextBuffer.SelectionColor = oHighlightStringCI.FgColor;
+                        }
+
+                        if (oHighlightStringCI.BgColor != Color.Transparent & oHighlightStringCI.FgColor != m_oEmptyColor)
+                        {
+                            m_oRichTextBuffer.SelectionBackColor = oHighlightStringCI.BgColor;
+                        }
+
+                        if (Conversions.ToBoolean(oHighlightStringCI.SoundFile.Length > 0 && m_oParentForm.Globals.Config.bPlaySounds))
+                            Sound.PlayWaveFile(oHighlightStringCI.SoundFile);
                     }
                 }
             }

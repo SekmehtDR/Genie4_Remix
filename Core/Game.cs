@@ -2790,7 +2790,7 @@ namespace GenieClient.Genie
                     GenieError.Error("PrintTextWithParse", "Unable to aquire reader lock.");
                 }
 
-                // Line contains
+                // Line contains (case-sensitive)
                 if (m_oGlobals.Config.bHighlightsEnabled && !Information.IsNothing(m_oGlobals.HighlightList.RegexLine) && !string.IsNullOrWhiteSpace(m_oGlobals.HighlightList.RegexLine.ToString()))
                 {
                     m_oMatchCollection = m_oGlobals.HighlightList.RegexLine.Matches(sText);
@@ -2805,6 +2805,25 @@ namespace GenieClient.Genie
                             m_oLastFgColor = color;
                             if (oHighlightString.SoundFile.Length > 0 && m_oGlobals.Config.bPlaySounds)
                                 Sound.PlayWaveFile(oHighlightString.SoundFile);
+                        }
+                    }
+                }
+
+                // Line contains (case-insensitive)
+                if (m_oGlobals.Config.bHighlightsEnabled && !Information.IsNothing(m_oGlobals.HighlightList.RegexLineCI))
+                {
+                    m_oMatchCollection = m_oGlobals.HighlightList.RegexLineCI.Matches(sText);
+                    Highlights.Highlight oHighlightStringCI;
+                    foreach (Match oMatch in m_oMatchCollection)
+                    {
+                        oHighlightStringCI = m_oGlobals.HighlightList.GetCaseInsensitive(oMatch.Value);
+                        if (oHighlightStringCI != null)
+                        {
+                            color = oHighlightStringCI.FgColor;
+                            bgcolor = oHighlightStringCI.BgColor;
+                            m_oLastFgColor = color;
+                            if (oHighlightStringCI.SoundFile.Length > 0 && m_oGlobals.Config.bPlaySounds)
+                                Sound.PlayWaveFile(oHighlightStringCI.SoundFile);
                         }
                     }
                 }

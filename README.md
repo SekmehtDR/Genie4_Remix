@@ -83,6 +83,7 @@ Genie4_Remix is an unofficial fork of [Genie4](https://github.com/GenieClient/Ge
 
 #### Performance
 - **Regex compilation** — Frequently-used highlight and name patterns now use `RegexOptions.Compiled`.
+- **Highlight case-insensitive flag now respected** (`Lists/Highlights.cs`, `Core/Game.cs`, `Forms/Components/ComponentRichTextBox.cs`) — The combined highlight regex (both string and line variants) was compiled as a single alternation with no flags, meaning the `CaseSensitive = false` setting on individual highlights was silently ignored. Fixed by splitting each rebuild into two regexes: one for case-sensitive highlights (no flags, existing behavior) and one for case-insensitive highlights (`RegexOptions.IgnoreCase`). Both `PrintTextWithParse` in `Game.cs` and `ParseHighlights` in `ComponentRichTextBox` now run a second pass against the CI regex. A `GetCaseInsensitive()` helper on `Highlights` resolves the matched text back to the stored highlight using `OrdinalIgnoreCase`, since the game-text case at match time may differ from the stored key.
 - **StringBuilder** — Replaced `string +=` concatenation in `RebuildStringIndex`, `RebuildLineIndex`, and `RebuildIndex` to eliminate O(n²) allocations.
 - **Highlight parsing** — Buffer text and line split are now cached once per parse pass instead of re-computed per highlight entry.
 - **Substitution scanning** — Removed redundant `.Match()` before `.Replace()`; uses `ReferenceEquals` to detect no-match.
