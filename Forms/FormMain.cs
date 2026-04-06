@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Speech.Synthesis;
 using System.Text;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Accessibility;
@@ -135,6 +136,19 @@ namespace GenieClient
             }
 
             UpdateMainWindowTitle();
+            StartTriggerConsumer();
+        }
+
+        private void StartTriggerConsumer()
+        {
+            _ = Task.Run(async () =>
+            {
+                await foreach (string text in _triggerChannel.Reader.ReadAllAsync())
+                {
+                    try { ParseTriggers(text); }
+                    catch (Exception ex) { HandleGenieException("TriggerConsumer", ex.Message, ex.ToString()); }
+                }
+            });
         }
 
         private void RecolorUI()
@@ -321,6 +335,7 @@ namespace GenieClient
         }
 
         private Genie.Game _m_oGame;
+        private readonly Channel<string> _triggerChannel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
 
         public Genie.Game m_oGame
         {
@@ -1572,6 +1587,7 @@ namespace GenieClient
 
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
         {
+            _triggerChannel.Writer.TryComplete();
             if (bCloseNow == false)
             {
                 if (m_oGame.IsConnected == true & m_oGlobals.Config.bIgnoreCloseAlert == false)
@@ -6377,7 +6393,7 @@ namespace GenieClient
         {
             try
             {
-                ParseTriggers(sText);
+                _triggerChannel.Writer.TryWrite(sText);
             }
             // SafeParsePluginText(sText)
             // Debug.WriteLine("ClassCommand_SendText)")
