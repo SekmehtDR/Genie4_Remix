@@ -6,7 +6,7 @@
   </p>
 
   <p align="center">
-    <code>Latest Version: 4.0.3.1</code> / <code>Release: 3/29/2026</code> / <code>Lich Support: Yes!</code> / <code>Stable? YES!</code>
+    <code>Latest Version: 4.0.3.2</code> / <code>Release: 4/6/2026</code> / <code>Lich Support: Yes!</code> / <code>Stable? YES!</code>
   </p>
 
   <p align="center">
@@ -28,6 +28,14 @@ Genie4_Remix is an unofficial fork of [Genie4](https://github.com/GenieClient/Ge
 
 <!-- CHANGELOG -->
 ## Changelog
+
+### v4.0.3.2
+#### Performance
+- **Trigger processing decoupled from network thread** (`Forms/FormMain.cs`) — Highlights, gags, and substitutes were already running on the socket thread; trigger and script `waitfor`/`matchwait` evaluation was the remaining synchronous work blocking it. Each incoming line now enqueues its text into a `Channel<string>` (non-blocking, microseconds) and the socket moves on immediately. A dedicated background consumer drains the channel and calls `ParseTriggers` sequentially, preserving strict FIFO ordering so triggers fire in the same order lines arrive. Script `waitfor` and `matchwait` matching are unaffected — they still resolve correctly because the consumer is single-reader and processes lines one at a time. The channel is completed cleanly on form close so no trigger work is dropped.
+- **Highlight case-insensitive flag now respected** (`Lists/Highlights.cs`, `Core/Game.cs`, `Forms/Components/ComponentRichTextBox.cs`) — The combined highlight regex (both string and line variants) was compiled as a single alternation with no flags, meaning the `CaseSensitive = false` setting on individual highlights was silently ignored. Fixed by splitting each rebuild into two regexes: one for case-sensitive highlights (no flags, existing behavior) and one for case-insensitive highlights (`RegexOptions.IgnoreCase`). Both `PrintTextWithParse` in `Game.cs` and `ParseHighlights` in `ComponentRichTextBox` now run a second pass against the CI regex. A `GetCaseInsensitive()` helper on `Highlights` resolves the matched text back to the stored highlight using `OrdinalIgnoreCase`, since the game-text case at match time may differ from the stored key.
+
+#### Code Cleanup
+- **Dead substitution block removed** (`Core/Game.cs`) — A 37-line substitution loop inside `PrintTextToWindow` was permanently disabled behind `if (0 == 1)` with a comment noting it should be replaced by `ParseSubstitutions`. That consolidation was done; the dead block is now removed.
 
 ### v4.0.3.1
 #### Bug Fixes
@@ -83,14 +91,11 @@ Genie4_Remix is an unofficial fork of [Genie4](https://github.com/GenieClient/Ge
 
 #### Performance
 - **Regex compilation** — Frequently-used highlight and name patterns now use `RegexOptions.Compiled`.
-- **Highlight case-insensitive flag now respected** (`Lists/Highlights.cs`, `Core/Game.cs`, `Forms/Components/ComponentRichTextBox.cs`) — The combined highlight regex (both string and line variants) was compiled as a single alternation with no flags, meaning the `CaseSensitive = false` setting on individual highlights was silently ignored. Fixed by splitting each rebuild into two regexes: one for case-sensitive highlights (no flags, existing behavior) and one for case-insensitive highlights (`RegexOptions.IgnoreCase`). Both `PrintTextWithParse` in `Game.cs` and `ParseHighlights` in `ComponentRichTextBox` now run a second pass against the CI regex. A `GetCaseInsensitive()` helper on `Highlights` resolves the matched text back to the stored highlight using `OrdinalIgnoreCase`, since the game-text case at match time may differ from the stored key.
 - **StringBuilder** — Replaced `string +=` concatenation in `RebuildStringIndex`, `RebuildLineIndex`, and `RebuildIndex` to eliminate O(n²) allocations.
 - **Highlight parsing** — Buffer text and line split are now cached once per parse pass instead of re-computed per highlight entry.
 - **Substitution scanning** — Removed redundant `.Match()` before `.Replace()`; uses `ReferenceEquals` to detect no-match.
 - **AutoMapper regex cache** — `IsExitSet()` now caches compiled exit regexes in a `Dictionary<string, Regex>` instead of recompiling on every call.
 - **Non-blocking UI text dispatch** — Switched `AddText` from synchronous `Control.Invoke` to `Control.BeginInvoke`. The network thread no longer blocks waiting for each line to render before parsing the next, eliminating the stutter and jerkiness visible during bursts of incoming game text (movement, combat, room descriptions).
-- **Trigger processing decoupled from network thread** (`Forms/FormMain.cs`) — Highlights, gags, and substitutes were already running on the socket thread; trigger and script `waitfor`/`matchwait` evaluation was the remaining synchronous work blocking it. Each incoming line now enqueues its text into a `Channel<string>` (non-blocking, microseconds) and the socket moves on immediately. A dedicated background consumer drains the channel and calls `ParseTriggers` sequentially, preserving strict FIFO ordering so triggers fire in the same order lines arrive. Script `waitfor` and `matchwait` matching are unaffected — they still resolve correctly because the consumer is single-reader and processes lines one at a time. The channel is completed cleanly on form close so no trigger work is dropped.
-- **Dead substitution block removed** (`Core/Game.cs`) — A 37-line substitution loop inside `PrintTextToWindow` was permanently disabled behind `if (0 == 1)` with a comment noting it should be replaced by `ParseSubstitutions`. That consolidation was done; the dead block is now removed.
 
 #### AutoMapper
 - **Description matching robustness** — Room descriptions are now normalized before comparison (whitespace collapsed, case-insensitive). Minor game text updates no longer cause the mapper to lose position or create duplicate rooms.
