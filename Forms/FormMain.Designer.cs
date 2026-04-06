@@ -1364,12 +1364,12 @@ namespace GenieClient
             // 
             // _ToolStripButtons
             // 
-            _ToolStripButtons.BackColor = SystemColors.Control;
+            _ToolStripButtons.BackColor = Color.FromArgb(30, 30, 32);
             _ToolStripButtons.ContextMenuStrip = _ContextMenuStripButtons;
             _ToolStripButtons.GripStyle = ToolStripGripStyle.Hidden;
             _ToolStripButtons.Location = new Point(0, 24);
             _ToolStripButtons.Name = "_ToolStripButtons";
-            _ToolStripButtons.RenderMode = ToolStripRenderMode.System;
+            _ToolStripButtons.RenderMode = ToolStripRenderMode.ManagerRenderMode;
             _ToolStripButtons.Size = new Size(1449, 25);
             _ToolStripButtons.TabIndex = 14;
             _ToolStripButtons.VisibleChanged += ToolStripButtons_VisibleChanged;
@@ -1406,20 +1406,20 @@ namespace GenieClient
             // 
             // _PanelInput
             // 
-            _PanelInput.BackColor = Color.Transparent;
+            _PanelInput.BackColor = Color.FromArgb(30, 30, 32);
             _PanelInput.Controls.Add(_TextBoxInput);
             _PanelInput.Dock = DockStyle.Bottom;
             _PanelInput.Location = new Point(0, 701);
             _PanelInput.Margin = new Padding(0);
             _PanelInput.Name = "_PanelInput";
-            _PanelInput.Padding = new Padding(4, 2, 0, 0);
-            _PanelInput.Size = new Size(1449, 23);
+            _PanelInput.Padding = new Padding(4, 3, 4, 2);
+            _PanelInput.Size = new Size(1449, 27);
             _PanelInput.TabIndex = 0;
             // 
             // _TextBoxInput
             // 
             _TextBoxInput.AcceptsTab = true;
-            _TextBoxInput.BackColor = Color.White;
+            _TextBoxInput.BackColor = Color.FromArgb(28, 28, 30);
             _TextBoxInput.BorderStyle = BorderStyle.None;
             _TextBoxInput.Dock = DockStyle.Fill;
             _TextBoxInput.Font = new Font("Courier New", 9F, FontStyle.Regular, GraphicsUnit.Point);

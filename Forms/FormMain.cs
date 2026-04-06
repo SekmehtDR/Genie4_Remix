@@ -152,6 +152,7 @@ namespace GenieClient
 
             this._StatusStripMain.BackColor = m_oGlobals.PresetList["ui.status"].BgColor;
             this._StatusStripMain.ForeColor = m_oGlobals.PresetList["ui.status"].FgColor;
+            this._PanelInput.BackColor = m_oGlobals.PresetList["ui.status"].BgColor;
 
             foreach (ToolStripMenuItem menu in _MenuStripMain.Items)
             {
