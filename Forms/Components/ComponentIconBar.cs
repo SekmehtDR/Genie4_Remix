@@ -104,23 +104,30 @@ namespace GenieClient
             string sPathName = LocalDirectory.Path + @"\Icons\" + sName;
             if (File.Exists(sPathName))
             {
-                ImageListIcons.Images.Add(sName, Image.FromFile(sPathName));
-                Bitmap argb = (Bitmap)Image.FromFile(sPathName);
-                ImageListIcons.Images.Add(sName + "_gray", ImageToGrayScale(argb));
+                using var src = new Bitmap(sPathName);
+                src.MakeTransparent(Color.Black);
+                ImageListIcons.Images.Add(sName, new Bitmap(src));
+                ImageListIcons.Images.Add(sName + "_gray", ImageToGrayScale(src));
             }
         }
 
-        private Bitmap ImageToGrayScale(Bitmap b)
+        private static Bitmap ImageToGrayScale(Bitmap b)
         {
-            // int iColor = 0;
-            var oOutput = new Bitmap(b.Width, b.Height);
-            for (int X = 0, loopTo = b.Width - 1; X <= loopTo; X++)
+            var output = new Bitmap(b.Width, b.Height, b.PixelFormat);
+            using var g = Graphics.FromImage(output);
+            var cm = new System.Drawing.Imaging.ColorMatrix(new float[][]
             {
-                for (int Y = 0, loopTo1 = b.Height - 1; Y <= loopTo1; Y++)
-                    oOutput.SetPixel(X, Y, Genie.ColorCode.ColorToGrayscale(b.GetPixel(X, Y)));
-            }
-
-            return oOutput;
+                new float[] { 0.299f, 0.299f, 0.299f, 0, 0 },
+                new float[] { 0.587f, 0.587f, 0.587f, 0, 0 },
+                new float[] { 0.114f, 0.114f, 0.114f, 0, 0 },
+                new float[] { 0,      0,      0,      1, 0 },
+                new float[] { 0,      0,      0,      0, 1 }
+            });
+            using var ia = new System.Drawing.Imaging.ImageAttributes();
+            ia.SetColorMatrix(cm);
+            g.DrawImage(b, new Rectangle(0, 0, b.Width, b.Height),
+                0, 0, b.Width, b.Height, GraphicsUnit.Pixel, ia);
+            return output;
         }
 
         private void AppendImage(Graphics g, string sName)
@@ -136,8 +143,7 @@ namespace GenieClient
                 {
                     if (!Information.IsNothing(ImageListIcons.Images[sName]))
                     {
-                        Bitmap b = (Bitmap)ImageListIcons.Images[sName];
-                        b.MakeTransparent(Color.Black);
+                        using Bitmap b = (Bitmap)ImageListIcons.Images[sName];
                         g.DrawImage(b, 0, 0);
                     }
                 }
