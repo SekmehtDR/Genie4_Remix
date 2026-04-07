@@ -1207,7 +1207,7 @@ namespace GenieClient
                 return;
             }
 
-            if (Monitor.TryEnter(m_oThreadLock, 100))
+            if (Monitor.TryEnter(m_oThreadLock, m_oGlobals.Config.iScriptMatchTimeout))
             {
                 try
                 {

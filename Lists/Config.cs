@@ -25,6 +25,7 @@ namespace GenieClient.Genie
         public string sPrompt = "> ";
         public string sIgnoreMonsterList = "appears dead|(dead)";
         public int iScriptTimeout = 5000;
+        public int iScriptMatchTimeout = 100;
         public int iMaxGoSubDepth = 50;
         public bool bReconnect = true;
         public bool bReconnectWhenDead = false;
@@ -474,6 +475,7 @@ namespace GenieClient.Genie
                 oStreamWriter.WriteLine("#config {condensed} {" + Condensed + "}");
                 oStreamWriter.WriteLine("#config {monstercountignorelist} {" + sIgnoreMonsterList + "}");
                 oStreamWriter.WriteLine("#config {scripttimeout} {" + iScriptTimeout + "}");
+                oStreamWriter.WriteLine("#config {scriptmatchtimeout} {" + iScriptMatchTimeout + "}");
                 oStreamWriter.WriteLine("#config {maxgosubdepth} {" + iMaxGoSubDepth + "}");
                 oStreamWriter.WriteLine("#config {ignorescriptwarnings} {" + bIgnoreScriptWarnings + "}");
                 oStreamWriter.WriteLine("#config {roundtimeoffset} {" + dRTOffset + "}");
@@ -747,6 +749,16 @@ namespace GenieClient.Genie
                                 if (sValue.Length > 0)
                                 {
                                     iScriptTimeout = Conversions.ToInteger(Utility.StringToDouble(sValue));
+                                }
+
+                                break;
+                            }
+
+                        case "scriptmatchtimeout":
+                            {
+                                if (sValue.Length > 0)
+                                {
+                                    iScriptMatchTimeout = Conversions.ToInteger(Utility.StringToDouble(sValue));
                                 }
 
                                 break;
