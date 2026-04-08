@@ -6,7 +6,7 @@
   </p>
 
   <p align="center">
-    <code>Latest Version: 4.0.3.2</code> / <code>Release: 4/6/2026</code> / <code>Lich Support: Yes!</code> / <code>Stable? YES!</code>
+    <code>Latest Version: 4.0.3.2</code> / <code>Release: 4/8/2026</code> / <code>Lich Support: Yes!</code> / <code>Stable? YES!</code>
   </p>
 
   <p align="center">
@@ -30,6 +30,9 @@ Genie4_Remix is an unofficial fork of [Genie4](https://github.com/GenieClient/Ge
 ## Changelog
 
 ### v4.0.3.2
+#### Update System
+- **Auto-update disabled; update menu items hidden** (`Lists/Config.cs`, `Forms/FormMain.Designer.cs`) — `CheckForUpdates`, `AutoUpdate`, and `AutoUpdateLamp` config properties now always return `false` regardless of what is stored in `settings.cfg`. Users migrating from the upstream Genie4 repository with auto-update enabled in their config will no longer have their client rolled back on launch. The three update menu items (Check For Updates, Force Update, Load Test Client) and their separator have been removed from the Help menu; all backing code and click handlers remain intact for future use.
+
 #### Lich Integration
 - **Lich settings UI** (`Forms/FormConfig.cs`, `Forms/FormConfig.designer.cs`) — A new "Lich" tab in the Configuration window exposes all Lich-related settings with a proper UI. Fields for Ruby Path, Lich Path, Arguments, Server, Port, and Start Timeout each have labeled inputs. Path fields include Browse buttons with file-type filters. A "Test Paths" button validates that the Ruby and Lich files exist and displays pass/fail results inline so misconfigured paths are caught before attempting to connect. Settings are written back to `settings.cfg` when OK is clicked, eliminating the need to use `#config` commands for Lich setup.
 - **Per-profile Lich preference** (`Forms/DialogProfileConnect.cs`, `Forms/DialogProfileConnect.Designer.cs`, `Forms/FormMain.cs`) — The profile connect dialog now has a "Connect via Lich" checkbox. When a profile is selected, the checkbox automatically reflects the saved Lich preference for that character. Checking or unchecking it before connecting overrides the preference for that session and saves the new value back to the profile XML (`UseLich` attribute on `<Profile>`). Profiles without the attribute default to unchecked. This eliminates the need to remember or type `#lc <profile>` — selecting the character and clicking Connect is all that's required when the preference is saved.

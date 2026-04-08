@@ -65,9 +65,9 @@ namespace GenieClient.Genie
         public bool PromptBreak { get; set; } = true;
         public bool PromptForce { get; set; } = true;
         public bool Condensed { get; set; } = false;
-        public bool CheckForUpdates { get; set; } = false;
-        public bool AutoUpdate { get; set; } = false;
-        public bool AutoUpdateLamp { get; set; } = false;
+        public bool CheckForUpdates { get => false; set { } }
+        public bool AutoUpdate { get => false; set { } }
+        public bool AutoUpdateLamp { get => false; set { } }
 
         public string sConnectString = "FE:GENIE /VERSION:" + My.MyProject.Application.Info.Version.ToString() + " /P:WIN_XP /XML";
         public int[] iPickerColors = new int[17];

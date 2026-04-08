@@ -925,7 +925,7 @@ namespace GenieClient
             // 
             // _HelpToolStripMenuItem
             // 
-            _HelpToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { checkForUpdatesToolStripMenuItem, forceUpdateToolStripMenuItem, loadTestClientToolStripMenuItem, _ToolStripSeparator3, autoUpdateToolStripMenuItem, autoUpdateLampToolStripMenuItem, checkUpdatesOnStartupToolStripMenuItem, _ChangelogToolStripMenuItem, _ToolStripSeparator10, _OpenGenieDiscordToolStripMenuItem, OpenGenieGithubToolStripMenuItem, _OpenGenieDocsToolStripMenuItem, toolStripSeparator1, toolStripMenuItem1 });
+            _HelpToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { autoUpdateToolStripMenuItem, autoUpdateLampToolStripMenuItem, checkUpdatesOnStartupToolStripMenuItem, _ChangelogToolStripMenuItem, _ToolStripSeparator10, _OpenGenieDiscordToolStripMenuItem, OpenGenieGithubToolStripMenuItem, _OpenGenieDocsToolStripMenuItem, toolStripSeparator1, toolStripMenuItem1 });
             _HelpToolStripMenuItem.Name = "_HelpToolStripMenuItem";
             _HelpToolStripMenuItem.Size = new Size(44, 20);
             _HelpToolStripMenuItem.Text = "&Help";
