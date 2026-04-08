@@ -47,6 +47,7 @@ namespace GenieClient
             ToggleView = new Button();
             _OK_Button = new Button();
             EditNote = new Button();
+            _CheckBoxUseLich = new CheckBox();
             _GroupBox1.SuspendLayout();
             _TableLayoutPanel1.SuspendLayout();
             SuspendLayout();
@@ -86,6 +87,7 @@ namespace GenieClient
             _ListBoxProfiles.TabIndex = 0;
             _ListBoxProfiles.KeyDown += ListBoxProfiles_KeyDown;
             _ListBoxProfiles.MouseDoubleClick += ListBoxProfiles_MouseDoubleClick;
+            _ListBoxProfiles.SelectedIndexChanged += ListBoxProfiles_SelectedIndexChanged;
             // 
             // _Cancel_Button
             // 
@@ -111,7 +113,7 @@ namespace GenieClient
             _TableLayoutPanel1.Controls.Add(_Cancel_Button, 3, 0);
             _TableLayoutPanel1.Controls.Add(_OK_Button, 2, 0);
             _TableLayoutPanel1.Controls.Add(EditNote, 1, 0);
-            _TableLayoutPanel1.Location = new Point(96, 306);
+            _TableLayoutPanel1.Location = new Point(96, 338);
             _TableLayoutPanel1.Margin = new Padding(4, 3, 4, 3);
             _TableLayoutPanel1.Name = "_TableLayoutPanel1";
             _TableLayoutPanel1.RowCount = 1;
@@ -153,11 +155,22 @@ namespace GenieClient
             EditNote.Text = "Edit Note";
             EditNote.Click += EditNote_Click;
             // 
+            //
+            // _CheckBoxUseLich
+            //
+            _CheckBoxUseLich.AutoSize = true;
+            _CheckBoxUseLich.Location = new Point(10, 310);
+            _CheckBoxUseLich.Name = "_CheckBoxUseLich";
+            _CheckBoxUseLich.Size = new Size(120, 19);
+            _CheckBoxUseLich.TabIndex = 6;
+            _CheckBoxUseLich.Text = "Connect via Lich";
+            //
             // DialogProfileConnect
-            // 
+            //
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(432, 343);
+            ClientSize = new Size(432, 380);
+            Controls.Add(_CheckBoxUseLich);
             Controls.Add(_GroupBox1);
             Controls.Add(_TableLayoutPanel1);
             FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -279,6 +292,7 @@ namespace GenieClient
         private TreeView _profiles;
         private Button ToggleView;
         private Button EditNote;
+        private CheckBox _CheckBoxUseLich;
 
         internal ListBox ListBoxProfiles
         {

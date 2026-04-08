@@ -8167,8 +8167,17 @@ namespace GenieClient
             My.MyProject.Forms.DialogProfileConnect.ClassicConnect = m_oGlobals.Config.bClassicConnect;
             if (My.MyProject.Forms.DialogProfileConnect.ShowDialog(this) == DialogResult.OK)
             {
-                m_sCurrentProfileFile = string.Empty;
-                LoadProfile(My.MyProject.Forms.DialogProfileConnect.ProfileName + ".xml", true);
+                string profileName = My.MyProject.Forms.DialogProfileConnect.ProfileName;
+                if (My.MyProject.Forms.DialogProfileConnect.UseViaLich)
+                {
+                    m_oCommand.ParseCommand("#lc " + profileName, false, true);
+                }
+                else
+                {
+                    m_oGame.IsLich = false;
+                    m_sCurrentProfileFile = string.Empty;
+                    LoadProfile(profileName + ".xml", true);
+                }
             }
         }
 
@@ -8467,6 +8476,7 @@ namespace GenieClient
 
             m_oProfile.SetValue("Genie/Profile", "Character", m_oGame.AccountCharacter);
             m_oProfile.SetValue("Genie/Profile", "Game", m_oGame.AccountGame);
+            m_oProfile.SetValue("Genie/Profile", "UseLich", m_oGame.IsLich.ToString());
             string sLayout = m_oConfig.ConfigFile;
             if (sLayout.Contains(m_oGlobals.Config.ConfigDir))
             {

@@ -54,6 +54,16 @@ namespace GenieClient
             }
         }
 
+        public bool UseViaLich => _CheckBoxUseLich.Checked;
+
+        private void UpdateLichCheckbox(string profileFilePath)
+        {
+            if (!File.Exists(profileFilePath)) return;
+            var xml = new Genie.XMLConfig();
+            xml.LoadFile(profileFilePath);
+            _CheckBoxUseLich.Checked = xml.GetValue("Genie/Profile", "UseLich", false);
+        }
+
         private void ListBoxProfiles_MouseDoubleClick(object sender, MouseEventArgs e)
         {
             OK_Close();
@@ -153,7 +163,15 @@ namespace GenieClient
             if (e.Node.Level == 2)
             {
                 ListBoxProfiles.SelectedItem = e.Node.Name;
+                UpdateLichCheckbox(e.Node.Tag.ToString());
             }
+        }
+
+        private void ListBoxProfiles_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (ListBoxProfiles.SelectedItem == null) return;
+            string profilePath = m_sConfigDir + @"\Profiles\" + ListBoxProfiles.SelectedItem + ".xml";
+            UpdateLichCheckbox(profilePath);
         }
 
         private void _profiles_KeyDown(object sender, KeyEventArgs e)
