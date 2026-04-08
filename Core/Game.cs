@@ -3210,6 +3210,7 @@ namespace GenieClient.Genie
         {
             if (m_oConnectState == ConnectStates.ConnectedGame)
             {
+                IsLich = false;
                 string argkey = "connected";
                 string argvalue = m_oSocket.IsConnected ? "1" : "0";
                 m_oGlobals.VariableList.Add(argkey, argvalue, Globals.Variables.VariableType.Reserved);

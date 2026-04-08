@@ -8284,7 +8284,7 @@ namespace GenieClient
                             string argsPassword1 = My.MyProject.Forms.DialogConnect.Password;
                             string argsCharacter = My.MyProject.Forms.DialogConnect.Character;
                             string argsGame = My.MyProject.Forms.DialogConnect.Game;
-                            ConnectToGame(argsAccountName, argsPassword1, argsCharacter, argsGame);
+                            ConnectToGame(argsAccountName, argsPassword1, argsCharacter, argsGame, m_oGame.IsLich);
                             SavePasswordToolStripMenuItem.Checked = My.MyProject.Forms.DialogConnect.CheckBoxSavePassword.Checked;
                         }
                     }
