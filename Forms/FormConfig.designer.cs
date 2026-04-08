@@ -67,6 +67,25 @@ namespace GenieClient
             this._TabPageVars = new System.Windows.Forms.TabPage();
             this._UcVariables1 = new GenieClient.UCVariables();
             this._TabPageVariables = new System.Windows.Forms.TabPage();
+            this._TabPageLich = new System.Windows.Forms.TabPage();
+            this._LabelRubyPath = new System.Windows.Forms.Label();
+            this._TextBoxRubyPath = new System.Windows.Forms.TextBox();
+            this._ButtonBrowseRuby = new System.Windows.Forms.Button();
+            this._LabelLichPath = new System.Windows.Forms.Label();
+            this._TextBoxLichPath = new System.Windows.Forms.TextBox();
+            this._ButtonBrowseLich = new System.Windows.Forms.Button();
+            this._LabelLichArguments = new System.Windows.Forms.Label();
+            this._TextBoxLichArguments = new System.Windows.Forms.TextBox();
+            this._LabelLichServer = new System.Windows.Forms.Label();
+            this._TextBoxLichServer = new System.Windows.Forms.TextBox();
+            this._LabelLichPort = new System.Windows.Forms.Label();
+            this._TextBoxLichPort = new System.Windows.Forms.TextBox();
+            this._LabelStartTimeout = new System.Windows.Forms.Label();
+            this._TextBoxStartTimeout = new System.Windows.Forms.TextBox();
+            this._LabelTimeoutUnit = new System.Windows.Forms.Label();
+            this._ButtonTestPaths = new System.Windows.Forms.Button();
+            this._LabelRubyResult = new System.Windows.Forms.Label();
+            this._LabelLichResult = new System.Windows.Forms.Label();
             this._TableLayoutPanel1.SuspendLayout();
             this._Panel1.SuspendLayout();
             this._TabControlMain.SuspendLayout();
@@ -85,6 +104,7 @@ namespace GenieClient
             this._TabPageAliases.SuspendLayout();
             this._TabPageMacros.SuspendLayout();
             this._TabPageVars.SuspendLayout();
+            this._TabPageLich.SuspendLayout();
             this.SuspendLayout();
             // 
             // _TableLayoutPanel1
@@ -148,6 +168,7 @@ namespace GenieClient
             this._TabControlMain.Controls.Add(this._TabPageAliases);
             this._TabControlMain.Controls.Add(this._TabPageMacros);
             this._TabControlMain.Controls.Add(this._TabPageVars);
+            this._TabControlMain.Controls.Add(this._TabPageLich);
             this._TabControlMain.Dock = System.Windows.Forms.DockStyle.Fill;
             this._TabControlMain.Location = new System.Drawing.Point(0, 0);
             this._TabControlMain.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
@@ -444,9 +465,178 @@ namespace GenieClient
             this._UcVariables1.Size = new System.Drawing.Size(768, 526);
             this._UcVariables1.TabIndex = 0;
             this._UcVariables1.VariableList = null;
-            // 
+            //
+            // _TabPageLich
+            //
+            this._TabPageLich.Controls.Add(this._LabelRubyPath);
+            this._TabPageLich.Controls.Add(this._TextBoxRubyPath);
+            this._TabPageLich.Controls.Add(this._ButtonBrowseRuby);
+            this._TabPageLich.Controls.Add(this._LabelLichPath);
+            this._TabPageLich.Controls.Add(this._TextBoxLichPath);
+            this._TabPageLich.Controls.Add(this._ButtonBrowseLich);
+            this._TabPageLich.Controls.Add(this._LabelLichArguments);
+            this._TabPageLich.Controls.Add(this._TextBoxLichArguments);
+            this._TabPageLich.Controls.Add(this._LabelLichServer);
+            this._TabPageLich.Controls.Add(this._TextBoxLichServer);
+            this._TabPageLich.Controls.Add(this._LabelLichPort);
+            this._TabPageLich.Controls.Add(this._TextBoxLichPort);
+            this._TabPageLich.Controls.Add(this._LabelStartTimeout);
+            this._TabPageLich.Controls.Add(this._TextBoxStartTimeout);
+            this._TabPageLich.Controls.Add(this._LabelTimeoutUnit);
+            this._TabPageLich.Controls.Add(this._ButtonTestPaths);
+            this._TabPageLich.Controls.Add(this._LabelRubyResult);
+            this._TabPageLich.Controls.Add(this._LabelLichResult);
+            this._TabPageLich.Location = new System.Drawing.Point(4, 24);
+            this._TabPageLich.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            this._TabPageLich.Name = "_TabPageLich";
+            this._TabPageLich.Size = new System.Drawing.Size(768, 526);
+            this._TabPageLich.TabIndex = 10;
+            this._TabPageLich.Text = "Lich";
+            this._TabPageLich.UseVisualStyleBackColor = true;
+            //
+            // _LabelRubyPath
+            //
+            this._LabelRubyPath.AutoSize = true;
+            this._LabelRubyPath.Location = new System.Drawing.Point(15, 25);
+            this._LabelRubyPath.Name = "_LabelRubyPath";
+            this._LabelRubyPath.Size = new System.Drawing.Size(63, 15);
+            this._LabelRubyPath.Text = "Ruby Path (rubyw.exe):";
+            //
+            // _TextBoxRubyPath
+            //
+            this._TextBoxRubyPath.Location = new System.Drawing.Point(155, 22);
+            this._TextBoxRubyPath.Name = "_TextBoxRubyPath";
+            this._TextBoxRubyPath.Size = new System.Drawing.Size(370, 23);
+            this._TextBoxRubyPath.TabIndex = 0;
+            //
+            // _ButtonBrowseRuby
+            //
+            this._ButtonBrowseRuby.Location = new System.Drawing.Point(535, 21);
+            this._ButtonBrowseRuby.Name = "_ButtonBrowseRuby";
+            this._ButtonBrowseRuby.Size = new System.Drawing.Size(75, 25);
+            this._ButtonBrowseRuby.TabIndex = 1;
+            this._ButtonBrowseRuby.Text = "Browse...";
+            this._ButtonBrowseRuby.Click += new System.EventHandler(this.ButtonBrowseRuby_Click);
+            //
+            // _LabelLichPath
+            //
+            this._LabelLichPath.AutoSize = true;
+            this._LabelLichPath.Location = new System.Drawing.Point(15, 65);
+            this._LabelLichPath.Name = "_LabelLichPath";
+            this._LabelLichPath.Size = new System.Drawing.Size(57, 15);
+            this._LabelLichPath.Text = "Lich Path (lich.rbw):";
+            //
+            // _TextBoxLichPath
+            //
+            this._TextBoxLichPath.Location = new System.Drawing.Point(155, 62);
+            this._TextBoxLichPath.Name = "_TextBoxLichPath";
+            this._TextBoxLichPath.Size = new System.Drawing.Size(370, 23);
+            this._TextBoxLichPath.TabIndex = 2;
+            //
+            // _ButtonBrowseLich
+            //
+            this._ButtonBrowseLich.Location = new System.Drawing.Point(535, 61);
+            this._ButtonBrowseLich.Name = "_ButtonBrowseLich";
+            this._ButtonBrowseLich.Size = new System.Drawing.Size(75, 25);
+            this._ButtonBrowseLich.TabIndex = 3;
+            this._ButtonBrowseLich.Text = "Browse...";
+            this._ButtonBrowseLich.Click += new System.EventHandler(this.ButtonBrowseLich_Click);
+            //
+            // _LabelLichArguments
+            //
+            this._LabelLichArguments.AutoSize = true;
+            this._LabelLichArguments.Location = new System.Drawing.Point(15, 105);
+            this._LabelLichArguments.Name = "_LabelLichArguments";
+            this._LabelLichArguments.Size = new System.Drawing.Size(70, 15);
+            this._LabelLichArguments.Text = "Arguments:";
+            //
+            // _TextBoxLichArguments
+            //
+            this._TextBoxLichArguments.Location = new System.Drawing.Point(155, 102);
+            this._TextBoxLichArguments.Name = "_TextBoxLichArguments";
+            this._TextBoxLichArguments.Size = new System.Drawing.Size(455, 23);
+            this._TextBoxLichArguments.TabIndex = 4;
+            //
+            // _LabelLichServer
+            //
+            this._LabelLichServer.AutoSize = true;
+            this._LabelLichServer.Location = new System.Drawing.Point(15, 145);
+            this._LabelLichServer.Name = "_LabelLichServer";
+            this._LabelLichServer.Size = new System.Drawing.Size(45, 15);
+            this._LabelLichServer.Text = "Server:";
+            //
+            // _TextBoxLichServer
+            //
+            this._TextBoxLichServer.Location = new System.Drawing.Point(155, 142);
+            this._TextBoxLichServer.Name = "_TextBoxLichServer";
+            this._TextBoxLichServer.Size = new System.Drawing.Size(200, 23);
+            this._TextBoxLichServer.TabIndex = 5;
+            //
+            // _LabelLichPort
+            //
+            this._LabelLichPort.AutoSize = true;
+            this._LabelLichPort.Location = new System.Drawing.Point(15, 185);
+            this._LabelLichPort.Name = "_LabelLichPort";
+            this._LabelLichPort.Size = new System.Drawing.Size(32, 15);
+            this._LabelLichPort.Text = "Port:";
+            //
+            // _TextBoxLichPort
+            //
+            this._TextBoxLichPort.Location = new System.Drawing.Point(155, 182);
+            this._TextBoxLichPort.Name = "_TextBoxLichPort";
+            this._TextBoxLichPort.Size = new System.Drawing.Size(80, 23);
+            this._TextBoxLichPort.TabIndex = 6;
+            //
+            // _LabelStartTimeout
+            //
+            this._LabelStartTimeout.AutoSize = true;
+            this._LabelStartTimeout.Location = new System.Drawing.Point(15, 225);
+            this._LabelStartTimeout.Name = "_LabelStartTimeout";
+            this._LabelStartTimeout.Size = new System.Drawing.Size(86, 15);
+            this._LabelStartTimeout.Text = "Start Timeout:";
+            //
+            // _TextBoxStartTimeout
+            //
+            this._TextBoxStartTimeout.Location = new System.Drawing.Point(155, 222);
+            this._TextBoxStartTimeout.Name = "_TextBoxStartTimeout";
+            this._TextBoxStartTimeout.Size = new System.Drawing.Size(50, 23);
+            this._TextBoxStartTimeout.TabIndex = 7;
+            //
+            // _LabelTimeoutUnit
+            //
+            this._LabelTimeoutUnit.AutoSize = true;
+            this._LabelTimeoutUnit.Location = new System.Drawing.Point(212, 225);
+            this._LabelTimeoutUnit.Name = "_LabelTimeoutUnit";
+            this._LabelTimeoutUnit.Size = new System.Drawing.Size(52, 15);
+            this._LabelTimeoutUnit.Text = "seconds";
+            //
+            // _ButtonTestPaths
+            //
+            this._ButtonTestPaths.Location = new System.Drawing.Point(155, 265);
+            this._ButtonTestPaths.Name = "_ButtonTestPaths";
+            this._ButtonTestPaths.Size = new System.Drawing.Size(90, 27);
+            this._ButtonTestPaths.TabIndex = 8;
+            this._ButtonTestPaths.Text = "Test Paths";
+            this._ButtonTestPaths.Click += new System.EventHandler(this.ButtonTestPaths_Click);
+            //
+            // _LabelRubyResult
+            //
+            this._LabelRubyResult.AutoSize = true;
+            this._LabelRubyResult.Location = new System.Drawing.Point(155, 300);
+            this._LabelRubyResult.Name = "_LabelRubyResult";
+            this._LabelRubyResult.TabIndex = 9;
+            this._LabelRubyResult.Text = "";
+            //
+            // _LabelLichResult
+            //
+            this._LabelLichResult.AutoSize = true;
+            this._LabelLichResult.Location = new System.Drawing.Point(155, 320);
+            this._LabelLichResult.Name = "_LabelLichResult";
+            this._LabelLichResult.TabIndex = 10;
+            this._LabelLichResult.Text = "";
+            //
             // _TabPageVariables
-            // 
+            //
             this._TabPageVariables.Location = new System.Drawing.Point(4, 22);
             this._TabPageVariables.Name = "_TabPageVariables";
             this._TabPageVariables.Size = new System.Drawing.Size(654, 378);
@@ -489,6 +679,7 @@ namespace GenieClient
             this._TabPageAliases.ResumeLayout(false);
             this._TabPageMacros.ResumeLayout(false);
             this._TabPageVars.ResumeLayout(false);
+            this._TabPageLich.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -856,6 +1047,26 @@ namespace GenieClient
                 }
             }
         }
+
+        private TabPage _TabPageLich;
+        private Label _LabelRubyPath;
+        private TextBox _TextBoxRubyPath;
+        private Button _ButtonBrowseRuby;
+        private Label _LabelLichPath;
+        private TextBox _TextBoxLichPath;
+        private Button _ButtonBrowseLich;
+        private Label _LabelLichArguments;
+        private TextBox _TextBoxLichArguments;
+        private Label _LabelLichServer;
+        private TextBox _TextBoxLichServer;
+        private Label _LabelLichPort;
+        private TextBox _TextBoxLichPort;
+        private Label _LabelStartTimeout;
+        private TextBox _TextBoxStartTimeout;
+        private Label _LabelTimeoutUnit;
+        private Button _ButtonTestPaths;
+        private Label _LabelRubyResult;
+        private Label _LabelLichResult;
 
         private UCWindows _UcWindows1;
 

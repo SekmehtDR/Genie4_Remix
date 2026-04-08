@@ -1,10 +1,15 @@
 ﻿using System;
+using System.Drawing;
+using System.IO;
+using System.Windows.Forms;
 using Microsoft.VisualBasic;
 
 namespace GenieClient
 {
     public partial class FormConfig
     {
+        private GenieClient.Genie.Config _lichConfig;
+
         public FormConfig()
         {
             InitializeComponent();
@@ -13,6 +18,7 @@ namespace GenieClient
         private void OK_Button_Click(object sender, EventArgs e)
         {
             ApplyChanges();
+            ApplyLichSettings();
             Close();
         }
 
@@ -148,7 +154,58 @@ namespace GenieClient
                 UcHighlightStrings1.ColorDialogPicker.CustomColors = oFormMain.m_oGlobals.Config.PickerColors;
                 UcHighlightStrings1.ItemChanged = false;
                 UcWindows1.PopulateList();
+
+                _lichConfig = oFormMain.m_oGlobals.Config;
+                _TextBoxRubyPath.Text = _lichConfig.RubyPath;
+                _TextBoxLichPath.Text = _lichConfig.LichPath;
+                _TextBoxLichArguments.Text = _lichConfig.LichArguments;
+                _TextBoxLichServer.Text = _lichConfig.LichServer;
+                _TextBoxLichPort.Text = _lichConfig.LichPort.ToString();
+                _TextBoxStartTimeout.Text = _lichConfig.LichStartPause.ToString();
             }
+        }
+
+        private void ApplyLichSettings()
+        {
+            if (_lichConfig == null) return;
+            _lichConfig.RubyPath = _TextBoxRubyPath.Text.Trim();
+            _lichConfig.LichPath = _TextBoxLichPath.Text.Trim();
+            _lichConfig.LichArguments = _TextBoxLichArguments.Text.Trim();
+            _lichConfig.LichServer = _TextBoxLichServer.Text.Trim();
+            if (int.TryParse(_TextBoxLichPort.Text.Trim(), out int port)) _lichConfig.LichPort = port;
+            if (int.TryParse(_TextBoxStartTimeout.Text.Trim(), out int timeout)) _lichConfig.LichStartPause = timeout;
+            _lichConfig.Save();
+        }
+
+        private void ButtonBrowseRuby_Click(object sender, EventArgs e)
+        {
+            using var dlg = new OpenFileDialog();
+            dlg.Title = "Select Ruby Executable";
+            dlg.Filter = "Executables (*.exe)|*.exe|All Files (*.*)|*.*";
+            if (File.Exists(_TextBoxRubyPath.Text)) dlg.InitialDirectory = Path.GetDirectoryName(_TextBoxRubyPath.Text);
+            if (dlg.ShowDialog() == DialogResult.OK) _TextBoxRubyPath.Text = dlg.FileName;
+        }
+
+        private void ButtonBrowseLich_Click(object sender, EventArgs e)
+        {
+            using var dlg = new OpenFileDialog();
+            dlg.Title = "Select Lich Script";
+            dlg.Filter = "Ruby/Lich Files (*.rb;*.rbw)|*.rb;*.rbw|All Files (*.*)|*.*";
+            if (File.Exists(_TextBoxLichPath.Text)) dlg.InitialDirectory = Path.GetDirectoryName(_TextBoxLichPath.Text);
+            if (dlg.ShowDialog() == DialogResult.OK) _TextBoxLichPath.Text = dlg.FileName;
+        }
+
+        private void ButtonTestPaths_Click(object sender, EventArgs e)
+        {
+            void Check(Label resultLabel, string label, string path)
+            {
+                bool ok = File.Exists(path);
+                resultLabel.ForeColor = ok ? Color.Green : Color.OrangeRed;
+                resultLabel.Text = ok ? $"[OK]   {label}: {path}" : $"[FAIL] {label}: {path}";
+            }
+
+            Check(_LabelRubyResult, "Ruby", _TextBoxRubyPath.Text.Trim());
+            Check(_LabelLichResult, "Lich", _TextBoxLichPath.Text.Trim());
         }
     }
 }
