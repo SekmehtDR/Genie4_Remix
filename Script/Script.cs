@@ -686,7 +686,7 @@ namespace GenieClient
         private Genie.Script.Trace m_oTraceList = new Genie.Script.Trace();
         private DateTime m_oRoundTimeEnd = default;
         private int m_iDebugLevel = 0; // High number = More messages
-        private bool m_bBufferEnd = true;
+        private volatile bool m_bBufferEnd = true;
         private JintEngine m_JintEngine = null;
         private bool _pendingReload = false;
 
@@ -1030,24 +1030,7 @@ namespace GenieClient
 
         public void SetBufferEnd()
         {
-            if (Monitor.TryEnter(m_oThreadLock, m_iDefaultTimeout))
-            {
-                try
-                {
-                    if (m_bBufferEnd == false)
-                    {
-                        m_bBufferEnd = true;
-                    }
-                }
-                finally
-                {
-                    Monitor.Exit(m_oThreadLock);
-                }
-            }
-            else
-            {
-                // GenieError("Unable to aquire script thread lock.")
-            }
+            m_bBufferEnd = true;
         }
 
         public void ReloadScript()
