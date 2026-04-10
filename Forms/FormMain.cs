@@ -42,6 +42,7 @@ namespace GenieClient
             MapperSettings = new FormMapperSettings(ref _m_oGlobals) { MdiParent = this };
             MapperSettings.EventVariableChanged += ClassCommand_EventVariableChanged;
             MapperSettings.EventClassChange += Command_EventClassChange;
+            Castbar.ShowReadyText = true;
 
             // Add any initialization after the InitializeComponent() call.
             LocalDirectory.CheckUserDirectory();
@@ -6503,6 +6504,7 @@ namespace GenieClient
         private void ClearSpellTime()
         {
             m_oGlobals.SpellTimeStart = default;
+            Castbar.Clear();
         }
 
         private void SetCastTime()
@@ -6515,7 +6517,7 @@ namespace GenieClient
             }
             else
             {
-                Castbar.SetRT(0);
+                Castbar.Clear();
             }
         }
 

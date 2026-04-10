@@ -21,6 +21,8 @@ namespace GenieClient
             m_BorderColorRTGrayScale.Dispose();
         }
 
+        public bool ShowReadyText { get; set; } = false;
+
         private int RT = 0;
         private int StartRT = 0;
         private Color m_BackgroundColor = Color.Black;
@@ -164,6 +166,16 @@ namespace GenieClient
             TimerRT.Start();
         }
 
+        public void Clear()
+        {
+            RT = 0;
+            StartRT = 0;
+            LabelRT.Text = "";
+            TimerRT.Stop();
+            PanelRT.BackColor = m_BackgroundColor;
+            Invalidate();
+        }
+
         private void TickRT()
         {
             if (RT > 1)
@@ -175,7 +187,7 @@ namespace GenieClient
             else if (RT <= 1)
             {
                 RT = 0;
-                LabelRT.Text = "";
+                LabelRT.Text = ShowReadyText ? "Ready" : "";
                 PanelRT.BackColor = m_BackgroundColor;
             }
         }
