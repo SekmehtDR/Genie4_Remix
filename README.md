@@ -32,98 +32,64 @@ If you are already using Genie4, Genie4_Remix is a drop-in replacement. Your exi
 
 ## What's Different from Genie4
 
-### Lich Support
+### Lich Integration
 
-- **Easy Lich setup built into the client** — Instead of having to type `#config` commands to point Genie at Ruby and Lich, there is now a dedicated "Lich" tab in the Configuration window with labeled fields, Browse buttons, and a "Test Paths" button that tells you right away if something is misconfigured.
+- **Lich setup is now part of the client.** A new Lich tab in the Configuration window lets you set up your Ruby and Lich paths with Browse buttons and a Test button that confirms everything is working before you connect. No more typing setup commands by hand.
 
-- **Per-character Lich preference** — The Connect dialog now has a "Connect via Lich" checkbox. Check it once for a character and it remembers. No more typing `#lc CharacterName` every time you log in.
+- **Each character remembers whether to use Lich.** The Connect window now has a "Connect via Lich" checkbox. Check it once for a character and it sticks. You no longer need to type a special command every time you log in.
 
-- **Lich mode no longer sticks between sessions** — Previously, if you connected via Lich and then disconnected, the next login attempt would silently try to route through Lich again — even if Lich wasn't running — causing a hung or failed connection. This is fixed; each session starts fresh.
+- **Lich connection issues between sessions are fixed.** If you logged out while using Lich, the next login would sometimes silently try to connect through Lich again even if it was not running, causing a stuck or failed connection. Each session now starts clean.
 
-- **Lich works even without a saved password** — If your profile didn't have a saved password and Genie asked you to type it in, it would connect without Lich regardless of your preference. Fixed.
-
----
-
-### Spellcasting
-
-- **The cast RT bar now shows "Ready" when your spell is prepared** — Once the cast roundtime counts down to zero, the bar stays lit and displays "Ready" so you always know at a glance that your spell is still prepared and waiting. The bar clears normally when you cast, dismiss, or lose the spell.
+- **Lich works correctly even if your password is not saved.** If Genie prompted you to type your password manually, it would skip Lich entirely regardless of your preference. That is fixed.
 
 ---
 
-### Performance & Responsiveness
+### Performance
 
-- **Dramatically reduced lag during busy game moments** — Incoming game text, trigger processing, and script evaluation no longer compete with each other on the same thread. In heavy combat or crowded rooms where many lines arrive at once, the client stays responsive instead of freezing or falling behind.
+- **The client stays responsive during busy moments.** In heavy combat or crowded rooms, incoming game text, triggers, and scripts no longer pile up and block each other. Text appears promptly and the client does not fall behind or freeze up.
 
-- **Faster login and connection** — The connection handshake no longer briefly freezes the main window while it's working in the background.
+- **Scripts no longer cause text lag.** There was a bug where running scripts could delay incoming game text by several seconds per line. If you ever saw text arrive very slowly even though your internet was fine, this was likely why. It is fixed.
 
-- **Scripts no longer cause the client to stall** — A subtle bug where active scripts could block incoming game data for up to 10–15 seconds per line has been fixed. If you ever noticed severe lag in text appearing even though your connection was fine, this was likely the cause.
-
----
-
-### Themes & Appearance
-
-- **Full dark, light, and custom theme support** — The entire client — menus, scrollbars, title bars, status bars, and all windows — responds to your chosen color theme. Switch anytime via **Layout → Color Themes**.
-
-- **No more flash of bright white on startup** — The client now appears fully styled from the moment it opens instead of briefly flickering with a white or unstyled window.
-
-- **Status bar and spell bar layout fixed** — The cast RT bar was floating off-screen to the right at larger resolutions and has been moved into the proper layout. All bars now scale correctly with the window size.
-
-- **Mana bar handled correctly for all guilds** — Barbarians see "Inner Fire" correctly. Thieves and Commoners, who have no use for a mana bar, have it hidden automatically and the remaining bars shift over to fill the space.
+- **Connecting to the game is smoother.** The login process no longer causes a brief freeze of the main window while it works in the background.
 
 ---
 
-### AutoMapper
+### UI Enhancements
 
-- **The AutoMapper window fully matches your chosen theme** — Map background, toolbar, node colors, and position indicator all update when you switch between Dark, Light, and Custom themes.
+- **Dark, light, and custom color themes are fully supported.** The entire client responds to your chosen theme including menus, scrollbars, title bars, and all windows. Switch anytime from the Layout menu.
 
-- **Current position and active route are easy to see** — Your current room is marked with a clear colored indicator. When a route is active, the path through the map is highlighted so you can follow it at a glance.
+- **The cast roundtime bar now shows "Ready" when your spell is prepared.** Once the cast timer finishes counting down, the bar stays lit and shows "Ready" so you always know your spell is still up and waiting. It clears when you cast, dismiss, or lose the spell.
 
-- **Room tracking is more reliable** — The mapper is better at holding your position through minor game text changes (NPC arrivals, dynamic room descriptions) without losing sync or creating duplicate rooms.
+- **The client opens cleanly with no white flash.** Previously the window would briefly appear unstyled before your theme loaded. It now opens fully styled from the start.
 
-- **Map searches are much faster** — `#mapper find` and auto-load no longer read every map file on disk each time. Results are near-instant even with large map collections.
+- **All status bars scale correctly at any window size.** The spell cast bar was floating off to the right side of the screen at wider resolutions. It is now properly placed and stretches with the window.
 
-- **Maps save as standard UTF-8** — Map files are now saved in a format that external tools, Lich scripts, and other applications can read without issues.
+- **The mana bar is handled correctly for all guilds.** Barbarians see Inner Fire correctly. Thieves and Commoners, who have no mana bar, have it hidden automatically and the other bars shift over to fill the space.
+
+- **The AutoMapper matches your chosen theme.** The map background, toolbar, node colors, and your current position indicator all update when you switch themes. Your current room and active route are clearly highlighted on the map.
+
+- **All your files stay in one place.** Settings, scripts, maps, logs, and sounds are stored in the same folder as the application rather than spread across your system. You can move the whole folder to a new PC or a USB drive and it works without any setup.
 
 ---
 
 ### Bug Fixes
 
-- **Highlights with "ignore case" now actually ignore case** — The case-insensitive option on individual highlight entries was silently ignored. It works correctly now.
+- **Highlights set to ignore capitalization now work correctly.** The ignore case option was silently not working. It does now.
 
-- **Timestamps no longer break regex-style highlights** — If you had highlights that used `^` to match the start of a line, they stopped working when timestamps were enabled. Fixed.
+- **Highlights still work correctly when timestamps are turned on.** Certain highlight patterns would stop matching once timestamps were enabled. That is fixed.
 
-- **Highlights and Substitutes can be toggled on/off from the File menu** — New checkboxes let you quickly disable all highlights or substitutes without deleting them, useful for troubleshooting or clean screenshots.
+- **Highlights and Substitutes can be turned off from the File menu.** New toggle checkboxes let you quickly disable them without deleting anything, which is handy for troubleshooting or taking clean screenshots.
 
-- **Script and debug output now appears in the Auto Log** — If you use Auto Log to keep a session record, script activity (loaded, aborted, debug messages) was silently missing from the file. It's included now.
+- **Script activity now shows up in the Auto Log.** If you use Auto Log to save your session, script messages like loaded, aborted, and debug output were not being saved to the file. They are now.
 
-- **Config panel icons restored** — All the small toolbar icons inside configuration panels (Refresh, Add, Remove, Save, etc.) were blank due to a conversion issue. They display correctly now.
+- **The right-click menu on running scripts is visible again.** The Resume, Pause, Abort, and other options on script buttons disappeared after a theme update. They are back.
 
-- **Running script menu restored** — The right-click menu on running script buttons (Resume, Pause, Abort, Debug, etc.) was invisible after a theming update. It's visible and functional again.
+- **Menu dividers are visible again.** The thin lines separating groups of menu items were being squashed to invisible. Fixed.
 
-- **Menu separators are visible again** — Thin divider lines inside menus were being crushed to zero height by the theme renderer. Fixed.
+- **Opening scripts, logs, or folders no longer freezes the client.** Any action that opens an external program or file browser now does so without briefly locking up the window.
 
-- **External editors and file browsers open without freezing the UI** — Opening a script in Notepad, browsing to a log file, or using any "Open Directory" menu item no longer causes a brief freeze.
+- **The AutoMapper works without Lich running.** Maps would sometimes fail to load unless Lich was active. That dependency is removed.
 
-- **AutoMapper loads maps without Lich running** — Previously the mapper could fail to load maps unless Lich was active. Fixed.
+- **Several script command fixes.** `#mapper allowdupes`, `#mapper save`, `$unixtime` in waiteval conditions, and `contains()` in compound if statements all behaved incorrectly in certain situations. All are fixed.
 
-- **`#mapper allowdupes`** now sets the state you ask for instead of always toggling.
-
-- **`$unixtime` works inside `waiteval` conditions** in scripts.
-
-- **Various script evaluation fixes** — `contains()` in compound `if` conditions, `#mapper save` path bug, map file handle leaks, and thread-safety issues in the AutoMapper have all been corrected.
-
----
-
-### Portable / Self-Contained
-
-- **Everything stays in one folder** — All settings, scripts, maps, logs, and sounds are stored next to the application instead of scattered across `%appdata%`. You can copy the entire folder to a USB drive or a new PC and it just works.
-
-- **No installer required** — On first run, Genie creates all needed folders automatically.
-
-- **Easy migration** — Copy the contents of your old `%appdata%\Genie4\` folder into the Genie application folder once to carry over all your existing settings and scripts.
-
----
-
-### Auto-Update
-
-- **Auto-update is disabled** — The original Genie4 auto-updater would overwrite this version with the upstream release on launch. It has been turned off so your client stays on this version.
+- **Auto-update is turned off.** The original Genie4 updater would replace this version with the upstream release on launch. It has been disabled so your client stays put.
