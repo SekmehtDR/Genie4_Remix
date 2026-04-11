@@ -8717,7 +8717,17 @@ namespace GenieClient
 
         private void lichDiscordToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Utility.OpenBrowser("https://discord.gg/uxZWxuX");
+            Utility.OpenBrowser("https://discord.com/invite/f8ne99pVva");
+        }
+
+        private void genieDiscordToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Utility.OpenBrowser("https://discord.com/invite/MtmzE2w");
+        }
+
+        private void genieWikiToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Utility.OpenBrowser("https://github.com/GenieClient/Genie4/wiki");
         }
 
         private void isharonsGenieSettingsToolStripMenuItem_Click(object sender, EventArgs e)

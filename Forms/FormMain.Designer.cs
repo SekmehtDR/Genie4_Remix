@@ -151,6 +151,8 @@ namespace GenieClient
             elanthipediaToolStripMenuItem1 = new ToolStripMenuItem();
             dRServiceToolStripMenuItem = new ToolStripMenuItem();
             lichDiscordToolStripMenuItem = new ToolStripMenuItem();
+            genieDiscordToolStripMenuItem = new ToolStripMenuItem();
+            genieWikiToolStripMenuItem = new ToolStripMenuItem();
             isharonsGenieSettingsToolStripMenuItem = new ToolStripMenuItem();
             _LabelSpellC = new Label();
             _LabelRHC = new Label();
@@ -925,7 +927,7 @@ namespace GenieClient
             // 
             // _HelpToolStripMenuItem
             // 
-            _HelpToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { autoUpdateToolStripMenuItem, autoUpdateLampToolStripMenuItem, checkUpdatesOnStartupToolStripMenuItem, _ChangelogToolStripMenuItem, _ToolStripSeparator10, _OpenGenieDiscordToolStripMenuItem, OpenGenieGithubToolStripMenuItem, _OpenGenieDocsToolStripMenuItem, toolStripSeparator1, toolStripMenuItem1 });
+            _HelpToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { toolStripMenuItem1 });
             _HelpToolStripMenuItem.Name = "_HelpToolStripMenuItem";
             _HelpToolStripMenuItem.Size = new Size(44, 20);
             _HelpToolStripMenuItem.Text = "&Help";
@@ -1021,7 +1023,7 @@ namespace GenieClient
             // 
             // toolStripMenuItem1
             // 
-            toolStripMenuItem1.DropDownItems.AddRange(new ToolStripItem[] { playnetToolStripMenuItem, elanthipediaToolStripMenuItem1, dRServiceToolStripMenuItem, lichDiscordToolStripMenuItem, isharonsGenieSettingsToolStripMenuItem });
+            toolStripMenuItem1.DropDownItems.AddRange(new ToolStripItem[] { dRServiceToolStripMenuItem, elanthipediaToolStripMenuItem1, genieDiscordToolStripMenuItem, genieWikiToolStripMenuItem, isharonsGenieSettingsToolStripMenuItem, lichDiscordToolStripMenuItem, playnetToolStripMenuItem });
             toolStripMenuItem1.Name = "toolStripMenuItem1";
             toolStripMenuItem1.Size = new Size(211, 22);
             toolStripMenuItem1.Text = "Community Links";
@@ -1048,12 +1050,26 @@ namespace GenieClient
             dRServiceToolStripMenuItem.Click += dRServiceToolStripMenuItem_Click;
             // 
             // lichDiscordToolStripMenuItem
-            // 
+            //
             lichDiscordToolStripMenuItem.Name = "lichDiscordToolStripMenuItem";
             lichDiscordToolStripMenuItem.Size = new Size(199, 22);
             lichDiscordToolStripMenuItem.Text = "Lich Discord";
             lichDiscordToolStripMenuItem.Click += lichDiscordToolStripMenuItem_Click;
-            // 
+            //
+            // genieDiscordToolStripMenuItem
+            //
+            genieDiscordToolStripMenuItem.Name = "genieDiscordToolStripMenuItem";
+            genieDiscordToolStripMenuItem.Size = new Size(199, 22);
+            genieDiscordToolStripMenuItem.Text = "Genie Discord";
+            genieDiscordToolStripMenuItem.Click += genieDiscordToolStripMenuItem_Click;
+            //
+            // genieWikiToolStripMenuItem
+            //
+            genieWikiToolStripMenuItem.Name = "genieWikiToolStripMenuItem";
+            genieWikiToolStripMenuItem.Size = new Size(199, 22);
+            genieWikiToolStripMenuItem.Text = "Genie4 Wiki";
+            genieWikiToolStripMenuItem.Click += genieWikiToolStripMenuItem_Click;
+            //
             // isharonsGenieSettingsToolStripMenuItem
             // 
             isharonsGenieSettingsToolStripMenuItem.Name = "isharonsGenieSettingsToolStripMenuItem";
@@ -4247,6 +4263,8 @@ namespace GenieClient
         private ToolStripMenuItem elanthipediaToolStripMenuItem1;
         private ToolStripMenuItem dRServiceToolStripMenuItem;
         private ToolStripMenuItem lichDiscordToolStripMenuItem;
+        private ToolStripMenuItem genieDiscordToolStripMenuItem;
+        private ToolStripMenuItem genieWikiToolStripMenuItem;
         private ToolStripMenuItem isharonsGenieSettingsToolStripMenuItem;
         private ToolStripMenuItem checkForUpdatesToolStripMenuItem;
         private ToolStripMenuItem forceUpdateToolStripMenuItem;
