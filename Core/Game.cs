@@ -2540,6 +2540,15 @@ namespace GenieClient.Genie
 
                             break;
                         }
+
+                    case "exit":
+                        {
+                            // Server is closing the session — disconnect immediately rather than
+                            // waiting for the server to also close the TCP connection.
+                            m_bManualDisconnect = true;
+                            m_oSocket.Disconnect();
+                            break;
+                        }
                         /* TODO ERROR: Skipped IfDirectiveTrivia *//* TODO ERROR: Skipped DisabledTextTrivia *//* TODO ERROR: Skipped EndIfDirectiveTrivia */
                 }
             }
