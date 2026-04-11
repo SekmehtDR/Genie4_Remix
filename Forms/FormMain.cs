@@ -6206,6 +6206,14 @@ namespace GenieClient
                 else
                     Application.Exit();
             }
+            else
+            {
+                // Update the title bar so it reflects [Not Connected] immediately.
+                // This covers both unexpected socket loss (EventConnectionLost path)
+                // and clean disconnects, since the title depends on the socket state
+                // rather than the $connected variable.
+                SafeUpdateMainWindowTitle();
+            }
         }
 
         private void DisconnectAndExit()

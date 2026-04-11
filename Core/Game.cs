@@ -3208,16 +3208,13 @@ namespace GenieClient.Genie
 
         private void GameSocket_EventDisconnected()
         {
-            if (m_oConnectState == ConnectStates.ConnectedGame)
-            {
-                IsLich = false;
-                string argkey = "connected";
-                string argvalue = m_oSocket.IsConnected ? "1" : "0";
-                m_oGlobals.VariableList.Add(argkey, argvalue, Globals.Variables.VariableType.Reserved);
-                string argsVariable = "$connected";
-                VariableChanged(argsVariable);
-                m_bStatusPromptEnabled = false;
-            }
+            IsLich = false;
+            m_bStatusPromptEnabled = false;
+            string argkey = "connected";
+            string argvalue = m_oSocket.IsConnected ? "1" : "0";
+            m_oGlobals.VariableList.Add(argkey, argvalue, Globals.Variables.VariableType.Reserved);
+            string argsVariable = "$connected";
+            VariableChanged(argsVariable);
             EventGameDisconnected?.Invoke();
         }
 
