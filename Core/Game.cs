@@ -525,7 +525,7 @@ namespace GenieClient.Genie
 
             if (m_oGlobals.Config.bAutoLog == true)
             {
-                m_oGlobals.Log?.LogText(sShowText + System.Environment.NewLine, Conversions.ToString(m_oGlobals.VariableList["charactername"]), Conversions.ToString(m_oGlobals.VariableList["game"]));
+                m_oGlobals.Log?.LogText(sShowText + System.Environment.NewLine, m_oGlobals.VariableList.Contains("charactername") ? Conversions.ToString(m_oGlobals.VariableList["charactername"]) : string.Empty, m_oGlobals.VariableList.Contains("game") ? Conversions.ToString(m_oGlobals.VariableList["game"]) : string.Empty);
             }
         }
 
@@ -2130,7 +2130,7 @@ namespace GenieClient.Genie
                         }
                     case "spelltime":
                         {
-                            if(m_oGlobals.VariableList["preparedspell"].ToString() == "None")
+                            if(!m_oGlobals.VariableList.Contains("preparedspell") || m_oGlobals.VariableList["preparedspell"].ToString() == "None")
                             {
                                 if (m_oGlobals.VariableList.Contains("spellstarttime"))
                                 {
@@ -2169,7 +2169,7 @@ namespace GenieClient.Genie
                                     // Fix for Joined and Bleeding
                                     if (strBuffer.Contains("J") == false)
                                     {
-                                        if (Conversions.ToBoolean(Operators.ConditionalCompareObjectEqual(m_oGlobals.VariableList["joined"], "1", false)))
+                                        if (m_oGlobals.VariableList.Contains("joined") && Conversions.ToBoolean(Operators.ConditionalCompareObjectEqual(m_oGlobals.VariableList["joined"], "1", false)))
                                         {
                                             string argkey37 = "joined";
                                             string argvalue13 = "0";
@@ -2248,7 +2248,7 @@ namespace GenieClient.Genie
                                 // Fix for Joined and Bleeding
                                 if (strBuffer.Contains("J") == false)
                                 {
-                                    if (Conversions.ToBoolean(Operators.ConditionalCompareObjectEqual(m_oGlobals.VariableList["joined"], "1", false)))
+                                    if (m_oGlobals.VariableList.Contains("joined") && Conversions.ToBoolean(Operators.ConditionalCompareObjectEqual(m_oGlobals.VariableList["joined"], "1", false)))
                                     {
                                         string argkey39 = "joined";
                                         string argvalue15 = "0";
@@ -2260,7 +2260,7 @@ namespace GenieClient.Genie
 
                                 if (strBuffer.Contains("!") == false)
                                 {
-                                    if (Conversions.ToBoolean(Operators.ConditionalCompareObjectEqual(m_oGlobals.VariableList["bleeding"], "1", false)))
+                                    if (m_oGlobals.VariableList.Contains("bleeding") && Conversions.ToBoolean(Operators.ConditionalCompareObjectEqual(m_oGlobals.VariableList["bleeding"], "1", false)))
                                     {
                                         string argkey40 = "bleeding";
                                         string argvalue16 = "0";

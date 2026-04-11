@@ -258,6 +258,7 @@ namespace GenieClient.Genie
                 if (bytes != 32)
                 {
                     sslStream.Close();
+                    sslStream = null;
                     CurrentAuthState = AuthState.InvalidResponse;
                 }
 
@@ -282,6 +283,7 @@ namespace GenieClient.Genie
                 else
                 {
                     sslStream.Close();
+                    sslStream = null;
                     CurrentAuthState = AuthState.AuthenticationFailed;
                 }
             }
@@ -329,6 +331,7 @@ namespace GenieClient.Genie
             if (Encoding.Default.GetString(buffer).TrimEnd('\0').ToUpper() == "PROBLEM")
             {
                 sslStream.Close();
+                sslStream = null;
                 CurrentAuthState = AuthState.Disconnected;
                 return "E\tThere is a problem with your account. Please log in to the play.net website for more information.";
             }
@@ -347,6 +350,7 @@ namespace GenieClient.Genie
             if (string.IsNullOrWhiteSpace(character))
             {
                 sslStream.Close();
+                sslStream = null;
                 CurrentAuthState = AuthState.Disconnected;
                 return characterResponse;
             }
@@ -371,6 +375,7 @@ namespace GenieClient.Genie
             if (string.IsNullOrWhiteSpace(characterKey))
             {
                 sslStream.Close();
+                sslStream = null;
                 CurrentAuthState = AuthState.Disconnected;
                 return "E\tThe specified character was not found: " + character + ".";
             }
@@ -386,6 +391,7 @@ namespace GenieClient.Genie
             _ = sslStream.Read(buffer, 0, buffer.Length);
             
             sslStream.Close();
+            sslStream = null;
             string loginKey = Encoding.Default.GetString(buffer);
             return loginKey;
         }
