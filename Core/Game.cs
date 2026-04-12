@@ -3041,7 +3041,7 @@ namespace GenieClient.Genie
                 }
             }
 
-            if (text.EndsWith(System.Environment.NewLine) | text.StartsWith(System.Environment.NewLine))
+            if (text.EndsWith("\n") | text.StartsWith("\n") | isprompt)
             {
                 m_oLastFgColor = default;
             }
