@@ -7655,10 +7655,11 @@ namespace GenieClient
         private void SetMagicPanels(bool bVisible)
         {
             Castbar.Visible = bVisible;
+            LabelCT.Visible = bVisible;
             LabelSpell.Visible = bVisible;
             LabelSpellC.Visible = bVisible;
             UpdateManaBarVisibility();
-            TableLayoutPanelFlow.ColumnCount = bVisible ? 8 : 5;
+            TableLayoutPanelFlow.ColumnCount = bVisible ? 9 : 5;
         }
 
         private void ScriptExplorerToolStripMenuItem_Click(object sender, EventArgs e)

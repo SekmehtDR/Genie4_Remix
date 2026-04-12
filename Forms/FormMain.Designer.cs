@@ -161,6 +161,7 @@ namespace GenieClient
             _LabelRH = new Label();
             _LabelLH = new Label();
             _LabelRT = new Label();
+            _LabelCT = new Label();
             _PanelBars = new Panel();
             _TableLayoutPanelBars = new TableLayoutPanel();
             _ComponentBarsConc = new ComponentBars();
@@ -1112,9 +1113,9 @@ namespace GenieClient
             _LabelLHC.TabIndex = 10;
             _LabelLHC.Text = "Empty";
             _LabelLHC.TextAlign = ContentAlignment.MiddleLeft;
-            // 
+            //
             // _LabelSpell
-            // 
+            //
             _LabelSpell.Dock = DockStyle.Fill;
             _LabelSpell.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
             _LabelSpell.ForeColor = Color.FromArgb(140, 140, 145);
@@ -1125,6 +1126,18 @@ namespace GenieClient
             _LabelSpell.TabIndex = 9;
             _LabelSpell.Text = "S";
             _LabelSpell.TextAlign = ContentAlignment.MiddleCenter;
+            //
+            // _LabelCT
+            //
+            _LabelCT.Dock = DockStyle.Fill;
+            _LabelCT.Font = new Font("Segoe UI", 8.25F, FontStyle.Bold, GraphicsUnit.Point);
+            _LabelCT.ForeColor = Color.FromArgb(140, 140, 145);
+            _LabelCT.Margin = new Padding(0);
+            _LabelCT.Name = "_LabelCT";
+            _LabelCT.Size = new Size(12, 43);
+            _LabelCT.TabIndex = 13;
+            _LabelCT.Text = "CT";
+            _LabelCT.TextAlign = ContentAlignment.MiddleCenter;
             // 
             // _LabelRH
             // 
@@ -1292,7 +1305,7 @@ namespace GenieClient
             // _TableLayoutPanelFlow
             // 
             _TableLayoutPanelFlow.BackColor = Color.Transparent;
-            _TableLayoutPanelFlow.ColumnCount = 8;
+            _TableLayoutPanelFlow.ColumnCount = 9;
             _TableLayoutPanelFlow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 408F));
             _TableLayoutPanelFlow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 12F));
             _TableLayoutPanelFlow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33334F));
@@ -1300,6 +1313,7 @@ namespace GenieClient
             _TableLayoutPanelFlow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33333F));
             _TableLayoutPanelFlow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 12F));
             _TableLayoutPanelFlow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33333F));
+            _TableLayoutPanelFlow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 12F));
             _TableLayoutPanelFlow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 127F));
             _TableLayoutPanelFlow.Controls.Add(_LabelSpellC, 6, 0);
             _TableLayoutPanelFlow.Controls.Add(_PanelFixed, 0, 0);
@@ -1308,7 +1322,8 @@ namespace GenieClient
             _TableLayoutPanelFlow.Controls.Add(_LabelLH, 1, 0);
             _TableLayoutPanelFlow.Controls.Add(_LabelLHC, 2, 0);
             _TableLayoutPanelFlow.Controls.Add(_LabelRH, 3, 0);
-            _TableLayoutPanelFlow.Controls.Add(_Castbar, 7, 0);
+            _TableLayoutPanelFlow.Controls.Add(_LabelCT, 7, 0);
+            _TableLayoutPanelFlow.Controls.Add(_Castbar, 8, 0);
             _TableLayoutPanelFlow.Dock = DockStyle.Fill;
             _TableLayoutPanelFlow.Location = new Point(0, 0);
             _TableLayoutPanelFlow.Margin = new Padding(0);
@@ -2050,6 +2065,30 @@ namespace GenieClient
 
                 _LabelSpell = value;
                 if (_LabelSpell != null)
+                {
+                }
+            }
+        }
+
+        private Label _LabelCT;
+
+        internal Label LabelCT
+        {
+            [MethodImpl(MethodImplOptions.Synchronized)]
+            get
+            {
+                return _LabelCT;
+            }
+
+            [MethodImpl(MethodImplOptions.Synchronized)]
+            set
+            {
+                if (_LabelCT != null)
+                {
+                }
+
+                _LabelCT = value;
+                if (_LabelCT != null)
                 {
                 }
             }
