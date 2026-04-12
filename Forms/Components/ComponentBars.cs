@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
-using Microsoft.VisualBasic;
-using Microsoft.VisualBasic.CompilerServices;
 
 namespace GenieClient
 {
@@ -11,6 +10,7 @@ namespace GenieClient
         public ComponentBars()
         {
             InitializeComponent();
+            DoubleBuffered = true;
             Disposed += (s, e) =>
             {
                 m_BorderColor.Dispose();
@@ -25,46 +25,74 @@ namespace GenieClient
         private Pen m_BorderColor = new Pen(Color.Gray);
         private Pen m_BorderColorGrayScale = new Pen(Color.Gray);
 
-        // Private myImage As Image = Image.FromFile("RT.bmp")
-
         private void PanelBar_Paint(object sender, PaintEventArgs e)
         {
-            // Dim myTextureBrush As New TextureBrush(myImage)
+            Graphics g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            int panelW = PanelBar.Width;
+            int panelH = PanelBar.Height;
+            int radius = Math.Min(panelH / 2, 5);
+
+            // Always clear to background first — keeps rounded corners clean, no stale pixel artifacts
+            g.Clear(PanelBar.BackColor);
+
+            Pen borderPen = m_IsConnected ? m_BorderColor : m_BorderColorGrayScale;
 
             if (m_CurrentValue > 0)
             {
-                using var myTextureBrush = new SolidBrush((Color)Interaction.IIf(m_IsConnected, m_ForegroundColor, Genie.ColorCode.ColorToGrayscale(m_ForegroundColor)));
-                int w = Conversions.ToInteger(Math.Round(Width / (double)100 * m_CurrentValue));
-                e.Graphics.FillRectangle(myTextureBrush, 0, 0, w, PanelBar.Height);
-                Pen argp = (Pen)Interaction.IIf(m_IsConnected, m_BorderColor, m_BorderColorGrayScale);
-                DrawBorder(e.Graphics, argp);
+                Color fillColor = m_IsConnected
+                    ? m_ForegroundColor
+                    : Genie.ColorCode.ColorToGrayscale(m_ForegroundColor);
+
+                int w = (int)Math.Round(panelW / 100.0 * m_CurrentValue);
+                w = Math.Max(w, 1);
+
+                using var fillPath = RoundedRect(new Rectangle(0, 0, w - 1, panelH - 1), radius);
+
+                // 3D gradient: lighter at top, darker at bottom for a convex/bubble look
+                Color topColor = ControlPaint.Light(fillColor, 0.5f);
+                Color bottomColor = ControlPaint.Dark(fillColor, 0.3f);
+                using var mainBrush = new LinearGradientBrush(
+                    new Rectangle(0, 0, Math.Max(w, 1), Math.Max(panelH, 1)),
+                    topColor, bottomColor, LinearGradientMode.Vertical);
+                g.FillPath(mainBrush, fillPath);
+
+                // Gloss highlight: semi-transparent white shimmer across the top ~45%, clipped to the fill shape
+                int glossH = Math.Max((int)(panelH * 0.45), 1);
+                using var glossBrush = new LinearGradientBrush(
+                    new Rectangle(0, 0, Math.Max(w, 1), glossH + 1),
+                    Color.FromArgb(130, 255, 255, 255),
+                    Color.FromArgb(0, 255, 255, 255),
+                    LinearGradientMode.Vertical);
+                g.SetClip(fillPath);
+                g.FillRectangle(glossBrush, 0, 0, w, glossH);
+                g.ResetClip();
             }
+
+            // Rounded border drawn last so it sits cleanly over the fill
+            using var borderPath = RoundedRect(new Rectangle(0, 0, panelW - 1, panelH - 1), radius);
+            g.DrawPath(borderPen, borderPath);
         }
 
         private bool m_IsConnected = false;
 
         public bool IsConnected
         {
-            get
-            {
-                return m_IsConnected;
-            }
-
+            get => m_IsConnected;
             set
             {
                 m_IsConnected = value;
-                PanelBar.BackColor = (Color)Interaction.IIf(m_IsConnected, m_BackgroundColor, Genie.ColorCode.ColorToGrayscale(m_BackgroundColor));
+                PanelBar.BackColor = m_IsConnected
+                    ? m_BackgroundColor
+                    : Genie.ColorCode.ColorToGrayscale(m_BackgroundColor);
                 Invalidate();
             }
         }
 
         public string BarText
         {
-            get
-            {
-                return m_Text;
-            }
-
+            get => m_Text;
             set
             {
                 m_Text = value;
@@ -74,26 +102,20 @@ namespace GenieClient
 
         public Color BackgroundColor
         {
-            get
-            {
-                return m_BackgroundColor;
-            }
-
+            get => m_BackgroundColor;
             set
             {
                 m_BackgroundColor = value;
-                PanelBar.BackColor = (Color)Interaction.IIf(m_IsConnected, m_BackgroundColor, Genie.ColorCode.ColorToGrayscale(m_BackgroundColor));
+                PanelBar.BackColor = m_IsConnected
+                    ? m_BackgroundColor
+                    : Genie.ColorCode.ColorToGrayscale(m_BackgroundColor);
                 Invalidate();
             }
         }
 
         public Color ForegroundColor
         {
-            get
-            {
-                return m_ForegroundColor;
-            }
-
+            get => m_ForegroundColor;
             set
             {
                 m_ForegroundColor = value;
@@ -103,11 +125,7 @@ namespace GenieClient
 
         public Color BorderColor
         {
-            get
-            {
-                return m_BorderColor.Color;
-            }
-
+            get => m_BorderColor.Color;
             set
             {
                 m_BorderColor.Dispose();
@@ -120,29 +138,46 @@ namespace GenieClient
 
         public int Value
         {
-            get
-            {
-                return m_CurrentValue;
-            }
-
+            get => m_CurrentValue;
             set
             {
-                if (value < 0)
-                    value = 0;
-                if (value > 100)
-                    value = 100;
+                if (value < 0) value = 0;
+                if (value > 100) value = 100;
                 m_CurrentValue = value;
                 LabelValue.Text = m_Text;
                 Invalidate();
             }
         }
 
-        private void DrawBorder(Graphics g, Pen p)
+        // Clips the UserControl itself to the rounded shape so the parent background
+        // shows through the corners naturally rather than leaving square remnants
+        protected override void OnResize(EventArgs e)
         {
-            g.DrawLine(p, new Point(ClientRectangle.Left, ClientRectangle.Top), new Point(int.Parse((ClientRectangle.Width - p.Width).ToString()), ClientRectangle.Top));
-            g.DrawLine(p, new Point(ClientRectangle.Left, ClientRectangle.Top), new Point(ClientRectangle.Left, int.Parse((ClientRectangle.Height - p.Width).ToString())));
-            g.DrawLine(p, new Point(ClientRectangle.Left, int.Parse((ClientRectangle.Height - p.Width).ToString())), new Point(int.Parse((ClientRectangle.Width - p.Width).ToString()), int.Parse((ClientRectangle.Height - p.Width).ToString())));
-            g.DrawLine(p, new Point(int.Parse((ClientRectangle.Width - p.Width).ToString()), ClientRectangle.Top), new Point(int.Parse((ClientRectangle.Width - p.Width).ToString()), int.Parse((ClientRectangle.Height - p.Width).ToString())));
+            base.OnResize(e);
+            if (Width > 0 && Height > 0)
+            {
+                int radius = Math.Min(Height / 2, 5);
+                using var path = RoundedRect(new Rectangle(0, 0, Width, Height), radius);
+                Region = new Region(path);
+            }
+        }
+
+        private static GraphicsPath RoundedRect(Rectangle bounds, int radius)
+        {
+            int diameter = radius * 2;
+            diameter = Math.Min(diameter, Math.Min(bounds.Width, bounds.Height));
+            var path = new GraphicsPath();
+            if (diameter <= 0 || bounds.Width <= 0 || bounds.Height <= 0)
+            {
+                path.AddRectangle(bounds);
+                return path;
+            }
+            path.AddArc(bounds.X, bounds.Y, diameter, diameter, 180, 90);
+            path.AddArc(bounds.Right - diameter, bounds.Y, diameter, diameter, 270, 90);
+            path.AddArc(bounds.Right - diameter, bounds.Bottom - diameter, diameter, diameter, 0, 90);
+            path.AddArc(bounds.X, bounds.Bottom - diameter, diameter, diameter, 90, 90);
+            path.CloseFigure();
+            return path;
         }
     }
 }
