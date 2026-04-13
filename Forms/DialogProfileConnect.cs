@@ -24,6 +24,18 @@ namespace GenieClient
 
         private void OK_Close()
         {
+            // Persist the UseLich choice back to the profile so it survives without a manual profile save
+            if (ListBoxProfiles.SelectedItem != null)
+            {
+                string profilePath = m_sConfigDir + @"\Profiles\" + ListBoxProfiles.SelectedItem + ".xml";
+                if (File.Exists(profilePath))
+                {
+                    var xml = new Genie.XMLConfig();
+                    xml.LoadFile(profilePath);
+                    xml.SetValue("Genie/Profile", "UseLich", _CheckBoxUseLich.Checked.ToString());
+                    xml.SaveToFile(profilePath);
+                }
+            }
             DialogResult = DialogResult.OK;
             Close();
         }

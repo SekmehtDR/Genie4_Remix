@@ -34,16 +34,23 @@ namespace GenieClient
             int panelH = PanelBar.Height;
             int radius = Math.Min(panelH / 2, 5);
 
-            // Always clear to background first — keeps rounded corners clean, no stale pixel artifacts
-            g.Clear(PanelBar.BackColor);
-
             Pen borderPen = m_IsConnected ? m_BorderColor : m_BorderColorGrayScale;
+
+            Color fillColor = m_IsConnected
+                ? m_ForegroundColor
+                : Genie.ColorCode.ColorToGrayscale(m_ForegroundColor);
+
+            // Empty section: a bright pastel tint derived from the fill color (20% fill + 80% white).
+            // This is computed from the fill rather than relying on the preset BgColor, so it always
+            // looks correct regardless of what is saved in presets.cfg.
+            Color emptyColor = Color.FromArgb(
+                fillColor.R * 2 / 5,
+                fillColor.G * 2 / 5,
+                fillColor.B * 2 / 5);
+            g.Clear(emptyColor);
 
             if (m_CurrentValue > 0)
             {
-                Color fillColor = m_IsConnected
-                    ? m_ForegroundColor
-                    : Genie.ColorCode.ColorToGrayscale(m_ForegroundColor);
 
                 int w = (int)Math.Round(panelW / 100.0 * m_CurrentValue);
                 w = Math.Max(w, 1);

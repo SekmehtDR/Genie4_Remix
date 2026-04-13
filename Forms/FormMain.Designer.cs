@@ -1213,7 +1213,7 @@ namespace GenieClient
             // _ComponentBarsConc
             // 
             _ComponentBarsConc.BackColor = Color.Black;
-            _ComponentBarsConc.BackgroundColor = Color.FromArgb(0, 64, 64);
+            _ComponentBarsConc.BackgroundColor = Color.White;
             _ComponentBarsConc.BarText = "Concentration";
             _ComponentBarsConc.BorderColor = Color.FromArgb(0, 64, 64);
             _ComponentBarsConc.Dock = DockStyle.Fill;
@@ -1229,7 +1229,7 @@ namespace GenieClient
             // _ComponentBarsFatigue
             // 
             _ComponentBarsFatigue.BackColor = Color.Black;
-            _ComponentBarsFatigue.BackgroundColor = Color.FromArgb(0, 64, 0);
+            _ComponentBarsFatigue.BackgroundColor = Color.White;
             _ComponentBarsFatigue.BarText = "Stamina";
             _ComponentBarsFatigue.BorderColor = Color.FromArgb(0, 64, 0);
             _ComponentBarsFatigue.Dock = DockStyle.Fill;
@@ -1245,7 +1245,7 @@ namespace GenieClient
             // _ComponentBarsMana
             // 
             _ComponentBarsMana.BackColor = Color.Black;
-            _ComponentBarsMana.BackgroundColor = Color.FromArgb(0, 0, 64);
+            _ComponentBarsMana.BackgroundColor = Color.White;
             _ComponentBarsMana.BarText = "Mana";
             _ComponentBarsMana.BorderColor = Color.FromArgb(0, 0, 64);
             _ComponentBarsMana.Dock = DockStyle.Fill;
@@ -1261,7 +1261,7 @@ namespace GenieClient
             // _ComponentBarsSpirit
             // 
             _ComponentBarsSpirit.BackColor = Color.Black;
-            _ComponentBarsSpirit.BackgroundColor = Color.FromArgb(64, 0, 64);
+            _ComponentBarsSpirit.BackgroundColor = Color.White;
             _ComponentBarsSpirit.BarText = "Spirit";
             _ComponentBarsSpirit.BorderColor = Color.FromArgb(64, 0, 64);
             _ComponentBarsSpirit.Dock = DockStyle.Fill;
@@ -1277,7 +1277,7 @@ namespace GenieClient
             // _ComponentBarsHealth
             // 
             _ComponentBarsHealth.BackColor = Color.Black;
-            _ComponentBarsHealth.BackgroundColor = Color.FromArgb(64, 0, 0);
+            _ComponentBarsHealth.BackgroundColor = Color.White;
             _ComponentBarsHealth.BarText = "Health";
             _ComponentBarsHealth.BorderColor = Color.FromArgb(64, 0, 0);
             _ComponentBarsHealth.Dock = DockStyle.Fill;
@@ -1423,14 +1423,15 @@ namespace GenieClient
             _PanelInput.Location = new Point(0, 701);
             _PanelInput.Margin = new Padding(0);
             _PanelInput.Name = "_PanelInput";
-            _PanelInput.Padding = new Padding(4, 3, 4, 2);
+            _PanelInput.Padding = new Padding(8, 3, 8, 3);
             _PanelInput.Size = new Size(1449, 27);
             _PanelInput.TabIndex = 0;
             // 
             // _TextBoxInput
             // 
             _TextBoxInput.AcceptsTab = true;
-            _TextBoxInput.BackColor = Color.FromArgb(28, 28, 30);
+            _TextBoxInput.BackColor = Color.White;
+            _TextBoxInput.ForeColor = Color.Black;
             _TextBoxInput.BorderStyle = BorderStyle.None;
             _TextBoxInput.Dock = DockStyle.Fill;
             _TextBoxInput.Font = new Font("Courier New", 9F, FontStyle.Regular, GraphicsUnit.Point);

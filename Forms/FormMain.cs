@@ -2016,6 +2016,13 @@ namespace GenieClient
             _snapMapLineGo       = (p["automapper.linego"].FgColor,    p["automapper.linego"].BgColor);
             _snapMapPath         = (p["automapper.path"].FgColor,      p["automapper.path"].BgColor);
             _snapMapHere         = (p["automapper.here"].FgColor,      p["automapper.here"].BgColor);
+
+            // Old presets.cfg entries used single-color format (no BgColor), leaving BgColor as
+            // Transparent. Transparent on menus/status/textbox renders as the form's near-black
+            // background, making the UI appear blacked out in Custom mode. Substitute visible defaults.
+            if (_snapMenu.Bg    == Color.Transparent) _snapMenu    = (_snapMenu.Fg,    Color.FromArgb(232, 232, 234));
+            if (_snapStatus.Bg  == Color.Transparent) _snapStatus  = (_snapStatus.Fg,  Color.FromArgb(238, 238, 238));
+            if (_snapTextbox.Bg == Color.Transparent) _snapTextbox = (_snapTextbox.Fg, Color.White);
         }
 
         private ToolStripMenuItem _themeItemDark;
@@ -2079,8 +2086,8 @@ namespace GenieClient
                     p["ui.menu"].FgColor            = Color.FromArgb(232, 232, 234);
                     p["ui.menu.highlight"].FgColor  = Color.FromArgb(58, 58, 62);
                     p["ui.menu.checked"].FgColor    = Color.FromArgb(74, 74, 82);
-                    p["ui.textbox"].BgColor         = Color.FromArgb(28, 28, 30);
-                    p["ui.textbox"].FgColor         = Color.FromArgb(232, 232, 234);
+                    p["ui.textbox"].BgColor         = Color.FromArgb(58, 58, 65);
+                    p["ui.textbox"].FgColor         = Color.FromArgb(220, 220, 225);
                     p["ui.status"].BgColor          = Color.FromArgb(30, 30, 32);
                     p["ui.status"].FgColor          = Color.FromArgb(208, 208, 212);
                     p["automapper.panel"].FgColor      = Color.FromArgb(208, 208, 212);
