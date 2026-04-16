@@ -1,0 +1,6 @@
+root = true
+
+[*.cs]
+# WFO1000: WinForms property designer serialization — these are programmatic properties
+# not intended for designer use. Suppressed during .NET 10 port; fix individually as needed.
+dotnet_diagnostic.WFO1000.severity = none

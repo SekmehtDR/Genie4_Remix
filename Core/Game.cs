@@ -16,7 +16,7 @@ using System.IO;
 
 namespace GenieClient.Genie
 {
-    public class Game
+    public partial class Game
     {
         public Game()
         {
@@ -547,7 +547,7 @@ namespace GenieClient.Genie
             string sTextBuffer = string.Empty;
             string sBoldBuffer = string.Empty;
             int iBoldIndex = 0;
-            char cPreviousChar = Conversions.ToChar("");
+            char cPreviousChar = '\0';
             bool bCombatRow = false;
             bool bPromptRow = false;
 
@@ -581,7 +581,7 @@ namespace GenieClient.Genie
 
                     case '>':
                         {
-                            if (Conversions.ToString(cPreviousChar) == "/")	// End tag in same statement
+                            if (cPreviousChar == '/')	// End tag in same statement
                             {
                                 iInsideXML -= 1;
                             }
@@ -599,10 +599,19 @@ namespace GenieClient.Genie
                                 string sTmp = ProcessXML(buffer);
                                 if (buffer.EndsWith("</preset>"))
                                 {
-                                    XmlDocument presetXML = new XmlDocument();
-                                    presetXML.LoadXml(buffer);
-
-                                    string presetLabel = GetAttributeData(presetXML.FirstChild, "id").ToLower();
+                                    string presetLabel = string.Empty;
+                                    using (var presetReader = XmlReader.Create(new StringReader(buffer),
+                                        new XmlReaderSettings { ConformanceLevel = ConformanceLevel.Fragment }))
+                                    {
+                                        while (presetReader.Read())
+                                        {
+                                            if (presetReader.NodeType == XmlNodeType.Element && presetReader.Name == "preset")
+                                            {
+                                                presetLabel = (presetReader.GetAttribute("id") ?? string.Empty).ToLower();
+                                                break;
+                                            }
+                                        }
+                                    }
                                     switch(presetLabel)
                                     {
                                         case "whisper":
@@ -663,7 +672,7 @@ namespace GenieClient.Genie
 
                     case '/':
                         {
-                            if (Conversions.ToString(cPreviousChar) == "<")	// End tag found
+                            if (cPreviousChar == '<')	// End tag found
                             {
                                 bEndTagFound = true;
                             }
@@ -674,7 +683,7 @@ namespace GenieClient.Genie
                             }
                             else
                             {
-                                sTextBuffer += Conversions.ToString(c);
+                                sTextBuffer += c;
                                 if (m_bBold)
                                 {
                                     sBoldBuffer += c;
@@ -687,7 +696,7 @@ namespace GenieClient.Genie
                     case '&':
                         {
                             bInsideHTMLTag = true;
-                            sHTMLBuffer += Conversions.ToString(c);
+                            sHTMLBuffer += c;
                             break;
                         }
 
@@ -695,7 +704,7 @@ namespace GenieClient.Genie
                         {
                             if (bInsideHTMLTag == true)
                             {
-                                sHTMLBuffer += Conversions.ToString(c);
+                                sHTMLBuffer += c;
                                 if (iInsideXML > 0)
                                 {
                                     oXMLBuffer.Append(sHTMLBuffer);
@@ -725,7 +734,7 @@ namespace GenieClient.Genie
                         {
                             if (bInsideHTMLTag == true)
                             {
-                                sHTMLBuffer += Conversions.ToString(c);
+                                sHTMLBuffer += c;
                                 if (sHTMLBuffer.Length > 6) // Abort
                                 {
                                     if (iInsideXML > 0)
@@ -755,7 +764,7 @@ namespace GenieClient.Genie
                                 {
                                     sBoldBuffer += c;
                                 }
-                                sTextBuffer += Conversions.ToString(c);
+                                sTextBuffer += c;
                             }
 
                             break;
@@ -1405,8 +1414,7 @@ namespace GenieClient.Genie
                                         m_sRoomTitle = GetAttributeData(oXmlNode, argstrAttributeName4);
                                         m_sRoomUid = "0";
 
-                                        Regex m_RoomNameRegex = new Regex(@"\[(?<roomname>[^\]]+)\](?: \((?<roomuid>\d+)\))?");
-                                        System.Text.RegularExpressions.Match o_Match = m_RoomNameRegex.Match(m_sRoomTitle);
+                                        System.Text.RegularExpressions.Match o_Match = RoomNameRegex().Match(m_sRoomTitle);
                                         if (o_Match.Success)
                                         {
                                             m_sRoomTitle = o_Match.Groups["roomname"].Value;
@@ -2571,13 +2579,19 @@ namespace GenieClient.Genie
             m_oIndicatorHash[Indicator.Webbed] = false;
         }
 
-        private Regex m_MonsterRegex = new Regex("<pushBold />([^<]*)<popBold />([^,.]*)", MyRegexOptions.options);
-        private Regex m_RoomObjectsRegex = new Regex("<pushBold />([^<]*)<popBold />");
+        [GeneratedRegex(@"<pushBold />([^<]*)<popBold />([^,.]*)", RegexOptions.Multiline)]
+        private static partial Regex MonsterRegex();
+
+        [GeneratedRegex(@"<pushBold />([^<]*)<popBold />")]
+        private static partial Regex RoomObjectsRegex();
+
+        [GeneratedRegex(@"\[(?<roomname>[^\]]+)\](?: \((?<roomuid>\d+)\))?")]
+        private static partial Regex RoomNameRegex();
         private static int tagOffset = "<pushBold /><popBold />".Length;
         private void SetRoomObjects(XmlNode oXmlNode)
         {
             m_oGlobals.RoomObjects.Clear();
-            foreach (Match roomObject in m_RoomObjectsRegex.Matches(oXmlNode.InnerXml))
+            foreach (Match roomObject in RoomObjectsRegex().Matches(oXmlNode.InnerXml))
             {
                 int position = roomObject.Index - (tagOffset * m_oGlobals.RoomObjects.Count);
                 VolatileHighlight highlight = new VolatileHighlight(ParseSubstitutions(roomObject.Groups[1].Value), "creatures", position);
@@ -2589,7 +2603,7 @@ namespace GenieClient.Genie
             int iMonsterCount = 0;
             string sMonsterList = string.Empty;
             m_oGlobals.MonsterList.Clear();
-            foreach (Match m in m_MonsterRegex.Matches(oXmlNode.InnerXml.Replace(" and ", ", ").Replace(" and <pushBold />", ", <pushBold />")))
+            foreach (Match m in MonsterRegex().Matches(oXmlNode.InnerXml.Replace(" and ", ", ").Replace(" and <pushBold />", ", <pushBold />")))
             {
                 var sValue = m.Groups[1].Value + m.Groups[2].Value;
                 // PrintText(sValue & vbNewLine)
@@ -2710,7 +2724,6 @@ namespace GenieClient.Genie
             
         }
 
-        private MatchCollection m_oMatchCollection;
 
         public void PrintTextWithParse(string sText, [Optional, DefaultParameterValue(false)] bool bIsPrompt, [Optional, DefaultParameterValue(WindowTarget.Unknown)] WindowTarget oWindowTarget)
         {
@@ -2802,9 +2815,9 @@ namespace GenieClient.Genie
                 // Line contains (case-sensitive)
                 if (m_oGlobals.Config.bHighlightsEnabled && !Information.IsNothing(m_oGlobals.HighlightList.RegexLine) && !string.IsNullOrWhiteSpace(m_oGlobals.HighlightList.RegexLine.ToString()))
                 {
-                    m_oMatchCollection = m_oGlobals.HighlightList.RegexLine.Matches(sText);
+                    var oMatchCollection = m_oGlobals.HighlightList.RegexLine.Matches(sText);
                     Highlights.Highlight oHighlightString;
-                    foreach (Match oMatch in m_oMatchCollection)
+                    foreach (Match oMatch in oMatchCollection)
                     {
                         if (m_oGlobals.HighlightList.Contains(oMatch.Value))
                         {
@@ -2821,9 +2834,9 @@ namespace GenieClient.Genie
                 // Line contains (case-insensitive)
                 if (m_oGlobals.Config.bHighlightsEnabled && !Information.IsNothing(m_oGlobals.HighlightList.RegexLineCI))
                 {
-                    m_oMatchCollection = m_oGlobals.HighlightList.RegexLineCI.Matches(sText);
+                    var oMatchCollectionCI = m_oGlobals.HighlightList.RegexLineCI.Matches(sText);
                     Highlights.Highlight oHighlightStringCI;
-                    foreach (Match oMatch in m_oMatchCollection)
+                    foreach (Match oMatch in oMatchCollectionCI)
                     {
                         oHighlightStringCI = m_oGlobals.HighlightList.GetCaseInsensitive(oMatch.Value);
                         if (oHighlightStringCI != null)

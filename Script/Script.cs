@@ -8,17 +8,18 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using Jint;
+using Jint.Runtime;
 using Microsoft.VisualBasic;
 using Microsoft.VisualBasic.CompilerServices;
 
 namespace GenieClient
 {
-    public class Script
+    public partial class Script
     {
         private const int m_iDefaultTimeout = 3500;
         private const string GENIE_INTERNAL_ACTION_DO = "550276ca-49f0-4067-aa5b-b3cba4869564";
-        private const string PARAMETER_REGEX = @"\{.*?\}";
-        //private static readonly Regex PARAMETER_REGEX = new Regex(@"\{.*?\}"); //for script commands to receive data as {string of text} {parameters as a string}
+        [GeneratedRegex(@"\{.*?\}")]
+        private static partial Regex ParameterRegex();
 
         /* TODO ERROR: Skipped RegionDirectiveTrivia */
         public class ScriptLine
@@ -687,31 +688,20 @@ namespace GenieClient
         private DateTime m_oRoundTimeEnd = default;
         private int m_iDebugLevel = 0; // High number = More messages
         private volatile bool m_bBufferEnd = true;
-        private JintEngine m_JintEngine = null;
+        private Engine m_JintEngine = null;
         private bool _pendingReload = false;
-
-        // Allocating and unallocating is slow.
-        private Match m_oRegMatch;
-
-        public delegate void JsEchoDelegate(object oOut);
-
-        public delegate void JsPutDelegate(object oText);
-
-        public delegate object JsGetVariableDelegate(string sVar);
-
-        public delegate void JsSetVariableDelegate(string sVar, object sVal);
 
         public void InitJintEngine()
         {
-            if (Information.IsNothing(m_JintEngine))
+            if (m_JintEngine == null)
             {
-                m_JintEngine = new JintEngine();
-                m_JintEngine.SetFunction("echo", new JsEchoDelegate(JsEchoText));
-                m_JintEngine.SetFunction("put", new JsPutDelegate(JsSendText));
-                m_JintEngine.SetFunction("getGlobal", new JsGetVariableDelegate(JsGetGlobalVariable));
-                m_JintEngine.SetFunction("getVar", new JsGetVariableDelegate(JsGetVariable));
-                m_JintEngine.SetFunction("setGlobal", new JsSetVariableDelegate(JsSetGlobalVariable));
-                m_JintEngine.SetFunction("setVar", new JsSetVariableDelegate(JsSetVariable));
+                m_JintEngine = new Engine(); // CLR access is disabled by default in Jint 4
+                m_JintEngine.SetValue("echo", new Action<object>(JsEchoText));
+                m_JintEngine.SetValue("put", new Action<object>(JsSendText));
+                m_JintEngine.SetValue("getGlobal", new Func<string, string>(JsGetGlobalVariable));
+                m_JintEngine.SetValue("getVar", new Func<string, string>(JsGetVariable));
+                m_JintEngine.SetValue("setGlobal", new Action<string, object>(JsSetGlobalVariable));
+                m_JintEngine.SetValue("setVar", new Action<string, object>(JsSetVariable));
             }
         }
 
@@ -1214,16 +1204,14 @@ namespace GenieClient
                             }
                             else if (!Information.IsNothing(m_oWaitForRegex))
                             {
-                                m_oRegMatch = m_oWaitForRegex.Match(text.Trim());
-                                if (m_oRegMatch.Success)
+                                var oRegMatch = m_oWaitForRegex.Match(text.Trim());
+                                if (oRegMatch.Success)
                                 {
-                                    if (m_oRegMatch.Groups.Count > 0)
+                                    if (oRegMatch.Groups.Count > 0)
                                     {
                                         m_oCurrentLine.ArgList.Clear();
-                                        int J;
-                                        var loopTo = m_oRegMatch.Groups.Count - 1;
-                                        for (J = 0; J <= loopTo; J++)
-                                            m_oCurrentLine.ArgList.Add(m_oRegMatch.Groups[J].Value);
+                                        for (int J = 0; J < oRegMatch.Groups.Count; J++)
+                                            m_oCurrentLine.ArgList.Add(oRegMatch.Groups[J].Value);
                                     }
 
                                     m_bWaitForStringResume = true;
@@ -1258,16 +1246,14 @@ namespace GenieClient
                                 }
                                 else if (!Information.IsNothing(match.RegexMatch))
                                 {
-                                    m_oRegMatch = match.RegexMatch.Match(text.Trim());
-                                    if (m_oRegMatch.Success)
+                                    var oRegMatch = match.RegexMatch.Match(text.Trim());
+                                    if (oRegMatch.Success)
                                     {
-                                        if (m_oRegMatch.Groups.Count > 0)
+                                        if (oRegMatch.Groups.Count > 0)
                                         {
                                             m_oCurrentLine.ArgList.Clear();
-                                            int J;
-                                            var loopTo1 = m_oRegMatch.Groups.Count - 1;
-                                            for (J = 0; J <= loopTo1; J++)
-                                                m_oCurrentLine.ArgList.Add(m_oRegMatch.Groups[J].Value);
+                                            for (int J = 0; J < oRegMatch.Groups.Count; J++)
+                                                m_oCurrentLine.ArgList.Add(oRegMatch.Groups[J].Value);
                                         }
 
                                         m_sWaitForMatchLabel = match.Label.ToLower();
@@ -1297,16 +1283,14 @@ namespace GenieClient
                             {
                                 if (((ClassActionList.Action)de.Value).IsEvalAction == false)
                                 {
-                                    m_oRegMatch = ((ClassActionList.Action)de.Value).oRegExp.Match(text);
-                                    if (m_oRegMatch.Success)
+                                    var oRegMatch = ((ClassActionList.Action)de.Value).oRegExp.Match(text);
+                                    if (oRegMatch.Success)
                                     {
                                         var ActionRegExpArg = new ArrayList();
-                                        if (m_oRegMatch.Groups.Count > 0)
+                                        if (oRegMatch.Groups.Count > 0)
                                         {
-                                            int J;
-                                            var loopTo2 = m_oRegMatch.Groups.Count - 1;
-                                            for (J = 1; J <= loopTo2; J++)
-                                                ActionRegExpArg.Add(m_oRegMatch.Groups[J].Value);
+                                            for (int J = 1; J < oRegMatch.Groups.Count; J++)
+                                                ActionRegExpArg.Add(oRegMatch.Groups[J].Value);
                                         }
 
                                         ParseAction(de.Key.ToString(), ActionRegExpArg, text);
@@ -1754,7 +1738,7 @@ namespace GenieClient
                                 {
                                     RunJsblock(sJSBlockContent);
                                 }
-                                catch (JintException ex)
+                                catch (JavaScriptException ex)
                                 {
                                     PrintJSError(ex.Message, iJsFileId, iJsBlockLine);
                                     m_JintEngine = null;
@@ -1801,7 +1785,7 @@ namespace GenieClient
                                             RunJsblock(sJSBlockContent);
                                         }
                                     }
-                                    catch (JintException ex)
+                                    catch (JavaScriptException ex)
                                     {
                                         PrintJSError(ex.Message, iJsFileId, iJsBlockLine);
                                         m_JintEngine = null;
@@ -2876,14 +2860,13 @@ namespace GenieClient
             InitJintEngine();
             try
             {
-                m_JintEngine.AllowClr = false;
-                var oResult = m_JintEngine.Run(sText);
-                if (!Information.IsNothing(oResult))
+                var oResult = m_JintEngine.Evaluate(sText);
+                if (!oResult.IsUndefined() && !oResult.IsNull())
                 {
                     sResult = oResult.ToString();
                 }
             }
-            catch (JintException ex)
+            catch (JavaScriptException ex)
             {
                 PrintError(ex.Message, iFileId, iFileRow);
             }
@@ -3411,7 +3394,7 @@ namespace GenieClient
                 {
                     return false;
                 }
-                MatchCollection doRegex = Regex.Matches(FullCommand, PARAMETER_REGEX);
+                MatchCollection doRegex = ParameterRegex().Matches(FullCommand);
                 if(doRegex.Count == 0)
                 {   
                     DoCommandText = FullCommand;
@@ -3537,7 +3520,7 @@ namespace GenieClient
         private bool RunJsblock(string sBlock)
         {
             InitJintEngine();
-            m_JintEngine.Run(sBlock);
+            m_JintEngine.Execute(sBlock);
             return default;
         }
 

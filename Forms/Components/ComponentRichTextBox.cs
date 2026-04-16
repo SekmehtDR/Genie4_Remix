@@ -11,14 +11,13 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using GenieClient.Genie;
-using Jint.Debugger;
 using Microsoft.VisualBasic;
 using Microsoft.VisualBasic.CompilerServices;
 using static GenieClient.Genie.Globals;
 
 namespace GenieClient
 {
-    public class ComponentRichTextBox : RichTextBox
+    public partial class ComponentRichTextBox : RichTextBox
     {
 
         /* TODO ERROR: Skipped RegionDirectiveTrivia */
@@ -523,7 +522,8 @@ namespace GenieClient
             }
         }
 
-        private Regex oClickRegex = new Regex("{([^{]*):([^{]*)}", MyRegexOptions.options);
+        [GeneratedRegex(@"\{([^{]*):([^{]*)\}", RegexOptions.Multiline)]
+        private static partial Regex ClickRegex();
         private List<Link> LinkList = new List<Link>();
 
         private class Link
@@ -534,7 +534,8 @@ namespace GenieClient
         }
 
         // Matches a timestamp prefix like "[12:34 PM] " or "[14:30] " at the start of a line
-        private static readonly Regex _timestampPrefixRx = new Regex(@"^\[\d{1,2}:\d{2}[^\]]*\] ?");
+        [GeneratedRegex(@"^\[\d{1,2}:\d{2}[^\]]*\] ?")]
+        private static partial Regex TimestampPrefixRegex();
 
         /// <summary>
         /// Builds a version of the buffer text with timestamp prefixes removed from each line,
@@ -555,7 +556,7 @@ namespace GenieClient
                 if (lastLine) lineEnd = text.Length;
 
                 string line = text.Substring(lineStart, lineEnd - lineStart);
-                Match tsMatch = _timestampPrefixRx.Match(line);
+                Match tsMatch = TimestampPrefixRegex().Match(line);
                 int tsLen = tsMatch.Success ? tsMatch.Length : 0;
 
                 for (int k = tsLen; k < line.Length; k++)
@@ -727,7 +728,7 @@ namespace GenieClient
             }
 
             // Links
-            oMatchCollection = oClickRegex.Matches(m_oRichTextBuffer.Text);
+            oMatchCollection = ClickRegex().Matches(m_oRichTextBuffer.Text);
             int iOffset = 0;
             foreach (Match oMatch in oMatchCollection)
             {

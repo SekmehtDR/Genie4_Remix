@@ -187,8 +187,6 @@ namespace GenieClient.Genie
                 _client = new TcpClient();
                 m_SocketClient = _client.Client;
                 
-                var hostEntryList = Dns.GetHostEntry(sHostname);
-                m_IPEndPoint = new IPEndPoint(hostEntryList.AddressList.Where(i => i.AddressFamily == AddressFamily.InterNetwork).FirstOrDefault(), iPort);
                 _client.Connect(sHostname, iPort);
                 m_oLastServerActivity = DateTime.Now;
                 try
@@ -260,6 +258,7 @@ namespace GenieClient.Genie
                     sslStream.Close();
                     sslStream = null;
                     CurrentAuthState = AuthState.InvalidResponse;
+                    return CurrentAuthState;
                 }
 
                 // SslStreams require a byte array to write
@@ -600,7 +599,7 @@ namespace GenieClient.Genie
                     m_RowBuffer.Clear();
                     m_ParseBuffer.Clear();
                 }
-                else if (Conversions.ToString(c) != Constants.vbLf & c != '\a')
+                else if (c != '\n' & c != '\a')
                 {
                     m_ParseBuffer.Append(c);
                 }

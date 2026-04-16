@@ -37,17 +37,8 @@ namespace GenieClient.My
             {
             }
 
-            Dictionary<string, string> embeddedAssemblies = new Dictionary<string, string>();
-            
-            //3rd party assemblies
-            embeddedAssemblies.Add("GenieClient.Libs.Jint.dll", "Jint.dll");
-            embeddedAssemblies.Add("GenieClient.Libs.Antlr3.Runtime.dll", "Antlr3.Runtime.dll");
-            embeddedAssemblies.Add("GenieClient.Libs.Interfaces.dll", "Interfaces.dll");
-
-            foreach (KeyValuePair<string, string> embeddedAssembly in embeddedAssemblies)
-            {
-                EmbeddedAssembly.Load(embeddedAssembly.Key, embeddedAssembly.Value);
-            }
+            // Load Interfaces.dll from embedded resources so plugins can resolve it
+            EmbeddedAssembly.Load("GenieClient.Libs.Interfaces.dll", "Interfaces.dll");
 
 
             AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler(CurrentDomain_AssemblyResolve);

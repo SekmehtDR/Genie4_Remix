@@ -2658,7 +2658,7 @@ namespace GenieClient.Genie
             }
             else
             {
-                EchoText("Invalid number of arguments in #connect command. Syntax: #connect account password character game" + Constants.vbNewLine);
+                EchoText("Invalid number of arguments in #connect command. Syntax: #connect account password character game" + Environment.NewLine);
             }
 
         }
