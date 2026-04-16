@@ -199,7 +199,7 @@ namespace GenieClient.Genie
                     catch (AuthenticationException e)
                     {
                         PrintError("Unable to Authenticate: " + e.Message);
-                        _client.Close();
+                        _client.Dispose();
                     }
                     // Complete the connection
                     
@@ -255,7 +255,7 @@ namespace GenieClient.Genie
                 int bytes = sslStream.Read(buffer, 0, buffer.Length);
                 if (bytes != 32)
                 {
-                    sslStream.Close();
+                    sslStream.Dispose();
                     sslStream = null;
                     CurrentAuthState = AuthState.InvalidResponse;
                     return CurrentAuthState;
@@ -281,7 +281,7 @@ namespace GenieClient.Genie
                 }
                 else
                 {
-                    sslStream.Close();
+                    sslStream.Dispose();
                     sslStream = null;
                     CurrentAuthState = AuthState.AuthenticationFailed;
                 }
@@ -329,7 +329,7 @@ namespace GenieClient.Genie
             //Check for  match of known good status, and if no match, no access to requested instance
             if (Encoding.Default.GetString(buffer).TrimEnd('\0').ToUpper() == "PROBLEM")
             {
-                sslStream.Close();
+                sslStream.Dispose();
                 sslStream = null;
                 CurrentAuthState = AuthState.Disconnected;
                 return "E\tThere is a problem with your account. Please log in to the play.net website for more information.";
@@ -348,7 +348,7 @@ namespace GenieClient.Genie
             // Requesting character list with no character name given
             if (string.IsNullOrWhiteSpace(character))
             {
-                sslStream.Close();
+                sslStream.Dispose();
                 sslStream = null;
                 CurrentAuthState = AuthState.Disconnected;
                 return characterResponse;
@@ -373,7 +373,7 @@ namespace GenieClient.Genie
             
             if (string.IsNullOrWhiteSpace(characterKey))
             {
-                sslStream.Close();
+                sslStream.Dispose();
                 sslStream = null;
                 CurrentAuthState = AuthState.Disconnected;
                 return "E\tThe specified character was not found: " + character + ".";
@@ -389,7 +389,7 @@ namespace GenieClient.Genie
             CurrentAuthState = AuthState.Authenticated;
             _ = sslStream.Read(buffer, 0, buffer.Length);
             
-            sslStream.Close();
+            sslStream.Dispose();
             sslStream = null;
             string loginKey = Encoding.Default.GetString(buffer);
             return loginKey;
@@ -561,6 +561,7 @@ namespace GenieClient.Genie
                     {
                         if(CurrentAuthState == AuthState.ListeningForKey || CurrentAuthState == AuthState.KeyAuthenticated)
                         {
+                            s.Client.BeginReceive(oState.oBuffer, 0, StateObject.iBufferSize, SocketFlags.None, new AsyncCallback(ReceiveCallback), oState);
                             return;
                         }
                         // Append data

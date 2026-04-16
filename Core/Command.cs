@@ -471,6 +471,7 @@ namespace GenieClient.Genie
                                         }
                                     case "browser":
                                         {
+                                            if (oArgs.Count < 2) break;
                                             string url = oGlobals.ParseGlobalVars(oArgs[1].ToString());
                                             if (!url.StartsWith("http://") && !url.StartsWith("https://")) url = "http://" + url;
                                             LaunchBrowser?.Invoke(url);

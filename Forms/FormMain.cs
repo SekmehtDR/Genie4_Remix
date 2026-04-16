@@ -184,6 +184,8 @@ namespace GenieClient
 
         public async void UpdateOnStartup()
         {
+            try
+            {
             await Task.Run(async () =>
             {
                 if (m_oGlobals.Config.CheckForUpdates || m_oGlobals.Config.AutoUpdate)
@@ -207,6 +209,8 @@ namespace GenieClient
                     }
                 }
             });
+            }
+            catch { }
         }
 
         public void DirectConnect(string[] parameters)
@@ -5010,8 +5014,13 @@ namespace GenieClient
 
             if (InvokeRequired == true)
             {
-                var parameters = new object[] { sText, oColor, oBgColor, oTargetWindow, bNoCache, bMono };
-                BeginInvoke(new AddTextDelegate(InvokeAddText), parameters);
+                if (IsDisposed) return;
+                try
+                {
+                    var parameters = new object[] { sText, oColor, oBgColor, oTargetWindow, bNoCache, bMono };
+                    BeginInvoke(new AddTextDelegate(InvokeAddText), parameters);
+                }
+                catch (ObjectDisposedException) { }
             }
             else
             {

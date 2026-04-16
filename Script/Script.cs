@@ -1072,7 +1072,8 @@ namespace GenieClient
                 // GenieError("Unable to aquire script thread lock.")
             }
 
-            EventStatusChanged?.Invoke(this, ScriptState.pausing);
+            var pauseHandler = EventStatusChanged;
+            pauseHandler?.Invoke(this, ScriptState.pausing);
         }
 
         public void ResumeScript()
@@ -1101,7 +1102,8 @@ namespace GenieClient
                 // GenieError("Unable to aquire script thread lock.")
             }
 
-            EventStatusChanged?.Invoke(this, ScriptState.running);
+            var resumeHandler = EventStatusChanged;
+            resumeHandler?.Invoke(this, ScriptState.running);
         }
 
         public void AbortOnScriptError()
@@ -1170,7 +1172,8 @@ namespace GenieClient
                 // GenieError("Unable to aquire script thread lock.")
             }
 
-            EventStatusChanged?.Invoke(this, ScriptState.finished);
+            var abortHandler = EventStatusChanged;
+            abortHandler?.Invoke(this, ScriptState.finished);
         }
 
         public void TriggerParse(string text, bool bBufferWait = true)

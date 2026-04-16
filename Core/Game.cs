@@ -1358,7 +1358,7 @@ namespace GenieClient.Genie
                                 attribute += ".jpg";
                                 string gamecode = "DR"; //default DR
                                 if (AccountGame.StartsWith("GS")) gamecode = "GS";
-                                if (FileHandler.FetchImage(attribute, m_oGlobals.Config.ArtDir, gamecode).Result) AddImage(Path.Combine(gamecode, attribute), "portrait");
+                                _ = Task.Run(async () => { if (await FileHandler.FetchImage(attribute, m_oGlobals.Config.ArtDir, gamecode)) AddImage(Path.Combine(gamecode, attribute), "portrait"); });
                             }
                             break;
                         }
