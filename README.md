@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <kbd><a href="screenshots/geniemain-cs-31MAR2026.png"><img src="screenshots/geniemain-cs-31MAR2026.png" width="350"/></a></kbd>
+  <kbd><a href="screenshots/geniemain-cs-16APR2026.png"><img src="screenshots/geniemain-cs-16APR2026.png" width="350"/></a></kbd>
   <kbd><a href="screenshots/automapper-cs-31MAR2026.png"><img src="screenshots/automapper-cs-31MAR2026.png" width="350"/></a></kbd>
 </p>
 
