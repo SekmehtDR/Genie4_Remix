@@ -33,9 +33,8 @@ namespace GenieClient.Genie
                         sText = "*** LOG CREATED AT " + DateTime.Now.ToString() + " ***" + System.Environment.NewLine + System.Environment.NewLine + sText;
                     }
 
-                    var oStreamWriter = new StreamWriter(sFileName, true);
+                    using var oStreamWriter = new StreamWriter(sFileName, true);
                     oStreamWriter.Write(sText);
-                    oStreamWriter.Close();
                     return true;
                 }
                 catch (Exception ex)
@@ -73,9 +72,8 @@ namespace GenieClient.Genie
                         sFileName = Path.Combine(sDirectory, sFileName);
                     }
 
-                    var oStreamWriter = new StreamWriter(sFileName, true);
+                    using var oStreamWriter = new StreamWriter(sFileName, true);
                     oStreamWriter.WriteLine(sText);
-                    oStreamWriter.Close();
                     return true;
                 }
                 catch (Exception ex)

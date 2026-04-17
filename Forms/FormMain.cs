@@ -3331,7 +3331,6 @@ namespace GenieClient
             oScript.EventPrintError += Script_EventPrintError;
             oScript.EventPrintText += Script_EventPrintText;
             oScript.EventSendText += Script_EventSendText;
-            GenieError.EventGenieError += HandleGenieException;
             oScript.EventDebugChanged += Script_EventDebugChanged;
             oScript.EventStatusChanged += Script_EventStatusChanged;
             if (oScript.LoadFile(sScriptName, oArgList) == true)

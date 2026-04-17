@@ -867,7 +867,7 @@ namespace GenieClient
             {
                 bIsFlushingBuffer = true;
                 BeginUpdate();
-                int iRemoveSize = (int)(TextLength / (double)3);
+                int iRemoveSize = TextLength / 2;
                 SelectionStart = 0;
                 SelectionLength = iRemoveSize;
                 SelectedText = " ";
