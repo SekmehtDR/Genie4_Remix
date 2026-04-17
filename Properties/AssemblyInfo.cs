@@ -8,10 +8,10 @@ using System.Runtime.InteropServices;
 
 // Review the values of the assembly attributes
 
-[assembly: AssemblyTitle("Genie Client 4")]
+[assembly: AssemblyTitle("Genie Remix Client 4")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyCompany("genieclient.com")]
-[assembly: AssemblyProduct("Genie Client 4")]
+[assembly: AssemblyProduct("Genie Remix Client 4")]
 [assembly: AssemblyCopyright("GPL-3")]
 [assembly: AssemblyTrademark("")]
 [assembly: ComVisible(false)]

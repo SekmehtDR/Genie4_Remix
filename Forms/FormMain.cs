@@ -4913,7 +4913,7 @@ namespace GenieClient
                 strTitle += "[Not connected]" + " - ";
             }
 
-            strTitle += "Genie " + My.MyProject.Application.Info.Version.ToString();
+            strTitle += "Genie Remix " + My.MyProject.Application.Info.Version.ToString();
             Text = strTitle;
         }
 
