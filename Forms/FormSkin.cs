@@ -28,12 +28,15 @@ namespace GenieClient
             Title = sTitle;
             Globals = oGlobal;
             RichTextBoxOutput.FormParent = this;
+            RichTextBoxOutput.EventSendToConfig += (text, target) => EventSendToConfig?.Invoke(text, target);
             LoadSkin();
         }
 
         public event EventLinkClickedEventHandler EventLinkClicked;
 
         public delegate void EventLinkClickedEventHandler(string link, System.Windows.Forms.LinkClickedEventArgs e);
+
+        public event Action<string, string> EventSendToConfig;
 
         public int TriggerDistance = 5;
         public int SnapDistance = 15;

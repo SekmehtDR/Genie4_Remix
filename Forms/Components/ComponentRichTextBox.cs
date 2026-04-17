@@ -986,6 +986,8 @@ namespace GenieClient
             m_oParentForm.Focus();
         }
 
+        public event Action<string, string> EventSendToConfig;
+
         public event EventKeyDownEventHandler EventKeyDown;
         public delegate void EventKeyDownEventHandler(KeyEventArgs e);
 
@@ -1023,8 +1025,30 @@ namespace GenieClient
                 {
                     string sTemp = SelectedText.ToString();
                     sTemp = sTemp.Replace(Constants.vbLf, System.Environment.NewLine);
-                    Clipboard.SetDataObject(sTemp, true);
-                    SelectionLength = 0;
+
+                    if (ModifierKeys.HasFlag(Keys.Shift) && EventSendToConfig != null)
+                    {
+                        string captured = sTemp.Trim();
+                        SelectionLength = 0;
+                        var menu = new ContextMenuStrip();
+                        var copyItem = new ToolStripMenuItem("Copy to Clipboard");
+                        copyItem.Click += (s, args) => Clipboard.SetDataObject(captured, true);
+                        menu.Items.Add(copyItem);
+                        menu.Items.Add(new ToolStripSeparator());
+                        foreach (string target in new[] { "Highlight", "Trigger", "Substitute", "Gag", "Alias" })
+                        {
+                            string t = target;
+                            var item = new ToolStripMenuItem($"Send to {t}...");
+                            item.Click += (s, args) => EventSendToConfig?.Invoke(captured, t);
+                            menu.Items.Add(item);
+                        }
+                        menu.Show(this, e.Location);
+                    }
+                    else
+                    {
+                        Clipboard.SetDataObject(sTemp, true);
+                        SelectionLength = 0;
+                    }
                 }
 
                 if (m_oRichTextBuffer.TextLength > 0)

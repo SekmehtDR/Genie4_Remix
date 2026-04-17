@@ -611,12 +611,14 @@ namespace GenieClient
                 if (_m_oOutputMain != null)
                 {
                     _m_oOutputMain.EventLinkClicked -= FormSkin_LinkClicked;
+                    _m_oOutputMain.EventSendToConfig -= FormSkin_SendToConfig;
                 }
 
                 _m_oOutputMain = value;
                 if (_m_oOutputMain != null)
                 {
                     _m_oOutputMain.EventLinkClicked += FormSkin_LinkClicked;
+                    _m_oOutputMain.EventSendToConfig += FormSkin_SendToConfig;
                 }
             }
         }
@@ -8608,6 +8610,31 @@ namespace GenieClient
                     link = "https://www.play.net/bounce/redirect.asp?URL=" + link;
                 }
                 Utility.OpenBrowser(link);
+            }
+        }
+
+        private void FormSkin_SendToConfig(string text, string configType)
+        {
+            My.MyProject.Forms.FormConfig.MdiParent = this;
+            My.MyProject.Forms.FormConfig.Show();
+            My.MyProject.Forms.FormConfig.BringToFront();
+            switch (configType)
+            {
+                case "Highlight":
+                    My.MyProject.Forms.FormConfig.OpenToHighlight(text);
+                    break;
+                case "Trigger":
+                    My.MyProject.Forms.FormConfig.OpenToTrigger(text);
+                    break;
+                case "Substitute":
+                    My.MyProject.Forms.FormConfig.OpenToSubstitute(text);
+                    break;
+                case "Gag":
+                    My.MyProject.Forms.FormConfig.OpenToGag(text);
+                    break;
+                case "Alias":
+                    My.MyProject.Forms.FormConfig.OpenToAlias(text);
+                    break;
             }
         }
 

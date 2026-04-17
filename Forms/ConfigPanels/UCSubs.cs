@@ -362,6 +362,12 @@ namespace GenieClient
             }
         }
 
+        public void PrepopulateNew(string text)
+        {
+            ToolStripButtonAdd_Click(this, EventArgs.Empty);
+            TextBoxReplace.Text = text;
+        }
+
         private void ToolStripButtonAdd_Click(object sender, EventArgs e)
         {
             CheckApplyChanges();

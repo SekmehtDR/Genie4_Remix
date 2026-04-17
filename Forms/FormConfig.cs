@@ -207,5 +207,35 @@ namespace GenieClient
             Check(_LabelRubyResult, "Ruby", _TextBoxRubyPath.Text.Trim());
             Check(_LabelLichResult, "Lich", _TextBoxLichPath.Text.Trim());
         }
+        public void OpenToHighlight(string text)
+        {
+            TabControlMain.SelectedTab = TabPageHighlights;
+            TabControl2.SelectedIndex = 0;
+            UcHighlightStrings1.PrepopulateNew(text);
+        }
+
+        public void OpenToTrigger(string text)
+        {
+            TabControlMain.SelectedTab = TabPageTriggers;
+            UcTriggers1.PrepopulateNew(text);
+        }
+
+        public void OpenToSubstitute(string text)
+        {
+            TabControlMain.SelectedTab = TabPageSubs;
+            UcSubs1.PrepopulateNew(text);
+        }
+
+        public void OpenToGag(string text)
+        {
+            TabControlMain.SelectedTab = TabPageIgnores;
+            UcIgnore1.PrepopulateNew(text);
+        }
+
+        public void OpenToAlias(string text)
+        {
+            TabControlMain.SelectedTab = TabPageAliases;
+            UcAliases1.PrepopulateNew(text);
+        }
     }
 }
