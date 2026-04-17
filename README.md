@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <code>Version: 4.1.0.0</code> &nbsp;|&nbsp; <code>Released: 4/16/2026</code> &nbsp;|&nbsp; <code>Platform: .NET 10</code> &nbsp;|&nbsp; <code>Lich: Yes</code> &nbsp;|&nbsp; <code>Stable: Yes</code>
+  <code>Version: 4.1.0.0</code> &nbsp;|&nbsp; <code>Released: 4/17/2026</code> &nbsp;|&nbsp; <code>Platform: .NET 10</code> &nbsp;|&nbsp; <code>Lich: Yes</code> &nbsp;|&nbsp; <code>Stable: Yes</code>
 </p>
 
 <p align="center">
@@ -42,11 +42,16 @@ Download the latest release:
 ### Lich Integration
 - Lich is a first-class connection option — no manual setup through typed commands required
 - Dedicated **Lich** tab in Configuration for pointing the client at Ruby and Lich, with a **Test** button to verify paths before connecting
-- Per-character "Connect via Lich" checkbox — your preference is remembered per profile
+- **Connect via Lich** checkbox available in both the Game Connect and Connect via Profile dialog boxes
 - Fixed sessions getting stuck and manual password entry bypassing Lich entirely
+
+### Quality of Life
+- **Shift+select to send text to config** — hold Shift while highlighting output text to get a context menu: copy to clipboard, or send directly to Highlights, Triggers, Substitutes, Gags, or Aliases with the text already filled in and the config panel ready to finish
 
 ### Bug Fixes & Stability
 - Significant performance improvements reducing lag during heavy combat or script use
+- Reduced output window trim frequency for smoother scrolling during heavy output
+- Fixed a duplicate event subscription in GenieError that caused handlers to fire multiple times
 - Highlights and substitutes working correctly in all cases
 - AutoMapper reliability and theme fixes
 - Script engine corrections and logging fixes
