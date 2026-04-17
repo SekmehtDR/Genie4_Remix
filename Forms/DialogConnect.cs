@@ -64,6 +64,8 @@ namespace GenieClient
             }
         }
 
+        public bool UseViaLich => _CheckBoxUseLich.Checked;
+
         private void OK_Button_Click(object sender, EventArgs e)
         {
             if (TextBoxAccount.Text.Trim().Length == 0)

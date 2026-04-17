@@ -39,6 +39,7 @@ namespace GenieClient
             _OK_Button.Click += new EventHandler(OK_Button_Click);
             _Cancel_Button = new Button();
             _Cancel_Button.Click += new EventHandler(Cancel_Button_Click);
+            _CheckBoxUseLich = new CheckBox();
             _GroupBox1 = new GroupBox();
             _CheckBoxSavePassword = new CheckBox();
             _CheckBoxSavePassword.CheckedChanged += new EventHandler(CheckBoxSavePassword_CheckedChanged);
@@ -65,12 +66,21 @@ namespace GenieClient
             _TableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50.0F));
             _TableLayoutPanel1.Controls.Add(_OK_Button, 0, 0);
             _TableLayoutPanel1.Controls.Add(_Cancel_Button, 1, 0);
-            _TableLayoutPanel1.Location = new Point(221, 170);
+            _TableLayoutPanel1.Location = new Point(224, 196);
             _TableLayoutPanel1.Name = "TableLayoutPanel1";
             _TableLayoutPanel1.RowCount = 1;
             _TableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 50.0F));
             _TableLayoutPanel1.Size = new Size(146, 29);
             _TableLayoutPanel1.TabIndex = 1;
+            //
+            // CheckBoxUseLich
+            //
+            _CheckBoxUseLich.AutoSize = true;
+            _CheckBoxUseLich.Location = new Point(9, 172);
+            _CheckBoxUseLich.Name = "_CheckBoxUseLich";
+            _CheckBoxUseLich.Size = new Size(120, 19);
+            _CheckBoxUseLich.TabIndex = 2;
+            _CheckBoxUseLich.Text = "Connect via &Lich";
             // 
             // OK_Button
             // 
@@ -214,8 +224,9 @@ namespace GenieClient
             AutoScaleDimensions = new SizeF(6.0F, 13.0F);
             AutoScaleMode = AutoScaleMode.Font;
             CancelButton = _Cancel_Button;
-            ClientSize = new Size(370, 202);
+            ClientSize = new Size(370, 232);
             Controls.Add(_GroupBox1);
+            Controls.Add(_CheckBoxUseLich);
             Controls.Add(_TableLayoutPanel1);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
@@ -599,5 +610,7 @@ namespace GenieClient
                 }
             }
         }
+
+        private CheckBox _CheckBoxUseLich;
     }
 }
