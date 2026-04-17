@@ -11,7 +11,8 @@ namespace GenieClient
         [STAThread]
         static void Main(string[] args)
         {
-            Application.SetHighDpiMode(HighDpiMode.SystemAware);
+            Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+            Application.SetDefaultFont(System.Drawing.SystemFonts.MessageBoxFont);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             DarkModeManager.Initialize();

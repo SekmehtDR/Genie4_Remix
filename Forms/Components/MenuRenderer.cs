@@ -19,7 +19,7 @@ namespace GenieClient.Forms.Components
         private static readonly Color SeparatorColor = Color.FromArgb(70, 70, 75);
         private static readonly Color BorderColor    = Color.FromArgb(70, 70, 75);
 
-        private static readonly Font _checkFont = new Font("Segoe UI", 8f, FontStyle.Bold);
+        private static readonly Font _checkFont = new Font(System.Drawing.SystemFonts.MenuFont.FontFamily, 8f, FontStyle.Bold);
         private static readonly StringFormat _checkFormat = new StringFormat
         {
             Alignment     = StringAlignment.Center,

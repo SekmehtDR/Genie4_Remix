@@ -142,7 +142,7 @@ namespace GenieClient
         private int m_iEndLine = int.MinValue;
         private FormSkin m_oParentForm;
         private RichTextBox m_oRichTextBuffer = new RichTextBox();
-        private Font m_MonoFont = new Font("Courier New", 9, FontStyle.Regular);
+        private Font m_MonoFont = new Font("Consolas", 9, FontStyle.Regular);
         private bool m_bTimeStamp = false;
         private bool m_bNameListOnly = false;
         private int m_iMaxBufferSize = 500000;

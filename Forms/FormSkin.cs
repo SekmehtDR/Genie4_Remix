@@ -44,7 +44,7 @@ namespace GenieClient
 
         public ToolStripMenuItem WindowMenuItem = null;
 
-        private Font oTitleFont = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
+        private Font oTitleFont = new Font(System.Drawing.SystemFonts.CaptionFont.FontFamily, 9F, FontStyle.Regular, GraphicsUnit.Point);
         private DragType oDragType;
 
         private enum DragType
