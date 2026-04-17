@@ -61,4 +61,4 @@ Download the latest release:
 
 ## Disclaimer
 
-Genie Remix is an independent community project. It is not affiliated with or supported by the Genie4 development team or Simutronics.
+Genie Remix is an Opensource community project based on Genie4. It is not affiliated with Simutronics.
