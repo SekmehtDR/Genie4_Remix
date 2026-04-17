@@ -1,39 +1,64 @@
-<h1 align="center">Genie4_Remix</h1>
+<h1 align="center">Genie Remix</h1>
 
-  <p align="center">
-    Modified version of the public release of <a href="https://github.com/GenieClient/">Genie4</a>.<br>
-    This is currently an unofficial release — please do not expect the Genie team to support this version. <strong>USE AT YOUR OWN RISK!</strong>
-  </p>
+<p align="center">
+  An unofficial, modernized fork of <a href="https://github.com/GenieClient/Genie4">Genie4</a> for DragonRealms.<br>
+  Not supported by the Genie team. <strong>USE AT YOUR OWN RISK.</strong>
+</p>
 
-  <p align="center">
-    <code>Latest Version: 4.0.3.2</code> / <code>Release: 4/10/2026</code> / <code>Lich Support: Yes!</code> / <code>Stable? YES!</code>
-  </p>
+<p align="center">
+  <code>Version: 4.1.0.0</code> &nbsp;|&nbsp; <code>Released: 4/16/2026</code> &nbsp;|&nbsp; <code>Platform: .NET 10</code> &nbsp;|&nbsp; <code>Lich: Yes</code> &nbsp;|&nbsp; <code>Stable: Yes</code>
+</p>
 
-  <p align="center">
-    <kbd><a href="screenshots/geniemain-cs-31MAR2026.png"><img src="screenshots/geniemain-cs-31MAR2026.png" width="350"/></a></kbd>
-    <kbd><a href="screenshots/automapper-cs-31MAR2026.png"><img src="screenshots/automapper-cs-31MAR2026.png" width="350"/></a></kbd>
-  </p>
-
-
-## About
-
-Genie4_Remix is an unofficial fork of [Genie4](https://github.com/GenieClient/Genie4), the long-running community front-end for DragonRealms.
-
-The original Genie4 has seen limited active development in recent years, leaving a number of bugs unaddressed and quality-of-life improvements unrealized. This fork was created to fill that gap — bringing in fixes for issues that affect players every day, improving how reliably the client handles Lich, and modernizing the look and feel without changing how it fundamentally works.
-
-If you are already using Genie4, Genie4_Remix is a drop-in replacement. Your existing settings, scripts, maps, and highlights carry over. The goal is simply a client that works better and gets out of your way.
-
-## Getting Started
-
-- Download the latest release at
-   [https://github.com/SekmehtDR/Genie4_Remix/releases/latest](https://github.com/SekmehtDR/Genie4_Remix/releases/latest)
+<p align="center">
+  <kbd><a href="screenshots/geniemain-cs-31MAR2026.png"><img src="screenshots/geniemain-cs-31MAR2026.png" width="350"/></a></kbd>
+  <kbd><a href="screenshots/automapper-cs-31MAR2026.png"><img src="screenshots/automapper-cs-31MAR2026.png" width="350"/></a></kbd>
+</p>
 
 ---
 
-## What's New
+## About
 
-**Themes and visual improvements.** Genie4_Remix adds full support for dark, light, and custom color themes across the entire client, including menus, scrollbars, title bars, the AutoMapper, and all status bars. The spell cast roundtime bar now stays lit and shows "Ready" once your cast timer finishes, so you always know your spell is up and waiting. The mana bar is also handled correctly per guild, with Barbarians seeing Inner Fire and guilds that have no mana bar seeing a cleaner layout automatically. The client also ships in a fully portable format, meaning all your settings, scripts, and maps live in the same folder as the application and move with it to any PC.
+Genie Remix is a drop-in replacement for [Genie4](https://github.com/GenieClient/Genie4). If you are already using Genie4, your existing settings, scripts, maps, and highlights carry over with no changes needed.
 
-**Lich support.** Connecting through Lich is now a first-class feature rather than something you have to set up through typed commands. A new Lich tab in the Configuration window walks you through pointing the client at Ruby and Lich, and a Test button confirms your paths are correct before you connect. Each character profile also has a "Connect via Lich" checkbox that remembers your preference, so you just click Connect like normal. Several reliability issues with Lich connections, including sessions getting stuck and manual password entry bypassing Lich entirely, have been resolved.
+The goal is a client that works better and gets out of your way — fixing long-standing bugs, improving Lich reliability, modernizing the UI, and upgrading the underlying runtime to .NET 10.
 
-**A lot of bugs squashed.** This release addresses a wide range of issues across the client including significant performance improvements that reduce lag during heavy combat or script use, fixes to highlights and substitutes not working correctly in certain cases, AutoMapper reliability and theme improvements, script engine corrections, logging fixes, and many smaller UI issues that accumulated in the original codebase. The auto-updater has also been disabled so this version stays put rather than being replaced by the upstream release on launch.
+---
+
+## Getting Started
+
+Download the latest release:
+[https://github.com/SekmehtDR/Genie4_Remix/releases/latest](https://github.com/SekmehtDR/Genie4_Remix/releases/latest)
+
+---
+
+## Features
+
+### Themes & Visual Polish
+- Full dark, light, and custom color theme support across the entire client — menus, scrollbars, title bars, status bars, and the AutoMapper
+- Status bars with 3D depth shading and per-guild awareness (Barbarians see Inner Fire; guilds without mana see a clean layout automatically)
+- Cast roundtime bar stays lit and shows **Ready** once your spell timer finishes
+- Per-monitor DPI scaling and system font support for sharp rendering on all displays
+
+### Lich Integration
+- Lich is a first-class connection option — no manual setup through typed commands required
+- Dedicated **Lich** tab in Configuration for pointing the client at Ruby and Lich, with a **Test** button to verify paths before connecting
+- Per-character "Connect via Lich" checkbox — your preference is remembered per profile
+- Fixed sessions getting stuck and manual password entry bypassing Lich entirely
+
+### Bug Fixes & Stability
+- Significant performance improvements reducing lag during heavy combat or script use
+- Highlights and substitutes working correctly in all cases
+- AutoMapper reliability and theme fixes
+- Script engine corrections and logging fixes
+- Numerous smaller UI issues from the original codebase addressed
+- Auto-updater disabled — this version stays put and won't be replaced by an upstream release on launch
+
+### Runtime Modernization
+- Upgraded from .NET 6 to **.NET 10**
+- Portable install — all settings, scripts, and maps live in the same folder as the application and move with it to any PC
+
+---
+
+## Disclaimer
+
+Genie Remix is an independent community project. It is not affiliated with or supported by the Genie4 development team or Simutronics.
