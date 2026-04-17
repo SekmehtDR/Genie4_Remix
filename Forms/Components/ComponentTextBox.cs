@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Drawing;
-using System.Runtime.InteropServices;
+﻿using System.Collections;
 using System.Windows.Forms;
 using Microsoft.VisualBasic;
 using Microsoft.VisualBasic.CompilerServices;
@@ -10,53 +7,6 @@ namespace GenieClient
 {
     public class ComponentTextBox : TextBox
     {
-        private const int WM_SETFOCUS = 0x0007;
-        private const int CaretWidth = 2;
-        private IntPtr _caretBitmap = IntPtr.Zero;
-
-        [DllImport("user32.dll")] private static extern bool CreateCaret(IntPtr hWnd, IntPtr hBitmap, int nWidth, int nHeight);
-        [DllImport("user32.dll")] private static extern bool DestroyCaret();
-        [DllImport("user32.dll")] private static extern bool ShowCaret(IntPtr hWnd);
-        [DllImport("gdi32.dll")] private static extern bool DeleteObject(IntPtr hObject);
-
-        private void RecreateCaret()
-        {
-            using var bmp = new Bitmap(CaretWidth, FontHeight);
-            using var g = Graphics.FromImage(bmp);
-            g.Clear(Color.White);
-            var newBitmap = bmp.GetHbitmap();
-            DestroyCaret();
-            CreateCaret(Handle, newBitmap, CaretWidth, FontHeight);
-            ShowCaret(Handle);
-            if (_caretBitmap != IntPtr.Zero)
-                DeleteObject(_caretBitmap);
-            _caretBitmap = newBitmap;
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (_caretBitmap != IntPtr.Zero)
-            {
-                DeleteObject(_caretBitmap);
-                _caretBitmap = IntPtr.Zero;
-            }
-            base.Dispose(disposing);
-        }
-
-        protected override void WndProc(ref Message m)
-        {
-            base.WndProc(ref m);
-            if (m.Msg == WM_SETFOCUS)
-                RecreateCaret();
-        }
-
-        protected override void OnForeColorChanged(System.EventArgs e)
-        {
-            base.OnForeColorChanged(e);
-            if (Focused)
-                RecreateCaret();
-        }
-
         public ComponentTextBox()
         {
             this.KeyDown += TextBoxInput_KeyDown;
