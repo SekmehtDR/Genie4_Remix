@@ -365,17 +365,29 @@ namespace GenieClient
             }
         }
 
+        private static void ClipboardRetry(Action action, int retries = 10, int delayMs = 50)
+        {
+            for (int i = 0; i < retries; i++)
+            {
+                try { action(); return; }
+                catch (ExternalException) when (i < retries - 1)
+                {
+                    System.Threading.Thread.Sleep(delayMs);
+                }
+            }
+        }
+
         private void InvokeAddImage(Image image)
         {
             IDataObject obj = Clipboard.GetDataObject();
-            Clipboard.Clear();
-            Clipboard.SetDataObject(image);
+            ClipboardRetry(() => Clipboard.Clear());
+            ClipboardRetry(() => Clipboard.SetDataObject(image));
             this.ReadOnly = false;
             this.Select(this.TextLength, 0);
             this.Paste(DataFormats.GetFormat(DataFormats.Bitmap));
             this.ReadOnly = true;
-            Clipboard.Clear();
-            Clipboard.SetDataObject(obj);
+            ClipboardRetry(() => Clipboard.Clear());
+            ClipboardRetry(() => Clipboard.SetDataObject(obj));
             this.Select(this.TextLength, 0);
             this.SelectedText = Environment.NewLine;
         }
