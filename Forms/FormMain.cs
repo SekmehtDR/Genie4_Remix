@@ -2281,6 +2281,9 @@ namespace GenieClient
             Application.DoEvents();
             AppendText("Loading Triggers...");
             m_oGlobals.TriggerList.Load(m_oGlobals.Config.ConfigDir + @"\triggers.cfg");
+            const string sGuildTrigger = @"^Name:.+Race:\s+(Dwarf|Elf|Elothean|Gnome|Gor'Tog|Halfling|Human|Kaldar|Prydaen|Rakash|S'Kra Mur)\s+Guild:\s+(Barbarian|Bard|Cleric|Commoner|Empath|Moon Mage|Necromancer|Paladin|Ranger|Thief|Trader|Warrior Mage)$";
+            if (!m_oGlobals.TriggerList.ContainsKey(sGuildTrigger))
+                m_oGlobals.TriggerList.Add(sGuildTrigger, @"#var race $1;#var guild $2");
             AppendText("OK" + System.Environment.NewLine);
             Application.DoEvents();
             AppendText("Loading Classes...");
