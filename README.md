@@ -35,7 +35,7 @@ Download the latest release:
 
 ### Themes & Visual Polish
 - Full dark, light, and custom color theme support across the entire client — menus, scrollbars, title bars, status bars, and the AutoMapper
-- Status bars with 3D depth shading and per-guild awareness (Barbarians see Inner Fire; guilds without mana see a clean layout automatically)
+- Status bars with 3D depth shading and per-guild awareness (Barbarians see Inner Fire; guilds without mana see a clean layout automatically; requires Isharon's Genie Trigger to build $guild)
 - Cast roundtime bar stays lit and shows **Ready** once your spell timer finishes
 - Per-monitor DPI scaling and system font support for sharp rendering on all displays
 
