@@ -192,6 +192,7 @@ namespace GenieClient.Genie
                 try
                 {
                     sslStream = new SslStream(_client.GetStream(), true, new RemoteCertificateValidationCallback(Utility.ValidateServerCertificate), null);
+                    sslStream.ReadTimeout = 500; // .5s — prevents auth/char-select reads from hanging forever
                     try
                     {
                         sslStream.AuthenticateAsClient(m_sHostname, null, SslProtocols.Tls12, false);
@@ -292,6 +293,38 @@ namespace GenieClient.Genie
             
         }
 
+        // SGE protocol responses are newline-terminated; SslStream.Read may return partial data,
+        // so loop until we have a complete response. The G response also sends a trailing blank
+        // SGE G response: a single raw chunk with no newline terminator — just read once.
+        private string ReadSgeGameInfoResponse()
+        {
+            byte[] buffer = new byte[MAX_PACKET_SIZE];
+            int bytes = sslStream.Read(buffer, 0, buffer.Length);
+            if (bytes == 0) return string.Empty;
+            return Encoding.Default.GetString(buffer, 0, bytes).TrimEnd('\0', '\r', '\n');
+        }
+
+        // SGE C/L responses: newline-terminated, may span multiple SSL records for large character lists.
+        // Skips any leading blank lines left over from the G response terminator.
+        private string ReadSgeResponse()
+        {
+            byte[] buffer = new byte[MAX_PACKET_SIZE];
+            var sb = new StringBuilder();
+            try
+            {
+                while (true)
+                {
+                    int bytes = sslStream.Read(buffer, 0, buffer.Length);
+                    if (bytes == 0) break;
+                    string chunk = Encoding.Default.GetString(buffer, 0, bytes);
+                    sb.Append(chunk);
+                    if (chunk.IndexOfAny(new[] { '\n', '\r' }) >= 0) break;
+                }
+            }
+            catch (System.IO.IOException) { /* read timeout or connection closed — return what we have */ }
+            return sb.ToString().TrimEnd('\0', '\r', '\n');
+        }
+
         public string GetLoginKey(string instance, string character)
         {
                         // Sanity checks
@@ -299,7 +332,7 @@ namespace GenieClient.Genie
             {
                 return "E\tThe connection was lost.";
             }
-            
+
             if (string.IsNullOrWhiteSpace(instance))
             {
                 return "E\tThe game instance was not specified.";
@@ -315,10 +348,6 @@ namespace GenieClient.Genie
             sslStream.Write(message);
             sslStream.Flush();
 
-            // Read response: 
-            byte[] buffer = new byte[MAX_PACKET_SIZE];
-            _ = sslStream.Read(buffer, 0, buffer.Length);
-
             //Validate Access - list of status responses:
             // Known good status:
             //  "FREE_TO_PLAY" "PAYING" "PREMIUM" "NORMAL"
@@ -327,7 +356,8 @@ namespace GenieClient.Genie
             // Unknown status:
             //  "BETA" "FREE" "INTERNAL" "NEED_BILL" "NO_ACCESS" "SHAREWARE" "TRIAL" "UNKNOWN"
             //Check for  match of known good status, and if no match, no access to requested instance
-            if (Encoding.Default.GetString(buffer).TrimEnd('\0').ToUpper() == "PROBLEM")
+            string gResponse = ReadSgeGameInfoResponse();
+            if (gResponse.ToUpper() == "PROBLEM")
             {
                 sslStream.Dispose();
                 sslStream = null;
@@ -340,11 +370,7 @@ namespace GenieClient.Genie
             sslStream.Write(message);
             sslStream.Flush();
 
-            // Read response: 
-            buffer = new byte[MAX_PACKET_SIZE];
-            _ = sslStream.Read(buffer, 0, buffer.Length);
-
-            string characterResponse = Encoding.Default.GetString(buffer).TrimEnd('\0').ToUpper();
+            string characterResponse = ReadSgeResponse().ToUpper();
             // Requesting character list with no character name given
             if (string.IsNullOrWhiteSpace(character))
             {
@@ -353,7 +379,7 @@ namespace GenieClient.Genie
                 CurrentAuthState = AuthState.Disconnected;
                 return characterResponse;
             }
-            
+
             // Looking for specific character to get login key for
             List<string> characterKeys = characterResponse.Split('\t').ToList<string>();
             string characterKey = string.Empty;
@@ -370,7 +396,7 @@ namespace GenieClient.Genie
                     lastKey = key;
                 }
             }
-            
+
             if (string.IsNullOrWhiteSpace(characterKey))
             {
                 sslStream.Dispose();
@@ -384,14 +410,10 @@ namespace GenieClient.Genie
             sslStream.Write(message);
             sslStream.Flush();
 
-            //Read response: 
-            buffer = new byte[MAX_PACKET_SIZE];
             CurrentAuthState = AuthState.Authenticated;
-            _ = sslStream.Read(buffer, 0, buffer.Length);
-            
+            string loginKey = ReadSgeResponse();
             sslStream.Dispose();
             sslStream = null;
-            string loginKey = Encoding.Default.GetString(buffer);
             return loginKey;
         }
 
