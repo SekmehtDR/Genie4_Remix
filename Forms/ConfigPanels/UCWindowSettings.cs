@@ -58,8 +58,9 @@ namespace GenieClient
             {
                 if (FontDialogPicker.ShowDialog(this) == DialogResult.OK)
                 {
-                    TextBoxMonoFont.Text = GetFontName(FontDialogPicker.Font);
-                    TextBoxMonoFont.Tag = FontDialogPicker.Font;
+                    var f = SnapFontSize(FontDialogPicker.Font);
+                    TextBoxMonoFont.Text = GetFontName(f);
+                    TextBoxMonoFont.Tag = f;
                     m_ItemChanged = true;
                 }
             }
@@ -84,8 +85,9 @@ namespace GenieClient
             {
                 if (FontDialogPicker.ShowDialog(this) == DialogResult.OK)
                 {
-                    TextBoxInputFont.Text = GetFontName(FontDialogPicker.Font);
-                    TextBoxInputFont.Tag = FontDialogPicker.Font;
+                    var f = SnapFontSize(FontDialogPicker.Font);
+                    TextBoxInputFont.Text = GetFontName(f);
+                    TextBoxInputFont.Tag = f;
                     m_ItemChanged = true;
                 }
             }
@@ -97,6 +99,13 @@ namespace GenieClient
                 TextBoxInputFont.Tag = null;
                 Interaction.MsgBox("Invalid font selected. Please select a TrueType font.", MsgBoxStyle.Critical);
             }
+        }
+
+        private static Font SnapFontSize(Font f)
+        {
+            float snapped = (float)Math.Round(f.SizeInPoints);
+            if (snapped == f.SizeInPoints) return f;
+            return new Font(f.FontFamily, snapped, f.Style, GraphicsUnit.Point);
         }
 
         private string GetFontName(Font f)

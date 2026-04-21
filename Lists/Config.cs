@@ -385,7 +385,7 @@ namespace GenieClient.Genie
         }
 
         public Font m_oMonoFont = new Font("Courier New", 9, FontStyle.Regular);
-        public Font m_oInputFont = new Font("Courier New", 10, FontStyle.Regular);
+        public Font m_oInputFont = new Font("Courier New", 9, FontStyle.Regular);
 
         public event ConfigChangedEventHandler ConfigChanged;
 

@@ -1440,10 +1440,12 @@ namespace GenieClient
             _TextBoxInput.Location = new Point(4, 2);
             _TextBoxInput.Margin = new Padding(4, 3, 4, 3);
             _TextBoxInput.Multiline = true;
+            _TextBoxInput.WordWrap = false;
+            _TextBoxInput.AcceptsReturn = false;
+            _TextBoxInput.ScrollBars = ScrollBars.None;
             _TextBoxInput.Name = "_TextBoxInput";
             _TextBoxInput.Size = new Size(1445, 21);
             _TextBoxInput.TabIndex = 0;
-            _TextBoxInput.WordWrap = false;
             _TextBoxInput.SendText += TextBoxInput_SendText;
             _TextBoxInput.PageUp += TextBoxInput_PageUp;
             _TextBoxInput.PageDown += TextBoxInput_PageDown;

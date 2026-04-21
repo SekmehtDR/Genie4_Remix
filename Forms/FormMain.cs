@@ -2223,6 +2223,7 @@ namespace GenieClient
             ShowForm(m_oOutputMain);
             ShowOutputForms();
             TextBoxInput.Focus();
+            UpdateInputFont();
 
             AppendText("Using Encoding: " + Encoding.Default.EncodingName + System.Environment.NewLine);
             AppendText("Genie User Data Path: " + LocalDirectory.Path + System.Environment.NewLine + System.Environment.NewLine);
@@ -7229,7 +7230,10 @@ namespace GenieClient
         private void UpdateInputFont()
         {
             TextBoxInput.Font = m_oGlobals.Config.InputFont;
-            PanelInput.Height = TextBoxInput.FontHeight + 6;
+            // PreferredHeight covers the font's line height; +6 gives the descender
+            // zone (underscore etc.) room to render. Panel padding (3px top/bottom)
+            // is added on top so the TextBox fill area equals PreferredHeight + 6.
+            PanelInput.Height = TextBoxInput.PreferredHeight + 3 + PanelInput.Padding.Vertical;
         }
 
         private void Config_ConfigChanged(Genie.Config.ConfigFieldUpdated oField)
