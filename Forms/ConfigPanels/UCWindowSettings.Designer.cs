@@ -110,7 +110,7 @@ namespace GenieClient
             _LabelFont.Name = "LabelFont";
             _LabelFont.Size = new Size(58, 13);
             _LabelFont.TabIndex = 13;
-            _LabelFont.Text = "Mono Font";
+            _LabelFont.Text = "Output Mono Font";
             // 
             // TextBoxMonoFont
             // 
@@ -152,7 +152,7 @@ namespace GenieClient
             _LabelInput.Name = "LabelInput";
             _LabelInput.Size = new Size(58, 13);
             _LabelInput.TabIndex = 17;
-            _LabelInput.Text = "Mono Font";
+            _LabelInput.Text = "Input Font";
             // 
             // TextBoxInputFont
             // 
