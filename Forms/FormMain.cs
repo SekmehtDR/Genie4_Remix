@@ -1564,34 +1564,82 @@ namespace GenieClient
             TextBoxInput.Focus();
         }
 
+        // How long to wait for the game to drop the connection after we send "quit" before
+        // closing regardless. Normally the disconnect arrives in a second or two.
+        private const int ShutdownFallbackSeconds = 6;
+        private System.Windows.Forms.Timer m_oShutdownTimer = null;
+
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
         {
             _triggerChannel.Writer.TryComplete();
-            if (bCloseNow == false)
-            {
-                if (m_oGame.IsConnected == true & m_oGlobals.Config.bIgnoreCloseAlert == false)
-                {
-                    if (Interaction.MsgBox("You are connected to the game. Click Yes to quit the game and close Genie, or No to return.", MsgBoxStyle.YesNo, "Genie") == MsgBoxResult.No)
-                    {
-                        e.Cancel = true;
-                        return;
-                    }
 
-                    bCloseNow = true;
+            // Second pass: the shutdown is already under way, let the form close.
+            if (bCloseNow == true)
+            {
+                return;
+            }
+
+            if (m_oGame.IsConnected == true & m_oGlobals.Config.bIgnoreCloseAlert == false)
+            {
+                if (Interaction.MsgBox("You are connected to the game. Click Yes to quit the game and close Genie, or No to return.", MsgBoxStyle.YesNo, "Genie") == MsgBoxResult.No)
+                {
                     e.Cancel = true;
-                    NotifyPluginsClosing();
-                    m_oGame.SendText("quit");
                     return;
                 }
-
-                // Not connected — nothing to send quit to, just exit directly.
-                if (m_oGame.IsConnected == false)
-                {
-                    bCloseNow = true;
-                    NotifyPluginsClosing();
-                    m_oGame.Disconnect(true);
-                }
             }
+
+            // Everything past here shuts down, so plugins get told exactly once -- including
+            // when the close alert is switched off, which used to skip this entirely and drop
+            // the window without notifying anything or quitting the game.
+            bCloseNow = true;
+            NotifyPluginsClosing();
+
+            if (m_oGame.IsConnected == true)
+            {
+                e.Cancel = true;
+                m_oGame.SendText("quit");
+                BeginShutdownFallback();
+                return;
+            }
+
+            // Not connected — nothing to send quit to, just exit directly.
+            m_oGame.Disconnect(true);
+        }
+
+        // Closing used to depend entirely on the game dropping the connection in response to
+        // "quit". DragonRealms refuses to quit in combat or roundtime, and Lich can be busy in a
+        // script, so the disconnect that triggers the exit may simply never arrive -- leaving
+        // Genie sitting there with the window still open and nothing happening. Reproduced
+        // against a server that accepts "quit" and never closes the socket.
+        private void BeginShutdownFallback()
+        {
+            if (m_oShutdownTimer != null)
+            {
+                return;
+            }
+
+            m_oShutdownTimer = new System.Windows.Forms.Timer();
+            m_oShutdownTimer.Interval = ShutdownFallbackSeconds * 1000;
+            m_oShutdownTimer.Tick += ShutdownFallback_Tick;
+            m_oShutdownTimer.Start();
+        }
+
+        private void ShutdownFallback_Tick(object sender, EventArgs e)
+        {
+            m_oShutdownTimer.Stop();
+            m_oShutdownTimer.Dispose();
+            m_oShutdownTimer = null;
+
+            PrintError("The game did not close the connection. Shutting down anyway." + System.Environment.NewLine);
+            try
+            {
+                m_oGame.Disconnect();
+            }
+            catch
+            {
+            }
+
+            Application.Exit();
         }
 
         private void NotifyPluginsClosing()
@@ -6215,9 +6263,9 @@ namespace GenieClient
             if (bCloseNow)
             {
                 if (InvokeRequired)
-                    Invoke(new Action(() => Application.Exit()));
+                    Invoke(new Action(() => CompleteShutdown()));
                 else
-                    Application.Exit();
+                    CompleteShutdown();
             }
             else
             {
@@ -6227,6 +6275,19 @@ namespace GenieClient
                 // rather than the $connected variable.
                 SafeUpdateMainWindowTitle();
             }
+        }
+
+        // The disconnect we were waiting for arrived, so the fallback is no longer needed.
+        private void CompleteShutdown()
+        {
+            if (m_oShutdownTimer != null)
+            {
+                m_oShutdownTimer.Stop();
+                m_oShutdownTimer.Dispose();
+                m_oShutdownTimer = null;
+            }
+
+            Application.Exit();
         }
 
         private void DisconnectAndExit()

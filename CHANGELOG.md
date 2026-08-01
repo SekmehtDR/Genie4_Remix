@@ -52,6 +52,17 @@ Sections, in order, omitting any that are empty:
   there indefinitely with no message. Failures during login now print the reason and end the
   attempt cleanly, so auto-reconnect can take over.
 
+- **Closing Genie while connected could hang instead of shutting down.** Answering Yes to
+  "You are connected to the game" sent `quit` and then waited for the game to drop the
+  connection before actually closing. If that never happened — DragonRealms refuses to quit in
+  combat or roundtime, and Lich can be busy in a script — Genie simply sat there with the window
+  still open. Closing now gives up waiting after a few seconds, says so, and shuts down anyway.
+
+- **Closing with the "are you connected" prompt turned off skipped the clean shutdown.** With
+  `#config {ignoreclosealert} {True}`, closing while connected dropped the window without
+  telling plugins they were closing and without quitting the game, so plugins that save state on
+  exit lost it. Every way of closing now notifies plugins exactly once.
+
 - **Occasional garbled text in the first moments after connecting.** The closing login-server
   connection and the newly opened game connection shared the same text buffers with no
   coordination, so the first lines of a session could be split or interleaved — an intermittent
