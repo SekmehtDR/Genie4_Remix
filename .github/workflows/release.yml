@@ -296,11 +296,19 @@ jobs:
           $leaked = $mustNotShip | Where-Object { Test-Path (Join-Path $root $_) -PathType Container }
           if ($leaked) { throw "Publish output contains user data folders: $($leaked -join ', ')" }
 
+          # Satellite resource languages are trimmed to English in Directory.Build.props. If
+          # these reappear, that setting was lost and the download grew by ~8 MB for nothing.
+          $langDirs = Get-ChildItem $root -Directory |
+                      Where-Object { $_.Name -in 'cs','de','es','fr','it','ja','ko','pl','pt-BR','ru','tr','zh-Hans','zh-Hant' }
+          if ($langDirs) {
+            throw "Localised resource folders are back in the publish output: $($langDirs.Name -join ', '). Check SatelliteResourceLanguages in Directory.Build.props."
+          }
+
           $files = Get-ChildItem $root -Recurse -File
           $sizeMb = [math]::Round(($files | Measure-Object Length -Sum).Sum / 1MB, 1)
           Write-Host "Files: $($files.Count), size: $sizeMb MB"
-          if ($sizeMb -lt 100) {
-            throw "Publish output is only $sizeMb MB. Expected ~132 MB -- did --self-contained stop taking effect?"
+          if ($sizeMb -lt 90) {
+            throw "Publish output is only $sizeMb MB. Expected ~112 MB -- did --self-contained stop taking effect?"
           }
 
       # Catches the catastrophic packaging failures: a missing assembly, a broken

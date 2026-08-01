@@ -98,7 +98,19 @@
     </BootstrapperPackage>
   </ItemGroup>
   <PropertyGroup />
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Windows.Compatibility" Version="10.0.0" />
-  </ItemGroup>
+  <!--
+    Microsoft.Windows.Compatibility was removed. It is a .NET Framework migration shim that
+    pulls in the whole WCF stack (System.ServiceModel.*), System.Web.Services, ODBC/OleDb and
+    the registry APIs - roughly 15 shipped assemblies plus their satellites - none of which this
+    project touches.
+
+    The plugin ABI is only IPlugin.vb and IHost.vb, whose entire surface is String, Boolean,
+    Integer and System.Windows.Forms.Form. Form comes from the Windows Desktop SDK via
+    UseWindowsForms, not from this package, so removing it does not change the ABI that
+    third-party plugins bind against. AssemblyVersion stays 2.0.0.1.
+
+    The only thing in the whole solution that needed anything from it was a dead
+    "using System.Speech.Synthesis" in Forms/FormMain.cs - nothing referenced the namespace.
+    That import is gone too, so no replacement package is required.
+  -->
 </Project>

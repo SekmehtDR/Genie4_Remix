@@ -54,7 +54,10 @@ dotnet publish Genie4.csproj -c Release -r win-x64 --self-contained true -o publ
 Notes verified against the current tree:
 
 - `dotnet build Genie4.sln -c Release` → **0 errors, 45 warnings** (see *Known noise*).
-- A self-contained `win-x64` publish is **~132 MB / ~390 files**, compressing to a **~55 MB ZIP**.
+- A self-contained `win-x64` publish is **~112 MB / ~250 files**, compressing to a **~47 MB ZIP**.
+  `SatelliteResourceLanguages=en` in `Directory.Build.props` keeps dependency translations out;
+  CI fails if localised resource folders reappear. Don't remove it — it costs 117 files and
+  ~8 MB of download for strings this client never shows.
 - There are **no automated tests.** Verification is manual — build, launch, connect, exercise
   the affected feature. Say so plainly rather than implying a change is "tested".
 

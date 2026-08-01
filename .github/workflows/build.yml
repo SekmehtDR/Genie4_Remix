@@ -209,10 +209,18 @@ jobs:
           Write-Host "Files: $($files.Count), size: $sizeMb MB"
           Write-Host "FileVersion: $($version.FileVersion), Informational: $($version.ProductVersion)"
 
-          # A framework-dependent publish is ~15 MB; a healthy self-contained one is ~130 MB.
+          # A framework-dependent publish is ~15 MB; a healthy self-contained one is ~112 MB.
           # This catches --self-contained silently flipping off.
-          if ($sizeMb -lt 100) {
-            throw "Publish output is only $sizeMb MB. Expected ~132 MB for a self-contained build -- did --self-contained stop taking effect?"
+          if ($sizeMb -lt 90) {
+            throw "Publish output is only $sizeMb MB. Expected ~112 MB for a self-contained build -- did --self-contained stop taking effect?"
+          }
+
+          # Satellite resource languages are trimmed to English in Directory.Build.props. If
+          # these reappear, that setting was lost and the download grew by ~8 MB for nothing.
+          $langDirs = Get-ChildItem $root -Directory |
+                      Where-Object { $_.Name -in 'cs','de','es','fr','it','ja','ko','pl','pt-BR','ru','tr','zh-Hans','zh-Hant' }
+          if ($langDirs) {
+            throw "Localised resource folders are back in the publish output: $($langDirs.Name -join ', '). Check SatelliteResourceLanguages in Directory.Build.props."
           }
 
           @(

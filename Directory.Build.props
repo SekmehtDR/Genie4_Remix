@@ -14,9 +14,24 @@
     here, and AssemblyVersion / FileVersion below re-derive from them automatically.
   -->
 
+  <!--
+    Ship English resources only.
+
+    NuGet dependencies carry translated resource assemblies, which the publish step copies into
+    one folder per language (cs, de, es, fr, it, ja, ko, pl, pt-BR, ru, tr, zh-Hans, zh-Hant).
+    That was 117 of the 394 files in the 4.1.1 release and none of it was reachable: Genie Remix
+    has no localisation and its own strings are English. The translations only ever surfaced in
+    .NET framework exception messages on a non-English Windows.
+
+    Applies to every project so satellites cannot re-enter through the plugin project.
+  -->
+  <PropertyGroup>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
   <PropertyGroup>
     <!-- MAJOR.MINOR.PATCH. The only value a human edits. -->
-    <VersionPrefix>4.1.1</VersionPrefix>
+    <VersionPrefix>4.1.2</VersionPrefix>
 
     <!-- Pre-release label, e.g. "rc.1". Empty for stable releases. -->
     <VersionSuffix></VersionSuffix>

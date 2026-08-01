@@ -26,20 +26,24 @@ A **self-contained `win-x64` publish**, nested one level under a `Genie-Remix/` 
 extracting never scatters ~390 files into the user's Downloads directory.
 
 ```
-Genie-Remix.zip
+Genie-Remix-<version>.zip
 └── Genie-Remix/
     ├── Genie.exe                  <- the apphost users double-click
     ├── Genie.dll                  <- the actual client
     ├── Genie.runtimeconfig.json
     ├── System.Private.CoreLib.dll  ) the bundled .NET 10 runtime
-    ├── ... ~370 more runtime dlls  )
-    ├── Interfaces.dll, Jint.dll, Antlr3.Runtime.dll
+    ├── ... ~230 more runtime dlls  )
+    ├── Interfaces.dll, Jint.dll, Acornima.dll, Plugins.dll
     ├── Libs/
-    ├── LICENSE
-    └── cs/ de/ es/ fr/ it/ ja/ ko/ pl/ pt-BR/ ru/ tr/ zh-Hans/ zh-Hant/   <- satellite resources
+    └── LICENSE
 ```
 
-Roughly **55 MB compressed, 132 MB extracted, ~390 files.**
+Roughly **47 MB compressed, 112 MB extracted, ~250 files.**
+
+There are **no localised resource folders**. `SatelliteResourceLanguages` in
+`Directory.Build.props` trims dependency translations to English; without it the publish grows
+13 extra folders and 117 extra files that nothing in this client can reach. CI fails the build if
+they come back.
 
 **No user data ships in the ZIP.** `Config/`, `Scripts/`, `Maps/`, `Plugins/`, `Logs/`, and
 `Icons/` are created on first launch by `CreateGenieFolders()` in `Forms/FormMain.cs`. This is

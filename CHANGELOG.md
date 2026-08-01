@@ -20,6 +20,23 @@ Sections, in order, omitting any that are empty:
 
 ---
 
+## [4.1.2]
+
+### Changed
+- **Smaller download.** The ZIP drops from 55 MB to 47 MB, and the extracted folder from 393
+  files to 252. Most of that was 13 folders of translated text (`cs`, `de`, `es`, `fr`, `it`,
+  `ja`, `ko`, `pl`, `pt-BR`, `ru`, `tr`, `zh-Hans`, `zh-Hant`) belonging to Microsoft libraries.
+  Genie Remix is English-only and never displayed any of it.
+
+  The rest was a .NET Framework compatibility package that pulled in about fifteen unused
+  assemblies — the whole WCF networking stack, legacy web services, and ODBC database drivers —
+  none of which the client uses. It was there to satisfy a single leftover `using` statement for
+  text-to-speech that no code called.
+
+  Nothing was removed that the client actually loads, and the plugin interface is unchanged.
+
+---
+
 ## [4.1.1]
 
 ### Added
@@ -163,7 +180,8 @@ and merged with upstream's `Dev-4-0-2-10` branch.
 
 ---
 
-[Unreleased]: https://github.com/SekmehtDR/Genie4_Remix/compare/v4.1.1...HEAD
+[Unreleased]: https://github.com/SekmehtDR/Genie4_Remix/compare/v4.1.2...HEAD
+[4.1.2]: https://github.com/SekmehtDR/Genie4_Remix/releases/tag/v4.1.2
 [4.1.1]: https://github.com/SekmehtDR/Genie4_Remix/releases/tag/v4.1.1
 [4.1.0.0]: https://github.com/SekmehtDR/Genie4_Remix/releases/tag/v4.1.0.0
 [4.0.3.2]: https://github.com/SekmehtDR/Genie4_Remix/releases/tag/Latest
