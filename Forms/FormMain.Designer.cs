@@ -134,8 +134,7 @@ namespace GenieClient
             updatePluginsToolStripMenuItem = new ToolStripMenuItem();
             _HelpToolStripMenuItem = new ToolStripMenuItem();
             checkForUpdatesToolStripMenuItem = new ToolStripMenuItem();
-            forceUpdateToolStripMenuItem = new ToolStripMenuItem();
-            loadTestClientToolStripMenuItem = new ToolStripMenuItem();
+            toolStripSeparatorHelpUpdates = new ToolStripSeparator();
             _ToolStripSeparator3 = new ToolStripSeparator();
             autoUpdateToolStripMenuItem = new ToolStripMenuItem();
             autoUpdateLampToolStripMenuItem = new ToolStripMenuItem();
@@ -928,32 +927,27 @@ namespace GenieClient
             // 
             // _HelpToolStripMenuItem
             // 
-            _HelpToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { toolStripMenuItem1 });
+            _HelpToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { toolStripMenuItem1, toolStripSeparatorHelpUpdates, checkForUpdatesToolStripMenuItem });
             _HelpToolStripMenuItem.Name = "_HelpToolStripMenuItem";
             _HelpToolStripMenuItem.Size = new Size(44, 20);
             _HelpToolStripMenuItem.Text = "&Help";
-            // 
+            //
+            // toolStripSeparatorHelpUpdates
+            //
+            toolStripSeparatorHelpUpdates.Name = "toolStripSeparatorHelpUpdates";
+            toolStripSeparatorHelpUpdates.Size = new Size(207, 6);
+            //
             // checkForUpdatesToolStripMenuItem
-            // 
+            //
             checkForUpdatesToolStripMenuItem.Name = "checkForUpdatesToolStripMenuItem";
             checkForUpdatesToolStripMenuItem.Size = new Size(211, 22);
             checkForUpdatesToolStripMenuItem.Text = "Check For &Updates";
             checkForUpdatesToolStripMenuItem.Click += checkForUpdatesToolStripMenuItem_Click;
-            // 
-            // forceUpdateToolStripMenuItem
-            // 
-            forceUpdateToolStripMenuItem.Name = "forceUpdateToolStripMenuItem";
-            forceUpdateToolStripMenuItem.Size = new Size(211, 22);
-            forceUpdateToolStripMenuItem.Text = "&Force Update";
-            forceUpdateToolStripMenuItem.Click += forceUpdateToolStripMenuItem_Click;
-            // 
-            // loadTestClientToolStripMenuItem
-            // 
-            loadTestClientToolStripMenuItem.Name = "loadTestClientToolStripMenuItem";
-            loadTestClientToolStripMenuItem.Size = new Size(211, 22);
-            loadTestClientToolStripMenuItem.Text = "Load Test Client";
-            loadTestClientToolStripMenuItem.Click += loadTestClientToolStripMenuItem_Click;
-            // 
+            // forceUpdateToolStripMenuItem and loadTestClientToolStripMenuItem were removed.
+            // Both drove the upstream Lamp updater and would replace this fork with
+            // GenieClient/Genie4. Neither had been attached to a menu since updating was
+            // disabled. Client updates now go through Help -> Check For Updates.
+            //
             // _ToolStripSeparator3
             // 
             _ToolStripSeparator3.Name = "_ToolStripSeparator3";
@@ -4309,11 +4303,10 @@ namespace GenieClient
         private ToolStripMenuItem genieWikiToolStripMenuItem;
         private ToolStripMenuItem isharonsGenieSettingsToolStripMenuItem;
         private ToolStripMenuItem checkForUpdatesToolStripMenuItem;
-        private ToolStripMenuItem forceUpdateToolStripMenuItem;
+        private ToolStripSeparator toolStripSeparatorHelpUpdates;
         private ToolStripMenuItem autoUpdateToolStripMenuItem;
         private ToolStripMenuItem autoUpdateLampToolStripMenuItem;
         private ToolStripMenuItem checkUpdatesOnStartupToolStripMenuItem;
-        private ToolStripMenuItem loadTestClientToolStripMenuItem;
         private ToolStripMenuItem updateMapsToolStripMenuItem;
         private ToolStripMenuItem updatePluginsToolStripMenuItem;
         private ToolStripMenuItem updateScriptsToolStripMenuItem;

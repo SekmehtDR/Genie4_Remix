@@ -13,10 +13,19 @@ using System.Runtime.CompilerServices;
 
 namespace GenieClient
 {
+    /// <summary>
+    /// Lamp-based updater for downloadable CONTENT ONLY: maps, scripts, plugins and art from the
+    /// GenieClient community repositories.
+    ///
+    /// The client-update members that used to live here (ServerClientVersion, ClientIsCurrent,
+    /// RunUpdate, UpdateToTest, ForceUpdate) were REMOVED. They pointed at GenieClient/Genie4 and
+    /// would replace a Genie Remix install with upstream -- the reason updating was switched off
+    /// in the first place. Client updates now go through <see cref="RemixUpdater"/>, which targets
+    /// this fork. Do not reintroduce an upstream client-update path here.
+    /// </summary>
     public static class Updater
     {
         private static string GitHubUpdaterReleaseURL = @"https://api.github.com/repos/GenieClient/Lamp/releases/latest";
-        private static string GitHubClientReleaseURL = @"https://api.github.com/repos/GenieClient/Genie4/releases/latest";
         private static string UpdaterFilename = @"Lamp.exe";
         private static string LocalUpdater = @$"{Environment.CurrentDirectory}\{UpdaterFilename}";
         private static HttpClient client = new HttpClient();
@@ -27,13 +36,6 @@ namespace GenieClient
             {
                 if (File.Exists(LocalUpdater)) return FileVersionInfo.GetVersionInfo(LocalUpdater).FileVersion;
                 return "0";
-            }
-        }
-        public static string LocalClientVersion
-        {
-            get
-            {
-                return FileVersionInfo.GetVersionInfo(AppDomain.CurrentDomain.BaseDirectory + "\\Genie.exe").FileVersion;
             }
         }
         public static string ServerUpdaterVersion
@@ -50,37 +52,6 @@ namespace GenieClient
                 return latest.Version;
             }
         }
-        public static string ServerClientVersion
-        {
-            get
-            {
-                try
-                {
-                    client.DefaultRequestHeaders.Accept.Clear();
-                    client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
-                    client.DefaultRequestHeaders.Add("User-Agent", "Genie Client Updater");
-
-                    var streamTask = client.GetStreamAsync(GitHubClientReleaseURL).Result;
-                    Release latest = JsonSerializer.Deserialize<Release>(streamTask);
-
-                    return latest.Version;
-                }
-                catch
-                {
-                    //if we can't reach github just report current because we can't update
-                    return LocalClientVersion;
-                }
-            }
-        }
-
-        public static bool ClientIsCurrent 
-        { 
-            get
-            {
-                return LocalClientVersion == ServerClientVersion;
-            } 
-        }
-
         public static bool UpdaterIsCurrent
         {
             get 
@@ -111,17 +82,9 @@ namespace GenieClient
             }
         }
 
-        public static async Task<bool> RunUpdate(bool autoUpdateLamp)
-        {
-            await UpdateUpdater(autoUpdateLamp);
-            return await Utility.ExecuteProcess($@"{Environment.CurrentDirectory}\{UpdaterFilename}", "--a", false, true);
-        }
+        // RunUpdate / UpdateToTest deliberately removed -- they ran "Lamp.exe --a", which replaces
+        // the client with the upstream GenieClient/Genie4 build. Use RemixUpdater instead.
 
-        public static async Task<bool> UpdateToTest(bool autoUpdateLamp)
-        {
-            await UpdateUpdater(autoUpdateLamp);
-            return await Utility.ExecuteProcess($@"{Environment.CurrentDirectory}\{UpdaterFilename}", "--a --t", false, true);
-        }
         public static async Task<bool> UpdateMaps(string mapdir, bool autoUpdateLamp)
         {
             await UpdateUpdater(autoUpdateLamp);
@@ -144,11 +107,8 @@ namespace GenieClient
             await UpdateUpdater(autoUpdateLamp);
             return await Utility.ExecuteProcess($@"{Environment.CurrentDirectory}\{UpdaterFilename}", $"--background --art", true, false);
         }
-        public static async Task<bool> ForceUpdate()
-        {
-            await UpdateUpdater(true);
-            return await Utility.ExecuteProcess($@"{Environment.CurrentDirectory}\{UpdaterFilename}", "--a --f", false, true);
-        }
+        // ForceUpdate deliberately removed -- see the note above RunUpdate.
+
         public class Release
         {
             [JsonPropertyName("tag_name")]

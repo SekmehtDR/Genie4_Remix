@@ -182,36 +182,9 @@ namespace GenieClient
 
 
 
-        public async void UpdateOnStartup()
-        {
-            try
-            {
-            await Task.Run(async () =>
-            {
-                if (m_oGlobals.Config.CheckForUpdates || m_oGlobals.Config.AutoUpdate)
-                {
-                    if (Updater.ClientIsCurrent)
-                    {
-                        AddText("You are running the latest version of Genie.\r\n", m_oGlobals.PresetList["scriptecho"].FgColor, m_oGlobals.PresetList["scriptecho"].BgColor, Genie.Game.WindowTarget.Main);
-                    }
-                    else
-                    {
-
-                        AddText("An Update is Available.\r\n", m_oGlobals.PresetList["scriptecho"].FgColor, m_oGlobals.PresetList["scriptecho"].BgColor, Genie.Game.WindowTarget.Main);
-                        if (m_oGlobals.Config.AutoUpdate)
-                        {
-                            AddText("AutoUpdate is Enabled. Exiting and launching Updater.\r\n", m_oGlobals.PresetList["scriptecho"].FgColor, m_oGlobals.PresetList["scriptecho"].BgColor, Genie.Game.WindowTarget.Main);
-                            if (await Updater.RunUpdate(m_oGlobals.Config.AutoUpdateLamp))
-                            {
-                                System.Windows.Forms.Application.Exit();
-                            }
-                        }
-                    }
-                }
-            });
-            }
-            catch { }
-        }
+        // UpdateOnStartup() was removed deliberately. It called into the old Lamp updater, which
+        // pointed at GenieClient/Genie4 and would replace a Remix install with upstream. Updates
+        // are now user-initiated only: Help -> Check For Updates (see RemixUpdater.cs).
 
         public void DirectConnect(string[] parameters)
         {
@@ -2290,7 +2263,7 @@ namespace GenieClient
             Application.DoEvents();
             int I = LoadPlugins();
             Application.DoEvents();
-            UpdateOnStartup();
+            // No update check on startup by design -- see Help -> Check For Updates.
             Application.DoEvents();
 
             m_oOutputMain.RichTextBoxOutput.EndTextUpdate();
@@ -8831,110 +8804,132 @@ namespace GenieClient
             checkUpdatesOnStartupToolStripMenuItem.Checked = m_oGlobals.Config.CheckForUpdates;
         }
 
+        private void EchoUpdateText(string sText)
+        {
+            AddText(sText + "\r\n", m_oGlobals.PresetList["scriptecho"].FgColor, m_oGlobals.PresetList["scriptecho"].BgColor, Genie.Game.WindowTarget.Main);
+        }
+
+        /// <summary>
+        /// Help -> Check For Updates. Checks THIS repository (see Utility/RemixUpdater.cs), never
+        /// upstream GenieClient/Genie4. Only ever runs when the user asks; there is no startup
+        /// check and no auto-update.
+        /// </summary>
         private async void checkForUpdatesToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            await Task.Run(async () =>
+            checkForUpdatesToolStripMenuItem.Enabled = false;
+            try
             {
-                if (Updater.ClientIsCurrent)
-                {
-                    AddText("You have the latest version of Genie.\r\n", m_oGlobals.PresetList["scriptecho"].FgColor, m_oGlobals.PresetList["scriptecho"].BgColor);
-                }
-                else
-                {
-                    AddText("An Update is Available.\r\n", m_oGlobals.PresetList["scriptecho"].FgColor, m_oGlobals.PresetList["scriptecho"].BgColor, Genie.Game.WindowTarget.Main);
-                    DialogResult response = MessageBox.Show("An Update is Available. Would you like to update?", "Rub the Bottle?", MessageBoxButtons.YesNoCancel);
-                    if (response == DialogResult.Yes)
-                    {
-                        if (m_oGame.IsConnectedToGame)
-                        {
-                            response = MessageBox.Show("Genie will close and this will disconnect you from the game.", "Close Genie?", MessageBoxButtons.YesNoCancel);
-                            if (response == DialogResult.Yes)
-                            {
-                                AddText("Saving Config and Exiting Genie to Update.", m_oGlobals.PresetList["scriptecho"].FgColor, m_oGlobals.PresetList["scriptecho"].BgColor, Genie.Game.WindowTarget.Main);
-                                m_oGlobals.Config.Save();
-                                if (await Updater.RunUpdate(m_oGlobals.Config.AutoUpdateLamp))
-                                {
-                                    m_oGame.Disconnect(true);
-                                    System.Windows.Forms.Application.Exit();
-                                }
-                            }
-                        }
-                        else
-                        {
-                            AddText("Saving Config and Exiting Genie to Update.", m_oGlobals.PresetList["scriptecho"].FgColor, m_oGlobals.PresetList["scriptecho"].BgColor, Genie.Game.WindowTarget.Main);
-                            m_oGlobals.Config.Save();
-                            if (await Updater.RunUpdate(m_oGlobals.Config.AutoUpdateLamp))
-                            {
-                                System.Windows.Forms.Application.Exit();
-                            }
+                EchoUpdateText("Checking " + RemixUpdater.RepoOwner + "/" + RemixUpdater.RepoName + " for updates...");
 
-                        }
-                    }
-                }
-            });
-        }
-
-        private async void forceUpdateToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (m_oGame.IsConnectedToGame)
-            {
-                DialogResult response = MessageBox.Show("Genie will close and this will disconnect you from the game. Are you sure?", "Close Genie?", MessageBoxButtons.YesNoCancel);
-                if (response == DialogResult.Yes)
+                RemixUpdater.UpdateInfo oInfo;
+                try
                 {
-                    AddText("Saving Config and Exiting Genie to Update.\r\n", m_oGlobals.PresetList["scriptecho"].FgColor, m_oGlobals.PresetList["scriptecho"].BgColor, Genie.Game.WindowTarget.Main);
-                    m_oGlobals.Config.Save();
-                    if (await Updater.ForceUpdate())
-                    {
-                        m_oGame.Disconnect(true);
-                        System.Windows.Forms.Application.Exit();
-                    }
+                    oInfo = await RemixUpdater.GetLatestReleaseAsync();
                 }
-            }
-            else
-            {
-                AddText("Saving Config and Exiting Genie to Update.\r\n", m_oGlobals.PresetList["scriptecho"].FgColor, m_oGlobals.PresetList["scriptecho"].BgColor, Genie.Game.WindowTarget.Main);
-                m_oGlobals.Config.Save();
-                if (await Updater.ForceUpdate())
+                catch (Exception ex)
                 {
-                    System.Windows.Forms.Application.Exit();
+                    EchoUpdateText("Update check failed: " + ex.Message);
+                    MessageBox.Show("Could not reach GitHub to check for updates." + Environment.NewLine + Environment.NewLine + ex.Message,
+                        "Update Check Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
                 }
-            }
-        }
 
-        private async void loadTestClientToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            DialogResult response = MessageBox.Show("This will force your client to the Test Release Version. Test is not considered stable and may introduce bugs. If Autoupdate is enabled it will be disabled. Checking for Updates will restore you to the Latest build. Are you sure?", "Load Test Client?", MessageBoxButtons.YesNoCancel);
-            if (response == DialogResult.Yes)
-            {
+                if (oInfo == null)
+                {
+                    EchoUpdateText("The latest release could not be read. Check the releases page manually.");
+                    MessageBox.Show("The latest release could not be read - it may not have a downloadable package yet." + Environment.NewLine + Environment.NewLine + RemixUpdater.ReleasesPageUrl,
+                        "Update Check Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (!RemixUpdater.IsNewerThanCurrent(oInfo))
+                {
+                    EchoUpdateText("You are running the latest version (" + RemixUpdater.CurrentVersion + ").");
+                    MessageBox.Show("You are running the latest version of Genie Remix (" + RemixUpdater.CurrentVersion + ").",
+                        "No Update Available", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                EchoUpdateText("Update available: " + oInfo.Version + " (you are running " + RemixUpdater.CurrentVersion + ").");
+
+                string sPrompt = "Genie Remix " + oInfo.Version + " is available." + Environment.NewLine
+                    + "You are running " + RemixUpdater.CurrentVersion + "." + Environment.NewLine + Environment.NewLine
+                    + "Download and install it now?" + Environment.NewLine + Environment.NewLine
+                    + "Your settings, scripts, maps and plugins are not touched.";
+
+                if (string.IsNullOrEmpty(oInfo.ExpectedSha256))
+                {
+                    sPrompt += Environment.NewLine + Environment.NewLine
+                        + "Note: this release does not publish a checksum, so the download cannot be verified.";
+                }
+
+                if (MessageBox.Show(sPrompt, "Update Available", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                {
+                    EchoUpdateText("Update cancelled.");
+                    return;
+                }
+
                 if (m_oGame.IsConnectedToGame)
                 {
-                    response = MessageBox.Show("Genie will close and this will disconnect you from the game. Are you sure?", "Close Genie?", MessageBoxButtons.YesNoCancel);
-                    if (response == DialogResult.Yes)
+                    if (MessageBox.Show("Genie will close to finish installing, which will disconnect you from the game." + Environment.NewLine + Environment.NewLine + "Continue?",
+                            "Disconnect And Update?", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                     {
-                        AddText("Disabling Autoupdate.\r\n", m_oGlobals.PresetList["scriptecho"].FgColor, m_oGlobals.PresetList["scriptecho"].BgColor, Genie.Game.WindowTarget.Main);
-                        m_oGlobals.Config.AutoUpdate = false;
-                        m_oGlobals.Config.Save(m_oGlobals.Config.ConfigDir + @"\settings.cfg");
-                        AddText("Saving Config and Exiting Genie to Update.\r\n", m_oGlobals.PresetList["scriptecho"].FgColor, m_oGlobals.PresetList["scriptecho"].BgColor, Genie.Game.WindowTarget.Main);
-                        m_oGlobals.Config.Save();
-                        if (await Updater.UpdateToTest(m_oGlobals.Config.AutoUpdateLamp))
-                        {
-                            m_oGame.Disconnect(true);
-                            System.Windows.Forms.Application.Exit();
-                        }
+                        EchoUpdateText("Update cancelled.");
+                        return;
                     }
                 }
-                else
+
+                // Progress<T> marshals back to the thread it was created on, so these callbacks
+                // land on the UI thread and AddText is safe.
+                int iLastReported = -1;
+                var oProgress = new Progress<int>(iPercent =>
                 {
-                    AddText("Disabling Autoupdate.\r\n", m_oGlobals.PresetList["scriptecho"].FgColor, m_oGlobals.PresetList["scriptecho"].BgColor, Genie.Game.WindowTarget.Main);
-                    m_oGlobals.Config.AutoUpdate = false;
-                    m_oGlobals.Config.Save(m_oGlobals.Config.ConfigDir + @"\settings.cfg");
-                    AddText("Saving Config and Exiting Genie to Update.\r\n", m_oGlobals.PresetList["scriptecho"].FgColor, m_oGlobals.PresetList["scriptecho"].BgColor, Genie.Game.WindowTarget.Main);
-                    m_oGlobals.Config.Save();
-                    if (await Updater.UpdateToTest(m_oGlobals.Config.AutoUpdateLamp))
+                    if (iPercent >= iLastReported + 10)
                     {
-                        System.Windows.Forms.Application.Exit();
+                        iLastReported = iPercent - (iPercent % 10);
+                        EchoUpdateText("Downloading update... " + iLastReported + "%");
                     }
+                });
+
+                string sPayload;
+                try
+                {
+                    EchoUpdateText("Downloading " + oInfo.AssetName + "...");
+                    sPayload = await RemixUpdater.DownloadAndStageAsync(oInfo, oProgress);
+                    EchoUpdateText("Download complete and verified.");
                 }
+                catch (Exception ex)
+                {
+                    EchoUpdateText("Update failed: " + ex.Message);
+                    MessageBox.Show("The update could not be downloaded." + Environment.NewLine + Environment.NewLine + ex.Message
+                        + Environment.NewLine + Environment.NewLine + "Your installation has not been changed.",
+                        "Update Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                try
+                {
+                    EchoUpdateText("Saving configuration and restarting to apply the update...");
+                    m_oGlobals.Config.Save();
+
+                    if (m_oGame.IsConnectedToGame)
+                    {
+                        m_oGame.Disconnect(true);
+                    }
+
+                    RemixUpdater.InstallAndRestart(sPayload);
+                    System.Windows.Forms.Application.Exit();
+                }
+                catch (Exception ex)
+                {
+                    EchoUpdateText("Could not start the installer: " + ex.Message);
+                    MessageBox.Show("The update was downloaded but could not be applied." + Environment.NewLine + Environment.NewLine + ex.Message,
+                        "Update Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            finally
+            {
+                if (!IsDisposed) checkForUpdatesToolStripMenuItem.Enabled = true;
             }
         }
 
