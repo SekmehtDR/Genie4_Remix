@@ -1,0 +1,236 @@
+name: Build
+
+# Verifies that main compiles. This is the check that should be required before merge --
+# see docs/RELEASE-READINESS.md (M5). It deliberately has no paths-ignore filter: a required
+# check that gets skipped on docs-only changes leaves pull requests blocked forever.
+
+# Quoted because YAML 1.1 parsers (and some editor schema validators) read a bare `on` as the
+# boolean true. GitHub accepts either form.
+"on":
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  # Known-good warning count for a clean Release build. Reported, not enforced -- a new warning
+  # is a signal worth looking at, not a reason to block a build. Read the "Warnings" section of
+  # CLAUDE.md before changing this number.
+  BASELINE_WARNINGS: 45
+
+jobs:
+  build:
+    name: Build (Release)
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Record toolchain
+        shell: pwsh
+        run: dotnet --info
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/*.vbproj', 'Directory.Build.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        shell: pwsh
+        run: dotnet restore Genie4.sln
+
+      - name: Build
+        shell: pwsh
+        run: |
+          dotnet build Genie4.sln -c Release --no-restore -v minimal 2>&1 | Tee-Object -FilePath build.log
+          if ($LASTEXITCODE -ne 0) { throw "Build failed with exit code $LASTEXITCODE" }
+
+      # Guards the exact regression that made release automation unsafe in the first place:
+      # GenerateAssemblyInfo=false silently stamps the binary 0.0.0.0 with no error.
+      # See docs/VERSIONING.md.
+      - name: Verify version stamping
+        shell: pwsh
+        run: |
+          $client = Resolve-Path 'bin/Release/net10.0-windows/Genie.dll'
+          $plugin = Resolve-Path 'bin/Release/net10.0-windows/Plugins.dll'
+
+          $clientVersion = [System.Reflection.AssemblyName]::GetAssemblyName($client).Version.ToString()
+          $fileVersion   = (Get-Item $client).VersionInfo.FileVersion
+          $infoVersion   = (Get-Item $client).VersionInfo.ProductVersion
+          $pluginVersion = [System.Reflection.AssemblyName]::GetAssemblyName($plugin).Version.ToString()
+
+          Write-Host "Genie.dll   AssemblyVersion : $clientVersion"
+          Write-Host "Genie.dll   FileVersion     : $fileVersion"
+          Write-Host "Genie.dll   Informational   : $infoVersion"
+          Write-Host "Plugins.dll AssemblyVersion : $pluginVersion"
+
+          if ($clientVersion -eq '0.0.0.0') {
+            throw "Genie.dll is stamped 0.0.0.0. Assembly version generation is broken -- check GenerateAssemblyInfo in Genie4.csproj (see docs/VERSIONING.md)."
+          }
+          if ($clientVersion -notmatch '^\d+\.\d+\.\d+\.0$') {
+            throw "AssemblyVersion '$clientVersion' must be MAJOR.MINOR.PATCH.0 -- the fourth component is pinned to 0 so plugin binding stays stable."
+          }
+          # The plugin ABI version is decoupled from client releases on purpose. If this moves,
+          # every third-party plugin compiled against it breaks.
+          if ($pluginVersion -ne '2.0.0.1') {
+            throw "Plugin ABI version changed to '$pluginVersion' (expected 2.0.0.1). If this is intentional, update Plugin/AssemblyInfo.vb, this check, and docs/VERSIONING.md together."
+          }
+
+      - name: Summarise warnings
+        if: always()
+        shell: pwsh
+        run: |
+          if (-not (Test-Path build.log)) {
+            Add-Content $env:GITHUB_STEP_SUMMARY '### Build did not produce a log'
+            return
+          }
+
+          $log = Get-Content build.log -Raw
+          $count = if ($log -match '(\d+)\s+Warning\(s\)') { [int]$Matches[1] } else { -1 }
+          $baseline = [int]$env:BASELINE_WARNINGS
+
+          $lines = @()
+          $lines += '### Build warnings'
+          $lines += ''
+          $lines += "**$count** warnings (baseline **$baseline**)"
+          $lines += ''
+
+          if ($count -gt $baseline) {
+            $lines += ":warning: Warning count rose by $($count - $baseline). A new warning usually means something regressed -- worth a look before merging."
+            Write-Host "::warning::Warning count is $count, above the baseline of $baseline."
+          } elseif ($count -ge 0 -and $count -lt $baseline) {
+            $lines += ":tada: Down $($baseline - $count) from the baseline. Consider lowering BASELINE_WARNINGS in .github/workflows/build.yml."
+          }
+
+          $codes = [regex]::Matches($log, 'warning ([A-Z]+\d+)') |
+                   ForEach-Object { $_.Groups[1].Value } |
+                   Group-Object | Sort-Object Count -Descending
+
+          if ($codes) {
+            $lines += ''
+            $lines += '| Code | Occurrences in log |'
+            $lines += '|---|---|'
+            foreach ($c in $codes) { $lines += "| $($c.Name) | $($c.Count) |" }
+            $lines += ''
+            $lines += '_Occurrences are counted per log line; a warning reported for more than one target appears more than once._'
+          }
+
+          $lines -join "`n" | Add-Content $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 7
+          if-no-files-found: ignore
+
+  package:
+    name: Package (self-contained win-x64)
+    runs-on: windows-latest
+    needs: build
+    # Skipped on pull requests to keep review feedback fast -- a self-contained publish is
+    # ~132 MB and several minutes. Runs on every push to main and on manual dispatch.
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/*.vbproj', 'Directory.Build.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # Uses the run number as the build component and the commit sha for traceability, so a
+      # test build off main can always be traced back to the commit that produced it.
+      - name: Publish
+        shell: pwsh
+        run: |
+          $sha = "${{ github.sha }}".Substring(0, 7)
+          dotnet publish Genie4.csproj -c Release -r win-x64 --self-contained true `
+            -p:BuildNumber=${{ github.run_number }} `
+            -p:SourceRevisionId=$sha `
+            -o publish/Genie-Remix
+          if ($LASTEXITCODE -ne 0) { throw "Publish failed with exit code $LASTEXITCODE" }
+
+      # Catches packaging breakage -- a missing apphost, satellite assemblies, or runtime config
+      # ships silently today and the first person to find out is a player.
+      - name: Verify package contents
+        shell: pwsh
+        run: |
+          $root = 'publish/Genie-Remix'
+          $required = @(
+            'Genie.exe',
+            'Genie.dll',
+            'Genie.runtimeconfig.json',
+            'System.Private.CoreLib.dll',   # proves the runtime really was bundled
+            'Interfaces.dll',               # plugin ABI, resolved at startup
+            'Libs/Interfaces.dll',          # EmbeddedAssembly.cs also loads it from here
+            'Plugins.dll',                  # GeniePlugin ABI assembly
+            'Jint.dll',                     # JavaScript script backend
+            'Acornima.dll',                 # Jint's parser; script engine breaks without it
+            'LICENSE'
+          )
+          $missing = $required | Where-Object { -not (Test-Path (Join-Path $root $_)) }
+          if ($missing) { throw "Publish output is missing: $($missing -join ', ')" }
+
+          $files = Get-ChildItem $root -Recurse -File
+          $sizeMb = [math]::Round(($files | Measure-Object Length -Sum).Sum / 1MB, 1)
+          $version = (Get-Item (Join-Path $root 'Genie.exe')).VersionInfo
+
+          Write-Host "Files: $($files.Count), size: $sizeMb MB"
+          Write-Host "FileVersion: $($version.FileVersion), Informational: $($version.ProductVersion)"
+
+          # A framework-dependent publish is ~15 MB; a healthy self-contained one is ~130 MB.
+          # This catches --self-contained silently flipping off.
+          if ($sizeMb -lt 100) {
+            throw "Publish output is only $sizeMb MB. Expected ~132 MB for a self-contained build -- did --self-contained stop taking effect?"
+          }
+
+          @(
+            '### Package',
+            '',
+            "| | |",
+            "|---|---|",
+            "| Files | $($files.Count) |",
+            "| Size | $sizeMb MB |",
+            "| FileVersion | $($version.FileVersion) |",
+            "| InformationalVersion | $($version.ProductVersion) |"
+          ) -join "`n" | Add-Content $env:GITHUB_STEP_SUMMARY
+
+      # Not a release -- just a downloadable test build off main, so a change can be tried
+      # without cutting a tag. Real releases come from the tag-driven workflow (Phase 3).
+      - name: Upload test build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Genie-Remix-ci-${{ github.run_number }}
+          path: publish/Genie-Remix
+          retention-days: 14

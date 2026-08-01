@@ -1,0 +1,389 @@
+name: Release
+
+# Tag-driven releases. Cutting a release is:
+#
+#   git tag v4.1.1 && git push origin v4.1.1
+#
+# Everything below is derived from that tag -- nothing is hand-edited, and nothing is uploaded
+# by hand. See docs/RELEASING.md and docs/VERSIONING.md.
+#
+# Use the workflow_dispatch "dry run" mode to exercise the whole pipeline without publishing.
+
+# Quoted because YAML 1.1 parsers read a bare `on` as the boolean true.
+"on":
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build, without the leading v (e.g. 4.1.1 or 4.2.0-rc.1)'
+        required: true
+        type: string
+      dry_run:
+        description: 'Build and package, but do not create a GitHub Release'
+        required: true
+        type: boolean
+        default: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false   # never interrupt a half-finished release
+
+permissions:
+  contents: write   # required to create the release and upload assets
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  # The published build is launched to confirm it actually starts before it reaches players.
+  # If this proves unreliable on the hosted runner, set to 'false' and fall back to the manual
+  # post-release check in docs/RELEASING.md.
+  SMOKE_TEST: 'true'
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # need full history to verify the tag is on main
+
+      # ---------------------------------------------------------------------
+      # Work out what we are releasing
+      # ---------------------------------------------------------------------
+      - name: Resolve version from tag
+        id: version
+        shell: pwsh
+        run: |
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch') {
+            $raw = '${{ inputs.version }}'.Trim()
+            $tag = "v$raw"
+          } else {
+            $tag = '${{ github.ref_name }}'
+            $raw = $tag -replace '^v', ''
+          }
+
+          # MAJOR.MINOR.PATCH with an optional pre-release label: 4.1.1 or 4.2.0-rc.1
+          if ($raw -notmatch '^(\d+\.\d+\.\d+)(?:-(.+))?$') {
+            throw "Tag '$tag' is not of the form vMAJOR.MINOR.PATCH[-suffix]. See docs/VERSIONING.md."
+          }
+
+          $prefix = $Matches[1]
+          $suffix = if ($Matches[2]) { $Matches[2] } else { '' }
+          $isPrerelease = [string]::IsNullOrEmpty($suffix) ? 'false' : 'true'
+
+          "tag=$tag"                   | Add-Content $env:GITHUB_OUTPUT
+          "version=$raw"               | Add-Content $env:GITHUB_OUTPUT
+          "prefix=$prefix"             | Add-Content $env:GITHUB_OUTPUT
+          "suffix=$suffix"             | Add-Content $env:GITHUB_OUTPUT
+          "prerelease=$isPrerelease"   | Add-Content $env:GITHUB_OUTPUT
+
+          Write-Host "tag=$tag version=$raw prefix=$prefix suffix='$suffix' prerelease=$isPrerelease"
+
+      # A release must be reproducible from main. A tag on a side branch would ship code that
+      # is not in the mainline, and the next release would silently revert it.
+      - name: Verify the tag is on main
+        shell: pwsh
+        run: |
+          git fetch origin +main:refs/remotes/origin/main --quiet
+          git merge-base --is-ancestor HEAD refs/remotes/origin/main
+          if ($LASTEXITCODE -ne 0) {
+            throw "Commit $(git rev-parse --short HEAD) is not an ancestor of origin/main. Releases must be cut from main."
+          }
+          Write-Host "OK: $(git rev-parse --short HEAD) is on main."
+
+      # Refuse to overwrite an existing release. Published versions are immutable -- a bad build
+      # gets a new patch version, never a replaced asset. See docs/RELEASING.md.
+      - name: Verify the release does not already exist
+        if: ${{ github.event_name == 'push' || !inputs.dry_run }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view '${{ steps.version.outputs.tag }}' 2>$null | Out-Null
+          if ($LASTEXITCODE -eq 0) {
+            throw "Release ${{ steps.version.outputs.tag }} already exists. Published releases and their assets are immutable -- cut a new patch version instead."
+          }
+          Write-Host "OK: ${{ steps.version.outputs.tag }} does not exist yet."
+
+      - name: Extract release notes from CHANGELOG
+        id: notes
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $lines = Get-Content CHANGELOG.md
+
+          # Find "## [<version>]" and take everything up to the next "## " heading.
+          $start = -1
+          for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match "^##\s+\[$([regex]::Escape($version))\]") { $start = $i; break }
+          }
+          if ($start -lt 0) {
+            throw "CHANGELOG.md has no '## [$version]' section. Add one before tagging -- the release body is generated from it. See docs/RELEASING.md."
+          }
+
+          $end = $lines.Count
+          for ($i = $start + 1; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match '^##\s') { $end = $i; break }
+          }
+
+          $body = ($lines[($start + 1)..($end - 1)] -join "`n").Trim()
+          # Sections are separated by a horizontal rule in CHANGELOG.md; drop a trailing one so
+          # the release notes do not end up with two rules in a row.
+          $body = ($body -replace '(?s)\s*-{3,}\s*$', '').Trim()
+          if ([string]::IsNullOrWhiteSpace($body)) {
+            throw "The '## [$version]' section in CHANGELOG.md is empty."
+          }
+
+          $zip = "Genie-Remix-$version.zip"
+          $shortSha = git rev-parse --short HEAD
+          $runUrl = '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+
+          # Built as an array of single-quoted lines, not a here-string: a PowerShell here-string
+          # needs its closing delimiter at column 0, which would terminate this YAML block
+          # scalar. Single quotes also keep backticks literal so the markdown code spans survive.
+          $template = @(
+            '',
+            '---',
+            '',
+            '## Installing',
+            '',
+            '**New install**',
+            '1. Download `{ZIP}` below.',
+            '2. Extract it anywhere on your PC.',
+            '3. Open the `Genie-Remix` folder and double-click `Genie.exe`.',
+            '',
+            '**Upgrading from a previous version, or from Genie4**',
+            '1. Download and extract `{ZIP}`.',
+            '2. Copy your `Config`, `Icons`, `Logs`, `Maps`, `Plugins`, `Scripts` and `Sounds`',
+            '   folders from your old Genie folder into the new `Genie-Remix` folder.',
+            '3. Launch `Genie.exe`.',
+            '',
+            'Your settings, scripts, highlights and maps carry over. Nothing needs installing',
+            'first — the .NET runtime is bundled.',
+            '',
+            '## Verifying your download',
+            '',
+            '`SHA256SUMS.txt` lists the checksum of the ZIP:',
+            '',
+            '```powershell',
+            'Get-FileHash {ZIP} -Algorithm SHA256',
+            '```',
+            '',
+            'Built from commit `{SHA}` by [run #{RUN}]({RUNURL}).'
+          ) -join "`n"
+
+          $notes = $body + "`n" + $template.
+            Replace('{ZIP}', $zip).
+            Replace('{SHA}', $shortSha).
+            Replace('{RUN}', '${{ github.run_number }}').
+            Replace('{RUNURL}', $runUrl)
+
+          $notes | Set-Content release-notes.md -Encoding utf8
+          Write-Host "Release notes built from CHANGELOG section '[$version]' ($($notes.Length) chars)."
+
+      # ---------------------------------------------------------------------
+      # Build
+      # ---------------------------------------------------------------------
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Record toolchain
+        shell: pwsh
+        run: dotnet --info
+
+      - name: Restore
+        shell: pwsh
+        run: dotnet restore Genie4.sln
+
+      - name: Publish (self-contained win-x64)
+        shell: pwsh
+        run: |
+          $sha = '${{ github.sha }}'.Substring(0, 7)
+          # Not named $args -- that is a PowerShell automatic variable.
+          $publishArgs = @(
+            'publish', 'Genie4.csproj',
+            '-c', 'Release',
+            '-r', 'win-x64',
+            '--self-contained', 'true',
+            "-p:VersionPrefix=${{ steps.version.outputs.prefix }}",
+            "-p:BuildNumber=${{ github.run_number }}",
+            "-p:SourceRevisionId=$sha",
+            '-o', 'staging/Genie-Remix'
+          )
+          if ('${{ steps.version.outputs.suffix }}') {
+            $publishArgs += "-p:VersionSuffix=${{ steps.version.outputs.suffix }}"
+          }
+          dotnet @publishArgs
+          if ($LASTEXITCODE -ne 0) { throw "Publish failed with exit code $LASTEXITCODE" }
+
+      # The whole point of Phase 1: prove the binary carries the version the tag claims.
+      # Without this, a broken version pipeline ships a mislabelled release silently.
+      - name: Verify the binary matches the tag
+        shell: pwsh
+        run: |
+          $root   = 'staging/Genie-Remix'
+          $prefix = '${{ steps.version.outputs.prefix }}'
+          $suffix = '${{ steps.version.outputs.suffix }}'
+          $sha    = '${{ github.sha }}'.Substring(0, 7)
+
+          $expectedAssembly = "$prefix.0"
+          $expectedFile     = "$prefix.${{ github.run_number }}"
+          $expectedInfo     = if ($suffix) { "$prefix-$suffix+$sha" } else { "$prefix+$sha" }
+
+          $asm  = [System.Reflection.AssemblyName]::GetAssemblyName((Resolve-Path "$root/Genie.dll")).Version.ToString()
+          $info = (Get-Item "$root/Genie.dll").VersionInfo
+          $exe  = (Get-Item "$root/Genie.exe").VersionInfo
+          $abi  = [System.Reflection.AssemblyName]::GetAssemblyName((Resolve-Path "$root/Plugins.dll")).Version.ToString()
+
+          Write-Host "AssemblyVersion : $asm  (expected $expectedAssembly)"
+          Write-Host "FileVersion     : $($info.FileVersion)  (expected $expectedFile)"
+          Write-Host "Informational   : $($info.ProductVersion)  (expected $expectedInfo)"
+          Write-Host "Genie.exe       : $($exe.FileVersion)"
+          Write-Host "Plugin ABI      : $abi"
+
+          if ($asm -ne $expectedAssembly)              { throw "AssemblyVersion is '$asm', expected '$expectedAssembly'." }
+          if ($info.FileVersion -ne $expectedFile)     { throw "FileVersion is '$($info.FileVersion)', expected '$expectedFile'." }
+          if ($info.ProductVersion -ne $expectedInfo)  { throw "InformationalVersion is '$($info.ProductVersion)', expected '$expectedInfo'." }
+          if ($exe.FileVersion -ne $expectedFile)      { throw "Genie.exe FileVersion is '$($exe.FileVersion)', expected '$expectedFile'." }
+          if ($abi -ne '2.0.0.1')                      { throw "Plugin ABI version is '$abi', expected 2.0.0.1. Third-party plugins bind against this." }
+
+      - name: Verify package contents
+        shell: pwsh
+        run: |
+          $root = 'staging/Genie-Remix'
+          $required = @(
+            'Genie.exe',
+            'Genie.dll',
+            'Genie.runtimeconfig.json',
+            'System.Private.CoreLib.dll',   # proves the runtime really was bundled
+            'Interfaces.dll',               # plugin ABI, resolved at startup
+            'Libs/Interfaces.dll',          # EmbeddedAssembly.cs also loads it from here
+            'Plugins.dll',
+            'Jint.dll',
+            'Acornima.dll',                 # Jint's parser; script engine breaks without it
+            'LICENSE'
+          )
+          $missing = $required | Where-Object { -not (Test-Path (Join-Path $root $_)) }
+          if ($missing) { throw "Publish output is missing: $($missing -join ', ')" }
+
+          # No user data may ship -- these are created on first launch and shipping them would
+          # overwrite a player's settings on upgrade.
+          $mustNotShip = @('Config', 'Scripts', 'Maps', 'Logs', 'Icons', 'Plugins', 'Sounds')
+          $leaked = $mustNotShip | Where-Object { Test-Path (Join-Path $root $_) -PathType Container }
+          if ($leaked) { throw "Publish output contains user data folders: $($leaked -join ', ')" }
+
+          $files = Get-ChildItem $root -Recurse -File
+          $sizeMb = [math]::Round(($files | Measure-Object Length -Sum).Sum / 1MB, 1)
+          Write-Host "Files: $($files.Count), size: $sizeMb MB"
+          if ($sizeMb -lt 100) {
+            throw "Publish output is only $sizeMb MB. Expected ~132 MB -- did --self-contained stop taking effect?"
+          }
+
+      # Catches the catastrophic packaging failures: a missing assembly, a broken
+      # runtimeconfig, an unresolvable embedded dependency. Folder creation proves FormMain's
+      # constructor ran, which means the runtime loaded and assembly resolution worked.
+      - name: Smoke test the published build
+        if: env.SMOKE_TEST == 'true'
+        shell: pwsh
+        run: |
+          $root = Resolve-Path 'staging/Genie-Remix'
+          $exe = Join-Path $root 'Genie.exe'
+          $proc = Start-Process -FilePath $exe -WorkingDirectory $root -PassThru
+          Start-Sleep -Seconds 20
+
+          if ($proc.HasExited) {
+            throw "Genie.exe exited within 20 seconds with code $($proc.ExitCode). The published build does not start."
+          }
+
+          $expected = @('Config', 'Maps', 'Scripts', 'Logs')
+          $created = $expected | Where-Object { Test-Path (Join-Path $root $_) -PathType Container }
+          Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+
+          if ($created.Count -ne $expected.Count) {
+            $absent = $expected | Where-Object { $_ -notin $created }
+            throw "Startup did not create: $($absent -join ', '). FormMain likely failed to initialise."
+          }
+          Write-Host "OK: process stayed up and created $($created -join ', ')."
+
+          # Remove the folders the smoke test just created so they cannot end up in the ZIP.
+          foreach ($d in @('Config', 'Maps', 'Scripts', 'Logs', 'Icons', 'Plugins', 'Sounds')) {
+            Remove-Item (Join-Path $root $d) -Recurse -Force -ErrorAction SilentlyContinue
+          }
+
+      # ---------------------------------------------------------------------
+      # Package
+      # ---------------------------------------------------------------------
+      - name: Create ZIP and checksums
+        id: package
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $zip = "Genie-Remix-$version.zip"
+
+          # includeBaseDirectory:$true nests everything under Genie-Remix/ so extracting does
+          # not scatter ~390 files into the user's Downloads folder.
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [System.IO.Compression.ZipFile]::CreateFromDirectory(
+            (Resolve-Path 'staging/Genie-Remix'),
+            (Join-Path (Get-Location) $zip),
+            [System.IO.Compression.CompressionLevel]::Optimal,
+            $true
+          )
+
+          # Two spaces between hash and filename: the format `sha256sum -c` expects.
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          "$hash  $zip" | Set-Content 'SHA256SUMS.txt' -Encoding ascii
+
+          $sizeMb = [math]::Round((Get-Item $zip).Length / 1MB, 1)
+          Write-Host "$zip  $sizeMb MB  sha256=$hash"
+          "zip=$zip" | Add-Content $env:GITHUB_OUTPUT
+
+          @(
+            "### Release artifact",
+            '',
+            '| | |',
+            '|---|---|',
+            "| Asset | ``$zip`` |",
+            "| Size | $sizeMb MB |",
+            "| SHA256 | ``$hash`` |",
+            "| Pre-release | ${{ steps.version.outputs.prerelease }} |"
+          ) -join "`n" | Add-Content $env:GITHUB_STEP_SUMMARY
+
+      # ---------------------------------------------------------------------
+      # Publish
+      # ---------------------------------------------------------------------
+      - name: Create GitHub Release
+        if: ${{ github.event_name == 'push' || !inputs.dry_run }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $flags = @(
+            '--title', 'Genie Remix ${{ steps.version.outputs.version }}',
+            '--notes-file', 'release-notes.md'
+          )
+          if ('${{ steps.version.outputs.prerelease }}' -eq 'true') { $flags += '--prerelease' }
+
+          gh release create '${{ steps.version.outputs.tag }}' `
+            '${{ steps.package.outputs.zip }}' 'SHA256SUMS.txt' @flags
+          if ($LASTEXITCODE -ne 0) { throw "gh release create failed with exit code $LASTEXITCODE" }
+
+          Write-Host "Released ${{ steps.version.outputs.tag }}."
+
+      - name: Upload artifacts (dry run)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dry-run-${{ steps.version.outputs.version }}
+          path: |
+            ${{ steps.package.outputs.zip }}
+            SHA256SUMS.txt
+            release-notes.md
+          retention-days: 7
