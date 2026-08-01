@@ -148,6 +148,32 @@ namespace GenieClient.Genie
 
         private string m_sHostname = string.Empty;
 
+        // Releases the current TcpClient and SslStream.
+        //
+        // Every connect used to overwrite _client with a fresh TcpClient and simply drop the old
+        // one. Socket.Disconnect(false) does not close the handle, so the previous connection was
+        // held until the finalizer eventually ran. One stale handle per connect went unnoticed
+        // while auto-reconnect was effectively limited to a single attempt; now that the retry
+        // ladder actually runs, a Lich outage retries indefinitely and every attempt opened -- and
+        // kept -- another TLS connection to the login server.
+        //
+        // Only safe when no BeginDisconnect is in flight. Disconnect() hands _client to the
+        // callback and nulls it precisely so this cannot dispose a socket that is still finishing.
+        private void CloseIdleClient()
+        {
+            if (sslStream != null)
+            {
+                try { sslStream.Dispose(); } catch { }
+                sslStream = null;
+            }
+
+            if (_client != null)
+            {
+                try { _client.Close(); } catch { }
+                _client = null;
+            }
+        }
+
         public void Connect(string sHostname, int iPort)
         {
             try
@@ -167,6 +193,10 @@ namespace GenieClient.Genie
 
                     m_SocketClient = null;
                 }
+
+                // Release whatever the previous connection left behind. A no-op when a disconnect
+                // already handed the client off to its callback.
+                CloseIdleClient();
 
                 m_sHostname = sHostname;
                 _client = new TcpClient();
@@ -203,6 +233,10 @@ namespace GenieClient.Genie
 
                     m_SocketClient = null;
                 }
+
+                // Release whatever the previous connection left behind. A no-op when a disconnect
+                // already handed the client off to its callback.
+                CloseIdleClient();
 
                 m_sHostname = sHostname;
                 _client = new TcpClient();
@@ -517,6 +551,9 @@ namespace GenieClient.Genie
         {
             if (Information.IsNothing(ConnectedSocket))
             {
+                // Nothing in flight, so anything still held can be released now. This is the path
+                // an abrupt drop takes, where the socket is already down.
+                CloseIdleClient();
                 return;
             }
 
@@ -533,7 +570,17 @@ namespace GenieClient.Genie
                 // Carry the hostname along: by the time the callback runs, m_sHostname may
                 // already belong to the next connection (the login-server socket is closed
                 // deliberately while the connection to Lich is being opened).
-                ConnectedSocket.BeginDisconnect(false, new AsyncCallback(DisconnectCallback), new object[] { ConnectedSocket, ExitOnDisconnect, iGeneration, m_sHostname });
+                // Ownership of the client passes to the callback, which closes it once
+                // EndDisconnect has completed. Nulling it here is what stops a concurrent
+                // Connect() from disposing a socket that is still finishing its disconnect.
+                TcpClient oOwner = _client;
+                _client = null;
+
+                ConnectedSocket.BeginDisconnect(false, new AsyncCallback(DisconnectCallback), new object[] { ConnectedSocket, ExitOnDisconnect, iGeneration, m_sHostname, oOwner });
+            }
+            else
+            {
+                CloseIdleClient();
             }
 
             m_SocketClient = null;
@@ -548,8 +595,16 @@ namespace GenieClient.Genie
                 bool ExitOnDisconnect = (bool)(ar.AsyncState as object[])[1];
                 int iGeneration = (int)(ar.AsyncState as object[])[2];
                 string sClosedHost = (string)(ar.AsyncState as object[])[3];
+                TcpClient oOwner = (ar.AsyncState as object[])[4] as TcpClient;
                 // Complete the connection
                 s.EndDisconnect(ar);
+
+                // The disconnect is done, so the client this socket belonged to can go. Without
+                // this the handle stayed open until the finalizer ran.
+                if (oOwner != null)
+                {
+                    try { oOwner.Close(); } catch { }
+                }
 
                 // Only flush the buffers if they still belong to this socket. During the
                 // key-server to game-server handoff a newer connection has already taken them
@@ -584,6 +639,10 @@ namespace GenieClient.Genie
             catch (SocketException ex)
             {
                 PrintSocketError("Connection lost", ex.ErrorCode);
+            }
+            catch (ObjectDisposedException)
+            {
+                // Socket already torn down elsewhere -- nothing left to finish.
             }
         }
 
