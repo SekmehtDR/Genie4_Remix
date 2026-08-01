@@ -4774,7 +4774,19 @@ namespace GenieClient
                         IconBar.IsConnected = bConnected;
                         oRTControl.IsConnected = bConnected;
                         Castbar.IsConnected = bConnected;
-                        m_CommandSent = false;
+
+                        // Only on a connection coming UP. This guards auto-reconnect against
+                        // reviving a session nobody is sitting at, so it wants to mean "no input
+                        // since we last got you into the game". Clearing it on every change to
+                        // $connected also cleared it on the way DOWN -- including the login
+                        // server teardown that happens inside each reconnect attempt. The next
+                        // attempt then aborted with "No user input since last connect" and wiped
+                        // ReconnectTime, so the 5s/15s/30s retry ladder was unreachable and
+                        // auto-reconnect only ever got one try.
+                        if (bConnected)
+                        {
+                            m_CommandSent = false;
+                        }
                         m_oGlobals.VariableList["charactername"] = m_oGame.AccountCharacter;
                         m_oGlobals.VariableList["game"] = m_oGame.AccountGame;
                         m_oGlobals.VariableList["gamename"] = m_oGame.AccountGame;

@@ -52,6 +52,22 @@ Sections, in order, omitting any that are empty:
   there indefinitely with no message. Failures during login now print the reason and end the
   attempt cleanly, so auto-reconnect can take over.
 
+- **Genie did not notice when the connection dropped abruptly.** If the other end went away
+  suddenly — Lich killed or crashed, the network dropped, the server reset the connection —
+  Genie carried on as though nothing had happened: no message, a title still reading
+  `[Connected]`, and **auto-reconnect never firing**, because nothing had told it the connection
+  was gone. The only clue was that typing did nothing and your commands came back wrapped in
+  (parentheses). A polite disconnect was always handled correctly, so this only ever appeared on
+  the sudden kind of loss that reconnect exists for. Genie now reports
+  `Connection to <host> lost.` and reconnects.
+
+- **Auto-reconnect only ever made one attempt.** Genie will not reconnect unless you have typed
+  something since it last got you into the game, which stops an unattended client being revived
+  over and over. The flag behind that check was being cleared during each reconnect attempt, so
+  the second attempt aborted with "No user input since last connect" — and that abort also
+  cancelled the retry schedule. The 5s / 15s / 30s backoff was unreachable: one try, then
+  silence. Retries now continue as intended, and the original guard still applies.
+
 - **Closing Genie while connected could hang instead of shutting down.** Answering Yes to
   "You are connected to the game" sent `quit` and then waited for the game to drop the
   connection before actually closing. If that never happened — DragonRealms refuses to quit in
