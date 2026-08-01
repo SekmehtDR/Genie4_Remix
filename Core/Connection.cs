@@ -199,13 +199,22 @@ namespace GenieClient.Genie
                     }
                     catch (AuthenticationException e)
                     {
+                        // Must not fall through: everything below assumes a working TLS stream.
+                        // Announcing "Connected" and raising EventConnected after a failed
+                        // handshake drove the login straight into a disposed client, where the
+                        // resulting exception was swallowed by the thread pool and the player
+                        // was left staring at a window that never did anything.
                         PrintError("Unable to Authenticate: " + e.Message);
+                        sslStream.Dispose();
+                        sslStream = null;
                         _client.Dispose();
+                        EventConnectionLost?.Invoke();
+                        return;
                     }
                     // Complete the connection
-                    
+
                     PrintText(Utility.GetTimeStamp() + " Connected to " + m_sHostname + ".");
-                    
+
                     EventConnected?.Invoke();
                 }
                 catch (SocketException ex)
@@ -231,9 +240,33 @@ namespace GenieClient.Genie
             InvalidResponse
         }
         private AuthState CurrentAuthState = AuthState.Unauthenticated;
+        // Every read and write below can throw -- the stream has a 500ms read timeout, and the
+        // caller runs this from a Task, so anything that escapes becomes an unobserved task
+        // exception: the connect dies in complete silence, with no message and no reconnect.
+        // Turn that into a state the caller can report instead.
         public AuthState Authenticate(string account, string password)
         {
-            if (!_client.Connected || sslStream == null)
+            try
+            {
+                return AuthenticateInternal(account, password);
+            }
+            catch (Exception ex)
+            {
+                PrintError(Utility.GetTimeStamp() + " Login failed: " + ex.Message);
+                if (sslStream != null)
+                {
+                    try { sslStream.Dispose(); } catch { }
+                    sslStream = null;
+                }
+
+                CurrentAuthState = AuthState.Disconnected;
+                return CurrentAuthState;
+            }
+        }
+
+        private AuthState AuthenticateInternal(string account, string password)
+        {
+            if (_client == null || !_client.Connected || sslStream == null)
             {
                 CurrentAuthState = AuthState.Disconnected;
                 return CurrentAuthState; //not connected
@@ -299,9 +332,14 @@ namespace GenieClient.Genie
         private string ReadSgeGameInfoResponse()
         {
             byte[] buffer = new byte[MAX_PACKET_SIZE];
-            int bytes = sslStream.Read(buffer, 0, buffer.Length);
-            if (bytes == 0) return string.Empty;
-            return Encoding.Default.GetString(buffer, 0, bytes).TrimEnd('\0', '\r', '\n');
+            try
+            {
+                int bytes = sslStream.Read(buffer, 0, buffer.Length);
+                if (bytes == 0) return string.Empty;
+                return Encoding.Default.GetString(buffer, 0, bytes).TrimEnd('\0', '\r', '\n');
+            }
+            catch (System.IO.IOException) { /* read timeout or connection closed — same as ReadSgeResponse */ }
+            return string.Empty;
         }
 
         // SGE C/L responses: newline-terminated, may span multiple SSL records for large character lists.
@@ -325,7 +363,29 @@ namespace GenieClient.Genie
             return sb.ToString().TrimEnd('\0', '\r', '\n');
         }
 
+        // Same reasoning as Authenticate: this runs on a Task, so an escaping IOException from
+        // the 500ms read timeout would kill the login silently. Report it through the same
+        // "E<tab>message" channel the caller already knows how to print.
         public string GetLoginKey(string instance, string character)
+        {
+            try
+            {
+                return GetLoginKeyInternal(instance, character);
+            }
+            catch (Exception ex)
+            {
+                if (sslStream != null)
+                {
+                    try { sslStream.Dispose(); } catch { }
+                    sslStream = null;
+                }
+
+                CurrentAuthState = AuthState.Disconnected;
+                return "E\tLogin failed: " + ex.Message;
+            }
+        }
+
+        private string GetLoginKeyInternal(string instance, string character)
         {
                         // Sanity checks
             if (!IsConnected || sslStream == null)
