@@ -435,6 +435,30 @@ namespace GenieClient.Genie
             }
         }
 
+        // Whether what the player typed is the game's quit/exit command, so a disconnect that
+        // follows is expected rather than a failure to reconnect from.
+        //
+        // This used to be StartsWith("qui") / StartsWith("exi"), which also matched "quiver" --
+        // typing that suppressed auto-reconnect for the rest of the session. Match the first word
+        // only, and require it to be an abbreviation OF quit/exit rather than merely to start
+        // with the same three letters. "qui", "quit", "exi" and "exit" still count.
+        private static bool IsLeavingGameCommand(string sText)
+        {
+            if (string.IsNullOrWhiteSpace(sText))
+            {
+                return false;
+            }
+
+            string sWord = sText.TrimStart().Split(' ')[0].Trim();
+            if (sWord.Length < 3)
+            {
+                return false;
+            }
+
+            return "quit".StartsWith(sWord, StringComparison.CurrentCultureIgnoreCase)
+                || "exit".StartsWith(sWord, StringComparison.CurrentCultureIgnoreCase);
+        }
+
         public void SendText(string sText, bool bUserInput = false, string sOrigin = "")
         {
             string sShowText = sText;
@@ -445,7 +469,7 @@ namespace GenieClient.Genie
                     sShowText = "(" + sShowText + ")";
                 }
             }
-            else if (sText.StartsWith("qui", StringComparison.CurrentCultureIgnoreCase) | sText.StartsWith("exi", StringComparison.CurrentCultureIgnoreCase))
+            else if (IsLeavingGameCommand(sText))
             {
                 m_oReconnectTime = default;
                 m_bManualDisconnect = true;
@@ -3373,6 +3397,24 @@ namespace GenieClient.Genie
         private void GameSocket_EventConnectionLost()
         {
             EventGameDisconnected?.Invoke();
+
+            // Lich shuts itself down when the session ends and closes the connection without ever
+            // forwarding the game's <exit/>, so through Lich that tag -- the one authoritative
+            // signal that a logout was deliberate -- never arrives. All Genie is left with is a
+            // guess based on what the player typed, which misses a quit issued by a Lich script,
+            // by a Lich command, or by the game itself. With auto-reconnect on, that meant a
+            // session you deliberately ended could be revived.
+            //
+            // A clean close is the distinction that is actually available: Lich closing politely
+            // means it meant to, whereas Lich being killed or the link breaking does not close
+            // politely. Trade-off worth knowing -- if a server-side restart drops you politely
+            // through Lich, Genie will now leave you disconnected rather than reconnecting.
+            if (IsLich == true & m_bManualDisconnect == false & m_oSocket.LastCloseWasGraceful == true)
+            {
+                m_bManualDisconnect = true;
+                m_oReconnectTime = default;
+                PrintError(Utility.GetTimeStamp() + " Lich closed the connection. Treating this as a deliberate logout and not reconnecting.");
+            }
 
             // Reconnecting means logging in again from the account name and password, which a
             // session started from a .sal file or command line parameters never had -- Genie was
