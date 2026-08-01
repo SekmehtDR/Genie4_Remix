@@ -530,7 +530,10 @@ namespace GenieClient.Genie
                     iGeneration = m_iConnectionGeneration;
                 }
 
-                ConnectedSocket.BeginDisconnect(false, new AsyncCallback(DisconnectCallback), new object[] { ConnectedSocket, ExitOnDisconnect, iGeneration });
+                // Carry the hostname along: by the time the callback runs, m_sHostname may
+                // already belong to the next connection (the login-server socket is closed
+                // deliberately while the connection to Lich is being opened).
+                ConnectedSocket.BeginDisconnect(false, new AsyncCallback(DisconnectCallback), new object[] { ConnectedSocket, ExitOnDisconnect, iGeneration, m_sHostname });
             }
 
             m_SocketClient = null;
@@ -544,6 +547,7 @@ namespace GenieClient.Genie
                 Socket s = (Socket)(ar.AsyncState as object[])[0];
                 bool ExitOnDisconnect = (bool)(ar.AsyncState as object[])[1];
                 int iGeneration = (int)(ar.AsyncState as object[])[2];
+                string sClosedHost = (string)(ar.AsyncState as object[])[3];
                 // Complete the connection
                 s.EndDisconnect(ar);
 
@@ -561,7 +565,12 @@ namespace GenieClient.Genie
                 {
                     ParseData(System.Environment.NewLine); // Show lines not yet sent out
                 }
-                PrintText(Utility.GetTimeStamp() + " Connection closed.");
+                // Name the host. Closing the login server socket once the login key is in hand
+                // is a normal step of a successful login, and it used to print exactly the same
+                // line as losing the game connection -- so a routine handoff was indistinguishable
+                // from being dropped.
+                PrintText(Utility.GetTimeStamp() + " Connection to "
+                    + (string.IsNullOrEmpty(sClosedHost) ? "server" : sClosedHost) + " closed.");
                 if (ExitOnDisconnect)
                 {
                     System.Windows.Forms.Application.Exit();
