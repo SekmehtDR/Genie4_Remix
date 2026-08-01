@@ -98,17 +98,34 @@ jobs:
 
       # Refuse to overwrite an existing release. Published versions are immutable -- a bad build
       # gets a new patch version, never a replaced asset. See docs/RELEASING.md.
+      #
+      # This step runs unconditionally, including on dry runs, so its code path is always
+      # exercised. It only BLOCKS when the run would actually publish. Guarding the whole step
+      # with `if:` hid a bug that dry runs could never catch.
       - name: Verify the release does not already exist
-        if: ${{ github.event_name == 'push' || !inputs.dry_run }}
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          WILL_PUBLISH: ${{ github.event_name == 'push' || !inputs.dry_run }}
         run: |
           gh release view '${{ steps.version.outputs.tag }}' 2>$null | Out-Null
-          if ($LASTEXITCODE -eq 0) {
+          $releaseExists = ($LASTEXITCODE -eq 0)
+
+          # `gh release view` exits non-zero when the release is ABSENT, which is the case we
+          # want. pwsh carries the last native exit code out of the step, so without clearing it
+          # here the step reports failure even though the check passed.
+          $global:LASTEXITCODE = 0
+
+          if (-not $releaseExists) {
+            Write-Host "OK: ${{ steps.version.outputs.tag }} does not exist yet."
+            exit 0
+          }
+
+          if ($env:WILL_PUBLISH -eq 'true') {
             throw "Release ${{ steps.version.outputs.tag }} already exists. Published releases and their assets are immutable -- cut a new patch version instead."
           }
-          Write-Host "OK: ${{ steps.version.outputs.tag }} does not exist yet."
+
+          Write-Host "Note: ${{ steps.version.outputs.tag }} already exists. A real release would be refused here; continuing because this is a dry run."
 
       - name: Extract release notes from CHANGELOG
         id: notes
