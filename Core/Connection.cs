@@ -107,6 +107,19 @@ namespace GenieClient.Genie
         private IPEndPoint m_IPEndPoint;
         private StringBuilder m_ParseBuffer = new StringBuilder();
         private StringBuilder m_RowBuffer = new StringBuilder();
+
+        // The parse buffers are touched from two different thread-pool callbacks -- the receive
+        // loop and the disconnect callback -- with no synchronisation. During the key-server to
+        // game-server handoff both are live at once: the old socket's disconnect callback flushes
+        // a trailing newline through the very buffers the new connection is already filling,
+        // which can split or interleave the first lines of the session.
+        private readonly object m_oParseLock = new object();
+
+        // Bumped every time a connection is established. The disconnect callback carries the
+        // generation it belonged to, so a socket that is already superseded stays out of the
+        // current connection's buffers.
+        private int m_iConnectionGeneration = 0;
+
         private DateTime m_oLastServerActivity = DateTime.Now;
 
         public DateTime LastServerActivity
@@ -139,8 +152,12 @@ namespace GenieClient.Genie
         {
             try
             {
-                m_RowBuffer.Clear(); // Reset row buffer
-                m_ParseBuffer.Clear(); // Reset parse buffer
+                lock (m_oParseLock)
+                {
+                    m_RowBuffer.Clear(); // Reset row buffer
+                    m_ParseBuffer.Clear(); // Reset parse buffer
+                    m_iConnectionGeneration += 1;
+                }
                 if (!Information.IsNothing(m_SocketClient))
                 {
                     if (m_SocketClient.Connected == true)
@@ -171,8 +188,12 @@ namespace GenieClient.Genie
         {
             try
             {
-                m_RowBuffer.Clear(); // Reset row buffer
-                m_ParseBuffer.Clear(); // Reset parse buffer
+                lock (m_oParseLock)
+                {
+                    m_RowBuffer.Clear(); // Reset row buffer
+                    m_ParseBuffer.Clear(); // Reset parse buffer
+                    m_iConnectionGeneration += 1;
+                }
                 if (!Information.IsNothing(m_SocketClient))
                 {
                     if (m_SocketClient.Connected == true)
@@ -503,7 +524,13 @@ namespace GenieClient.Genie
             {
                 // PrintText("Disconnecting from: " & s.RemoteEndPoint.ToString())
 
-                ConnectedSocket.BeginDisconnect(false, new AsyncCallback(DisconnectCallback), new object[] { ConnectedSocket, ExitOnDisconnect });
+                int iGeneration;
+                lock (m_oParseLock)
+                {
+                    iGeneration = m_iConnectionGeneration;
+                }
+
+                ConnectedSocket.BeginDisconnect(false, new AsyncCallback(DisconnectCallback), new object[] { ConnectedSocket, ExitOnDisconnect, iGeneration });
             }
 
             m_SocketClient = null;
@@ -516,9 +543,24 @@ namespace GenieClient.Genie
                 // Retrieve the socket from the state object
                 Socket s = (Socket)(ar.AsyncState as object[])[0];
                 bool ExitOnDisconnect = (bool)(ar.AsyncState as object[])[1];
+                int iGeneration = (int)(ar.AsyncState as object[])[2];
                 // Complete the connection
                 s.EndDisconnect(ar);
-                ParseData(System.Environment.NewLine); // Show lines not yet sent out
+
+                // Only flush the buffers if they still belong to this socket. During the
+                // key-server to game-server handoff a newer connection has already taken them
+                // over, and pushing a trailing newline through at that point splits the first
+                // lines the new connection has started to receive.
+                bool bBuffersAreStillOurs;
+                lock (m_oParseLock)
+                {
+                    bBuffersAreStillOurs = (iGeneration == m_iConnectionGeneration);
+                }
+
+                if (bBuffersAreStillOurs)
+                {
+                    ParseData(System.Environment.NewLine); // Show lines not yet sent out
+                }
                 PrintText(Utility.GetTimeStamp() + " Connection closed.");
                 if (ExitOnDisconnect)
                 {
@@ -671,31 +713,37 @@ namespace GenieClient.Genie
 
         private void ParseData(string sText)
         {
-            char lastchar = 'x';
-            foreach (char c in sText)
+            // Serialised so a receive callback and a disconnect callback cannot interleave
+            // halfway through a row. Monitor is re-entrant, so a handler that ends up back in
+            // here on this thread (a trigger that disconnects, say) still works.
+            lock (m_oParseLock)
             {
-                if (c == '\r' || (c == '\n' && lastchar != '\r'))
+                char lastchar = 'x';
+                foreach (char c in sText)
                 {
+                    if (c == '\r' || (c == '\n' && lastchar != '\r'))
+                    {
+                        m_RowBuffer.Append(m_ParseBuffer);
+                        m_RowBuffer.Append(System.Environment.NewLine);
+                        ParseRow(m_RowBuffer); // Event for parse row
+                        m_RowBuffer.Clear();
+                        m_ParseBuffer.Clear();
+                    }
+                    else if (c != '\n' & c != '\a')
+                    {
+                        m_ParseBuffer.Append(c);
+                    }
+                    lastchar = c;
+                }
+
+                // Broken Line (Print and save result to RowBuffer)
+                if (m_ParseBuffer.Length > 0)
+                {
+                    var buffer = m_ParseBuffer.ToString();
+                    ParsePartialRow(buffer);	// Event for partial parse row
                     m_RowBuffer.Append(m_ParseBuffer);
-                    m_RowBuffer.Append(System.Environment.NewLine);
-                    ParseRow(m_RowBuffer); // Event for parse row
-                    m_RowBuffer.Clear();
                     m_ParseBuffer.Clear();
                 }
-                else if (c != '\n' & c != '\a')
-                {
-                    m_ParseBuffer.Append(c);
-                }
-                lastchar = c;
-            }
-
-            // Broken Line (Print and save result to RowBuffer)
-            if (m_ParseBuffer.Length > 0)
-            {
-                var buffer = m_ParseBuffer.ToString();
-                ParsePartialRow(buffer);	// Event for partial parse row
-                m_RowBuffer.Append(m_ParseBuffer);
-                m_ParseBuffer.Clear();
             }
         }
 
