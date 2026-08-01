@@ -16,7 +16,53 @@ Sections, in order, omitting any that are empty:
 
 ## [Unreleased]
 
-*Nothing yet.*
+### Fixed
+- **Genie forgot it was using Lich as soon as you connected.** The connection to the login
+  server is closed on purpose partway through a successful Lich login, and that closure was
+  being treated as a real disconnect — clearing the "using Lich" flag for the rest of the
+  session. Two things followed from it. Saving a profile wrote `UseLich=False` even though you
+  were connected through Lich at that moment, quietly reversing the setting. And if you were
+  dropped, auto-reconnect rebuilt the connection **straight to the game server, bypassing Lich
+  entirely** — no scripts, no Lich features, and a Lich process still holding your old session.
+  Reconnecting now goes back through Lich. If Lich is gone it will fail and say so, rather than
+  silently connecting without it.
+
+- **A Lich already running is now used instead of a second one being started.** Genie launched
+  a brand new Lich on every single connect, without ever checking whether one was already there.
+  If you run Lich as a background service, or you reopened Genie after a crash, you ended up with
+  two Lich processes competing for the same port. Genie now checks the port first and connects to
+  whatever is already listening. `#ls` reports which of the three states you are in: not running,
+  listening and ready to be reused, or already serving a session.
+
+- **A mistyped profile name no longer leaves a stray Lich running.** Lich was started *before*
+  Genie had checked the profile or logged in, so `#lc SomeTypo` — or any failed login — left a
+  Lich running with nothing connected to it, forever. `#lc <profile>` now checks the profile
+  exists before starting anything.
+
+- **Lich failing to start is now reported.** The result of launching Lich was discarded, so a bad
+  Ruby path, bad Lich arguments, or Lich exiting immediately all looked identical to success —
+  until the connection was refused several seconds later and appeared to be a problem with the
+  game. Genie also no longer launches Lich through `cmd.exe`, which means paths containing spaces
+  work, and it waits for Lich to actually open its port rather than sleeping a fixed number of
+  seconds. Connecting is usually quicker as a result.
+
+- **Login failures at the authentication step no longer vanish.** If the secure connection to the
+  login server failed, Genie announced "Connected" anyway and carried on into a connection that
+  had already been thrown away; the error disappeared into a background thread and the window sat
+  there indefinitely with no message. Failures during login now print the reason and end the
+  attempt cleanly, so auto-reconnect can take over.
+
+- **Occasional garbled text in the first moments after connecting.** The closing login-server
+  connection and the newly opened game connection shared the same text buffers with no
+  coordination, so the first lines of a session could be split or interleaved — an intermittent
+  cause of logon triggers not firing.
+
+- **"Connection closed." during login no longer looks like being dropped.** Logging in involves
+  two connections: Genie authenticates with `eaccess.play.net`, collects your login key, closes
+  that connection, and then opens a second one to Lich or the game and hands the key over.
+  Closing the first is a normal part of a successful login — but it printed the identical line
+  Genie prints when the *game* connection drops, so a routine handoff was indistinguishable from
+  a disconnect. The message now names the host: `Connection to eaccess.play.net closed.`
 
 ---
 

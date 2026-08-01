@@ -6101,7 +6101,8 @@ namespace GenieClient
 
         private async Task LaunchLichAndConnect(string account, string password, string character, string game)
         {
-            var oLaunch = await LichLauncher.EnsureRunning(m_oGlobals.Config);
+            var oLaunch = await LichLauncher.EnsureRunning(m_oGlobals.Config,
+                sProgress => AppendText(sProgress + System.Environment.NewLine));
             if (!oLaunch.ShouldConnect)
             {
                 PrintError(oLaunch.Message);

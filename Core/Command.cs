@@ -432,7 +432,8 @@ namespace GenieClient.Genie
                                                 }
                                             }
 
-                                            var oLaunch = await GenieClient.LichLauncher.EnsureRunning(oGlobals.Config);
+                                            var oLaunch = await GenieClient.LichLauncher.EnsureRunning(oGlobals.Config,
+                                                sProgress => EchoText(sProgress + System.Environment.NewLine));
                                             if (!oLaunch.ShouldConnect)
                                             {
                                                 EchoColorText(oLaunch.Message + System.Environment.NewLine, Color.OrangeRed, Color.Transparent);

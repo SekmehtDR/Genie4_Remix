@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace GenieClient
@@ -189,7 +191,135 @@ namespace GenieClient
             return false;
         }
 
-        public static async Task<LaunchResult> EnsureRunning(Genie.Config oConfig)
+        // How long to wait for another Genie window to finish claiming this endpoint, and how
+        // long we hold our own claim if nothing ever connects (a login that fails, say).
+        private const int ClaimWaitMs = 30000;
+        private const int ClaimMaxHoldMs = 30000;
+
+        private static Semaphore m_oClaim = null;
+        private static readonly object m_oClaimSync = new object();
+
+        private static string ClaimName(string sHost, int iPort)
+        {
+            var sb = new StringBuilder("GenieRemix.Lich.");
+            foreach (char c in (sHost ?? string.Empty).ToLowerInvariant())
+            {
+                sb.Append(char.IsLetterOrDigit(c) ? c : '_');
+            }
+
+            sb.Append('.').Append(iPort);
+            return sb.ToString();
+        }
+
+        // Claims the Lich endpoint across processes.
+        //
+        // Two Genie windows started together would both look at the port, both see the first
+        // one's freshly started Lich listening, and both decide to use it -- but Lich serves a
+        // single client, so the loser burned a whole login and then got connection refused. The
+        // claim serialises that decision. A Semaphore rather than a Mutex because the claim is
+        // released from a different thread than the one that took it.
+        private static async Task<bool> ClaimEndpoint(string sHost, int iPort, Action<string> oProgress)
+        {
+            ReleaseClaim();
+
+            try
+            {
+                bool bCreated;
+                var oSemaphore = new Semaphore(1, 1, ClaimName(sHost, iPort), out bCreated);
+
+                if (!oSemaphore.WaitOne(0))
+                {
+                    if (oProgress != null)
+                    {
+                        oProgress("Another Genie window is starting Lich on " + sHost + ":" + iPort + " -- waiting for it to finish.");
+                    }
+
+                    // On a pool thread: this blocks, and the caller may well be the UI thread.
+                    bool bGotIt = await Task.Run(() => oSemaphore.WaitOne(ClaimWaitMs));
+                    if (!bGotIt)
+                    {
+                        oSemaphore.Dispose();
+                        return false;
+                    }
+                }
+
+                lock (m_oClaimSync)
+                {
+                    m_oClaim = oSemaphore;
+                }
+
+                return true;
+            }
+            catch
+            {
+                // If the claim cannot be taken for any reason, carry on unclaimed rather than
+                // refusing to connect -- worst case is the old behaviour.
+                return false;
+            }
+        }
+
+        private static void ReleaseClaim()
+        {
+            lock (m_oClaimSync)
+            {
+                if (m_oClaim == null)
+                {
+                    return;
+                }
+
+                try { m_oClaim.Release(); } catch { }
+                try { m_oClaim.Dispose(); } catch { }
+                m_oClaim = null;
+            }
+        }
+
+        // Hold the claim until the endpoint has actually been taken.
+        //
+        // "Taken" is the transition listening -> not listening, not simply "not listening right
+        // now". Lich can still be starting up and not yet bound: treating that as taken releases
+        // the claim immediately and the serialisation does nothing at all, which is exactly what
+        // happened on the first attempt at this -- Lich needed longer than lichstartpause, the
+        // launcher returned StartedSlowly with the port not yet open, and the claim evaporated.
+        //
+        // The ceiling stops a login that never completes from blocking the other window forever.
+        private static void ReleaseClaimWhenTaken(int iPort)
+        {
+            Task.Run(async () =>
+            {
+                int iWaited = 0;
+                bool bHasListened = IsListening(iPort);
+                try
+                {
+                    while (iWaited < ClaimMaxHoldMs)
+                    {
+                        await Task.Delay(250);
+                        iWaited += 250;
+
+                        bool bListening = IsListening(iPort);
+                        if (bListening)
+                        {
+                            bHasListened = true;
+                        }
+                        else if (bHasListened)
+                        {
+                            break; // it came up and has now been accepted by someone
+                        }
+                    }
+                }
+                catch
+                {
+                }
+
+                ReleaseClaim();
+            });
+        }
+
+        public static Task<LaunchResult> EnsureRunning(Genie.Config oConfig)
+        {
+            return EnsureRunning(oConfig, null);
+        }
+
+        public static async Task<LaunchResult> EnsureRunning(Genie.Config oConfig, Action<string> oProgress)
         {
             var oResult = new LaunchResult();
             string sHost = oConfig.LichServer;
@@ -209,10 +339,15 @@ namespace GenieClient
                 return oResult;
             }
 
+            // Take the claim before deciding anything: if another window is mid-launch we want to
+            // wait for it and then look again, not act on what the port looked like a moment ago.
+            await ClaimEndpoint(sHost, iPort, oProgress);
+
             if (IsListening(iPort))
             {
                 oResult.Status = LaunchStatus.AlreadyRunning;
                 oResult.Message = "Lich is already listening on " + sHost + ":" + iPort + " -- connecting to it.";
+                ReleaseClaimWhenTaken(iPort);
                 return oResult;
             }
 
@@ -231,6 +366,7 @@ namespace GenieClient
             {
                 oResult.Status = LaunchStatus.PathsMissing;
                 oResult.Message = "Fix the following file paths in your #Config" + Environment.NewLine + sMissing;
+                ReleaseClaim();
                 return oResult;
             }
 
@@ -252,6 +388,7 @@ namespace GenieClient
                 m_oLichProcess = null;
                 oResult.Status = LaunchStatus.StartFailed;
                 oResult.Message = "Unable to start Lich: " + ex.Message;
+                ReleaseClaim();
                 return oResult;
             }
 
@@ -259,6 +396,7 @@ namespace GenieClient
             {
                 oResult.Status = LaunchStatus.StartFailed;
                 oResult.Message = "Unable to start Lich (no process was created).";
+                ReleaseClaim();
                 return oResult;
             }
 
@@ -276,6 +414,7 @@ namespace GenieClient
                     oResult.Status = LaunchStatus.StartFailed;
                     oResult.Message = "Lich exited immediately (exit code " + iExitCode
                                     + "). Check your Ruby path, Lich path and Lich arguments.";
+                    ReleaseClaim();
                     return oResult;
                 }
 
@@ -283,6 +422,7 @@ namespace GenieClient
                 {
                     oResult.Status = LaunchStatus.Started;
                     oResult.Message = "Started Lich -- listening on " + sHost + ":" + iPort + ".";
+                    ReleaseClaimWhenTaken(iPort);
                     return oResult;
                 }
 
@@ -293,6 +433,7 @@ namespace GenieClient
             oResult.Status = LaunchStatus.StartedSlowly;
             oResult.Message = "Started Lich, but it had not opened " + sHost + ":" + iPort + " after "
                             + iCeilingSeconds + "s. Connecting anyway -- raise {lichstartpause} if this keeps happening.";
+            ReleaseClaimWhenTaken(iPort);
             return oResult;
         }
     }
