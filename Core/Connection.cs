@@ -712,10 +712,36 @@ namespace GenieClient.Genie
                         EventConnectionLost?.Invoke();
                     }
                 }
+                else
+                {
+                    // The other end went away abruptly -- Lich killed or crashed, the network
+                    // dropped, the server reset the connection. The socket is already flagged
+                    // as not connected, so the block above is skipped.
+                    //
+                    // This used to fall straight out of the method. The receive loop simply
+                    // stopped, nothing raised a disconnect, and Genie went on believing it was
+                    // connected: no message, a title still reading [Connected], and auto-reconnect
+                    // never firing because nothing had told it the connection was gone. The idle
+                    // watchdog could not rescue it either -- it gives up early when IsConnected
+                    // is false, which by then it was.
+                    //
+                    // A graceful close (bytes == 0, above) was always handled, which is why this
+                    // only shows up on the abrupt loss that reconnect exists for.
+                    PrintText(Utility.GetTimeStamp() + " Connection to "
+                        + (string.IsNullOrEmpty(m_sHostname) ? "server" : m_sHostname) + " lost.");
+                    Disconnect();
+                    EventConnectionLost?.Invoke();
+                }
             }
             catch (SocketException ex)
             {
                 PrintSocketError("Connection lost", ex.ErrorCode);
+                EventConnectionLost?.Invoke();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Socket torn down under us mid-receive; treat it as the connection going away
+                // rather than letting it escape onto the thread pool unobserved.
                 EventConnectionLost?.Invoke();
             }
         }
