@@ -52,6 +52,21 @@ Sections, in order, omitting any that are empty:
   there indefinitely with no message. Failures during login now print the reason and end the
   attempt cleanly, so auto-reconnect can take over.
 
+- **Starting Genie from a `.sal` file or command line could drop your login key.** The startup
+  parameters were split at whichever delimiter was listed first rather than whichever appears
+  first, so a key containing a hyphen — `KEY=abcd-1234-efgh` — was cut at the hyphen and thrown
+  away, and Genie connected with no key at all. Hyphenated hostnames broke the same way.
+
+- **That same startup connect happened too early.** It ran before your settings, highlights,
+  substitutes, gags, triggers, macros and classes had loaded, and before the game window
+  existed — so the first lines of the session arrived with no triggers to fire them, and even
+  the "Connected to..." message went nowhere. It now happens once everything is loaded.
+
+- **Reconnect no longer claims to be trying when it cannot.** Reconnecting logs in again with
+  your account name and password, which a session started from a `.sal` file never had. Genie
+  said "Attempting to reconnect" anyway, then quietly did nothing and cancelled the retry. It
+  now says plainly that it cannot reconnect automatically, and why.
+
 - **Genie did not notice when the connection dropped abruptly.** If the other end went away
   suddenly — Lich killed or crashed, the network dropped, the server reset the connection —
   Genie carried on as though nothing had happened: no message, a title still reading

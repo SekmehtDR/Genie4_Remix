@@ -185,6 +185,18 @@ namespace GenieClient
         // pointed at GenieClient/Genie4 and would replace a Remix install with upstream. Updates
         // are now user-initiated only: Help -> Check For Updates (see RemixUpdater.cs).
 
+        private string[] m_oPendingDirectConnect = null;
+
+        // Holds the startup connection details until the form has finished loading. See the tail
+        // of FormMain_Load for why this cannot run straight from Main().
+        public void QueueDirectConnect(string[] parameters)
+        {
+            if (parameters != null && parameters.Length > 0)
+            {
+                m_oPendingDirectConnect = parameters;
+            }
+        }
+
         public void DirectConnect(string[] parameters)
         {
             if (parameters.Length > 0)
@@ -220,17 +232,33 @@ namespace GenieClient
                 {
                     if (parameter.Length <= 1) continue;
 
+                    // Split at whichever delimiter appears FIRST in the string, and split only
+                    // once. The old loop tried the delimiters in the order they happen to be
+                    // listed, so "KEY=abcd-1234-efgh" was cut at the '-' (tested before '=')
+                    // giving param="KEY=abcd" and value="1234" -- the key silently destroyed.
+                    // It also kept only the second segment, truncating any value that contained
+                    // a delimiter further along, such as a hyphenated hostname.
                     string param = parameter[0].ToString();
                     string value = parameter.Substring(1);
+                    int iSplit = -1;
                     foreach (char delimiter in "|:;-~=")
                     {
-                        if (parameter.Contains(delimiter))
+                        int iAt = parameter.IndexOf(delimiter);
+                        if (iAt > 0 && (iSplit < 0 || iAt < iSplit))
                         {
-                            value = parameter.Split(delimiter)[1];
-                            param = parameter.Split(delimiter)[0];
-                            break;
+                            iSplit = iAt;
                         }
                     }
+
+                    if (iSplit > 0)
+                    {
+                        param = parameter.Substring(0, iSplit);
+                        value = parameter.Substring(iSplit + 1);
+                    }
+
+                    // Tolerate flag-style arguments ("/GAMEHOST=..." as separate command line
+                    // entries); the leading slash is not part of the name.
+                    param = param.TrimStart('/');
 
                     switch (param.ToUpper())
                     {
@@ -2334,6 +2362,20 @@ namespace GenieClient
 
             // m_oGame.ParseGameRow("*** <pushBold/>BLAH<popBold/> ***")
             m_oOutputMain.RichTextBoxOutput.EndTextUpdate();
+
+            // Connect last, once everything above exists.
+            //
+            // A .sal file or command line connect used to run from Main() BEFORE the form was
+            // loaded -- before settings.cfg, highlights, substitutes, gags, triggers, macros and
+            // classes had been read, and before the window handle existed. The opening lines of
+            // the session therefore arrived with no triggers to fire them and nothing safe to
+            // invoke onto, so logon triggers missed and early output could land badly.
+            if (m_oPendingDirectConnect != null)
+            {
+                string[] oPending = m_oPendingDirectConnect;
+                m_oPendingDirectConnect = null;
+                DirectConnect(oPending);
+            }
 
             // TEMP TEMP TEMP
             // m_PluginDialog.ShowDialog(Me)

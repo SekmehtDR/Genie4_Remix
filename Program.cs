@@ -26,7 +26,9 @@ namespace GenieClient
 
             var services = host.Services;
             var formMain = services.GetRequiredService<FormMain>();
-            formMain.DirectConnect(args);
+            // Queued rather than connected here: FormMain_Load performs it once settings,
+            // highlights, triggers and the window itself exist.
+            formMain.QueueDirectConnect(args);
             Application.Run(formMain);
         }
 

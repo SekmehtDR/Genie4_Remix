@@ -3334,6 +3334,16 @@ namespace GenieClient.Genie
         private DateTime m_oReconnectTime = default;
         private int m_iConnectAttempts = 0;
 
+        // Auto-reconnect re-runs the account login, so it needs an account name to work with.
+        // DirectConnect sessions (.sal file or command line) do not have one.
+        public bool CanAutoReconnect
+        {
+            get
+            {
+                return m_sAccountName != null && m_sAccountName.Length > 0;
+            }
+        }
+
         public DateTime ReconnectTime
         {
             get
@@ -3363,6 +3373,21 @@ namespace GenieClient.Genie
         private void GameSocket_EventConnectionLost()
         {
             EventGameDisconnected?.Invoke();
+
+            // Reconnecting means logging in again from the account name and password, which a
+            // session started from a .sal file or command line parameters never had -- Genie was
+            // handed a host, a port and a single-use key instead. Reconnect used to be scheduled
+            // regardless: the player was told "Attempting to reconnect", the attempt then found
+            // no account name and did nothing at all, and the schedule was cleared, so it never
+            // tried again and never said why. Say so instead of pretending.
+            if (m_oGlobals.Config.bReconnect == true & m_bManualDisconnect == false & CanAutoReconnect == false)
+            {
+                PrintError(Utility.GetTimeStamp() + " Cannot reconnect automatically: this session was started with connection details rather than an account login. Use the Connect menu to log in again.");
+                m_oReconnectTime = default;
+                m_bManualDisconnect = false;
+                return;
+            }
+
             if (m_oGlobals.Config.bReconnect == true & m_bManualDisconnect == false)
             {
                 if (m_iConnectAttempts == 0) // Attempt to connect right away
