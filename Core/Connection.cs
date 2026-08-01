@@ -130,6 +130,19 @@ namespace GenieClient.Genie
             }
         }
 
+        // True when the last connection ended with the other end closing it politely, false when
+        // it broke. Lich does not forward the game's <exit/> -- it shuts itself down first -- so a
+        // clean close is the only signal Genie gets that a logout through Lich was deliberate.
+        public bool LastCloseWasGraceful
+        {
+            get
+            {
+                return m_bLastCloseWasGraceful;
+            }
+        }
+
+        private bool m_bLastCloseWasGraceful = false;
+
         public bool IsConnected
         {
             get
@@ -197,6 +210,7 @@ namespace GenieClient.Genie
                 // Release whatever the previous connection left behind. A no-op when a disconnect
                 // already handed the client off to its callback.
                 CloseIdleClient();
+                m_bLastCloseWasGraceful = false;
 
                 m_sHostname = sHostname;
                 _client = new TcpClient();
@@ -237,6 +251,7 @@ namespace GenieClient.Genie
                 // Release whatever the previous connection left behind. A no-op when a disconnect
                 // already handed the client off to its callback.
                 CloseIdleClient();
+                m_bLastCloseWasGraceful = false;
 
                 m_sHostname = sHostname;
                 _client = new TcpClient();
@@ -766,7 +781,8 @@ namespace GenieClient.Genie
                     }
                     else
                     {
-                        // Disconnect
+                        // Zero bytes means a clean FIN -- the other end closed on purpose.
+                        m_bLastCloseWasGraceful = true;
                         Disconnect();
                         EventConnectionLost?.Invoke();
                     }
@@ -786,6 +802,7 @@ namespace GenieClient.Genie
                     //
                     // A graceful close (bytes == 0, above) was always handled, which is why this
                     // only shows up on the abrupt loss that reconnect exists for.
+                    m_bLastCloseWasGraceful = false;
                     PrintText(Utility.GetTimeStamp() + " Connection to "
                         + (string.IsNullOrEmpty(m_sHostname) ? "server" : m_sHostname) + " lost.");
                     Disconnect();
