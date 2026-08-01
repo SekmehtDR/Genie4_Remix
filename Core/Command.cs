@@ -419,28 +419,28 @@ namespace GenieClient.Genie
                                     case "lconnect":
                                     case "lichconnect":
                                         {
-                                            string failure = string.Empty;
-                                            if (!File.Exists(oGlobals.Config.CmdPath)) failure += "CMD not found at Path:\t" + oGlobals.Config.CmdPath + System.Environment.NewLine;
-                                            if (!File.Exists(oGlobals.Config.RubyPath)) failure += "Ruby not found at Path:\t" + oGlobals.Config.RubyPath + System.Environment.NewLine;
-                                            if (!File.Exists(oGlobals.Config.LichPath)) failure += "Lich not found at Path:\t" + oGlobals.Config.LichPath + System.Environment.NewLine;
-                                            if (string.IsNullOrWhiteSpace(failure))
+                                            // Check the profile exists BEFORE starting Lich. Starting it first meant
+                                            // a mistyped profile name left a Lich running that nothing connected to.
+                                            if (oArgs.Count == 2)
                                             {
-                                                EchoText("Starting Lich Server\n");
-                                                string lichLaunch = $"/C {oGlobals.Config.RubyPath} {oGlobals.Config.LichPath} {oGlobals.Config.LichArguments}";
-                                                await Utility.ExecuteProcess(oGlobals.Config.CmdPath, lichLaunch, false, false);
-                                                int count = 0;
-                                                while (count < oGlobals.Config.LichStartPause)
+                                                string sProfile = oGlobals.ParseGlobalVars(oArgs[1].ToString()).Trim();
+                                                string sProfilePath = oGlobals.Config.ConfigDir + @"\Profiles\" + sProfile + ".xml";
+                                                if (!File.Exists(sProfilePath))
                                                 {
-                                                    await Task.Delay(1000);
-                                                    count++;
+                                                    EchoColorText("Profile \"" + sProfile + "\" not found. Lich was not started." + System.Environment.NewLine, Color.OrangeRed, Color.Transparent);
+                                                    break;
                                                 }
-                                                Connect(oArgs, true);
                                             }
-                                            else
+
+                                            var oLaunch = await GenieClient.LichLauncher.EnsureRunning(oGlobals.Config);
+                                            if (!oLaunch.ShouldConnect)
                                             {
-                                                failure = "Fix the following file paths in your #Config" + System.Environment.NewLine + failure;
-                                                EchoColorText(failure, Color.OrangeRed, Color.Transparent);
+                                                EchoColorText(oLaunch.Message + System.Environment.NewLine, Color.OrangeRed, Color.Transparent);
+                                                break;
                                             }
+
+                                            EchoText(oLaunch.Message + System.Environment.NewLine);
+                                            Connect(oArgs, true);
                                             break;
                                         }
 
@@ -449,7 +449,8 @@ namespace GenieClient.Genie
                                         {
                                             EchoText($"\nLich Settings\n");
                                             EchoText($"----------------------------------------------------\n");
-                                            EchoText($"Cmd Path:\t\t {oGlobals.Config.CmdPath}\n");
+                                            EchoText($"Status:\t\t\t {GenieClient.LichLauncher.DescribeStatus(oGlobals.Config.LichServer, oGlobals.Config.LichPort)}\n");
+                                            EchoText($"Cmd Path:\t\t {oGlobals.Config.CmdPath} (no longer used to launch Lich)\n");
                                             EchoText($"Ruby Path:\t\t {oGlobals.Config.RubyPath}\n");
                                             EchoText($"Lich Path:\t\t {oGlobals.Config.LichPath}\n");
                                             EchoText($"Lich Arguments:\t {oGlobals.Config.LichArguments}\n");

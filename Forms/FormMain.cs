@@ -6101,29 +6101,14 @@ namespace GenieClient
 
         private async Task LaunchLichAndConnect(string account, string password, string character, string game)
         {
-            string failure = string.Empty;
-            if (!System.IO.File.Exists(m_oGlobals.Config.CmdPath)) failure += "CMD not found at Path:\t" + m_oGlobals.Config.CmdPath + System.Environment.NewLine;
-            if (!System.IO.File.Exists(m_oGlobals.Config.RubyPath)) failure += "Ruby not found at Path:\t" + m_oGlobals.Config.RubyPath + System.Environment.NewLine;
-            if (!System.IO.File.Exists(m_oGlobals.Config.LichPath)) failure += "Lich not found at Path:\t" + m_oGlobals.Config.LichPath + System.Environment.NewLine;
-
-            if (!string.IsNullOrWhiteSpace(failure))
+            var oLaunch = await LichLauncher.EnsureRunning(m_oGlobals.Config);
+            if (!oLaunch.ShouldConnect)
             {
-                failure = "Fix the following file paths in your #Config" + System.Environment.NewLine + failure;
-                PrintError(failure);
+                PrintError(oLaunch.Message);
                 return;
             }
 
-            AppendText("Starting Lich Server\n");
-            string lichLaunch = $"/C {m_oGlobals.Config.RubyPath} {m_oGlobals.Config.LichPath} {m_oGlobals.Config.LichArguments}";
-            await Utility.ExecuteProcess(m_oGlobals.Config.CmdPath, lichLaunch, false, false);
-
-            int count = 0;
-            while (count < m_oGlobals.Config.LichStartPause)
-            {
-                await Task.Delay(1000);
-                count++;
-            }
-
+            AppendText(oLaunch.Message + System.Environment.NewLine);
             ConnectToGame(account, password, character, game, true);
         }
 
