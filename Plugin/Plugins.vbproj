@@ -45,7 +45,9 @@
     </DefineConstants>
     <RegisterForComInterop>false</RegisterForComInterop>
     <RemoveIntegerChecks>false</RemoveIntegerChecks>
-    <NoWarn>42016,42017,42018,42019,42032,42353,42354,42355</NoWarn>
+    <!-- These are real VB compiler warning codes. $(NoWarn) is prepended so this does not
+         discard suppressions inherited from Directory.Build.props. -->
+    <NoWarn>$(NoWarn);42016;42017;42018;42019;42032;42353;42354;42355</NoWarn>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -58,7 +60,9 @@
     <DefineDebug>false</DefineDebug>
     <RegisterForComInterop>false</RegisterForComInterop>
     <RemoveIntegerChecks>false</RemoveIntegerChecks>
-    <NoWarn>42016,42017,42018,42019,42032,42353,42354,42355</NoWarn>
+    <!-- These are real VB compiler warning codes. $(NoWarn) is prepended so this does not
+         discard suppressions inherited from Directory.Build.props. -->
+    <NoWarn>$(NoWarn);42016;42017;42018;42019;42032;42353;42354;42355</NoWarn>
     <DebugType>none</DebugType>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>

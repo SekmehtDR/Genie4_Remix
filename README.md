@@ -6,7 +6,10 @@
 </p>
 
 <p align="center">
-  <code>Version: 4.1.0.0</code> &nbsp;|&nbsp; <code>Released: 4/17/2026</code> &nbsp;|&nbsp; <code>Platform: .NET 10</code> &nbsp;|&nbsp; <code>Lich: Yes</code> &nbsp;|&nbsp; <code>Stable: Yes</code>
+  <a href="https://github.com/SekmehtDR/Genie4_Remix/releases/latest"><img src="https://img.shields.io/github/v/release/SekmehtDR/Genie4_Remix?label=version&color=brightgreen" alt="Latest version"/></a>
+  <a href="https://github.com/SekmehtDR/Genie4_Remix/releases/latest"><img src="https://img.shields.io/github/release-date/SekmehtDR/Genie4_Remix?label=released" alt="Release date"/></a>
+  <img src="https://img.shields.io/badge/platform-.NET%2010-512BD4" alt="Platform: .NET 10"/>
+  <img src="https://img.shields.io/badge/Lich-supported-brightgreen" alt="Lich: supported"/>
 </p>
 
 <p align="center">
