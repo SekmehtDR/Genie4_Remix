@@ -413,6 +413,10 @@ namespace GenieClient.Genie
         }
         public void DirectConnect(string Character, string Game, string Host, int Port)
         {
+            // Host and port are supplied by the caller (SAL file or command line), so there is
+            // no GAMEHOST/GAMEPORT to redirect. Set the flag explicitly rather than inheriting
+            // whatever a previous connect left behind.
+            IsLich = false;
             m_oLastUserActivity = DateTime.Now;
             m_oGlobals.VariableList["charactername"] = Character;
             m_oGlobals.VariableList["game"] = Game;
@@ -3230,7 +3234,13 @@ namespace GenieClient.Genie
 
         private void GameSocket_EventDisconnected()
         {
-            IsLich = false;
+            // IsLich is deliberately NOT cleared here. This handler runs for the key-server
+            // socket being torn down as part of a *successful* Lich login (see the handoff in
+            // ParseKeyRow's "L" case), which used to leave the session flagged as non-Lich --
+            // so a profile save wrote UseLich=False and an auto-reconnect rebuilt the
+            // connection straight to the game server, bypassing Lich entirely.
+            // IsLich records what the connect was asked to do, and every connect path sets it
+            // explicitly, so it stays valid across a drop and into the reconnect.
             m_bStatusPromptEnabled = false;
             string argkey = "connected";
             string argvalue = m_oSocket.IsConnected ? "1" : "0";
