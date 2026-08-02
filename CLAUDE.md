@@ -138,7 +138,8 @@ Libs/          Binary references (Antlr3.Runtime, Interfaces, Jint) — embedded
 Resources/     Skin bitmaps
 Graphics/      Application icon
 Properties/    AssemblyInfo.cs (VERSION LIVES HERE), app.manifest, VB-compat designer shims
-docs/          Versioning, release process, release-readiness backlog
+docs/          Versioning, release process, and the living backlogs — bugs, features,
+               release readiness. See "Living documents" below; keep them current.
 ```
 
 ### Landmines
@@ -202,6 +203,67 @@ Every user-visible change should land a line in **[CHANGELOG.md](CHANGELOG.md)**
 
 ---
 
+## Living documents — read these first, update them as you go
+
+Three files in `docs/` carry the standing engineering state of this repo. They are **not
+historical records.** They are the working backlog, and keeping them true is part of doing the
+work — not a separate documentation chore afterwards.
+
+| Document | What it holds | IDs |
+|---|---|---|
+| **[docs/BUG-BACKLOG.md](docs/BUG-BACKLOG.md)** | Known defects, with severity and risk-of-fixing | `GRX-###` |
+| **[docs/FEATURE-BACKLOG.md](docs/FEATURE-BACKLOG.md)** | Confusing or weak settings, unsafe defaults, missing capabilities | `FEAT-###` |
+| **[docs/RELEASE-READINESS.md](docs/RELEASE-READINESS.md)** | Supportability of the release process itself | — |
+
+### Before starting work
+
+Check whether the area you are about to touch already has an entry. If it does, **that entry is
+your starting context** — it names the file and line, says what was verified and how, and records
+the judgement already made about fix risk. Don't re-derive it from scratch, and don't open a
+second entry for something already tracked.
+
+If a task turns out to be an entry that already exists, say so and work from it.
+
+### After changing anything
+
+Update the affected entries **in the same commit as the code change**. Status goes in the `Status`
+column of the summary table and as a `**Status:**` line under the entry heading:
+
+- **`✅ Fixed <version or date>`** — keep the entry, don't delete it. Add a line saying what the
+  fix actually was, especially where it differed from what the entry proposed. Resolved entries
+  are why the code looks the way it does; removing them throws that away.
+- **`⚠️ Partial`** — say exactly what is still outstanding. A half-fixed entry marked done is
+  worse than one left open, because nobody looks at it again.
+- **`❌ Not a defect`** — with the evidence that disproved it. Never silently delete a withdrawn
+  entry; the next sweep rediscovers it and spends the same hours reaching the same wrong answer.
+- **Superseded** — point at the entry that replaced it.
+
+**New information is as important as resolution.** If a live session shows the trigger is narrower
+or wider than assumed, if severity should move, if a related defect surfaces while working
+nearby — rewrite the entry and note what changed the assessment. An entry that quietly went stale
+is a trap; these files are only worth having if they are trusted.
+
+Fixing something that has no entry is fine — add one, marked fixed, so the finding isn't lost.
+
+### Adding entries
+
+Allocate the next free number. **Never reuse an ID**, including for withdrawn entries — they get
+cited in commit messages, changelog lines and conversations.
+
+Match the existing shape: what it is, why it matters **to a player**, severity or effort, and
+risk. Most importantly, keep stating plainly **what was verified by reading code versus what was
+confirmed against a running client.** With no test suite, that distinction is the entire value of
+these files — see *Before claiming something works* below.
+
+### These are not the changelog
+
+`CHANGELOG.md` is written for players and records what shipped. The backlogs are written for
+whoever picks this up next and record what is *known*, including findings that will never ship
+and decisions not to act. A user-visible fix lands in both; an internal finding lands only in the
+backlog.
+
+---
+
 ## Working conventions
 
 **Match the surrounding code.** This is a 20-year-old codebase carried through a VB.NET → C#
@@ -219,6 +281,11 @@ conversion. It is not idiomatic modern C# and does not need to become so. Follow
   (e.g. `Fix input bar font rendering: multiline mode, dynamic height`). Longer body when the
   *why* isn't obvious.
 - **Never commit** `bin/`, `obj/`, `publish/`, `*.pdb`, or `.vs/` — all gitignored, keep it that way.
+- **Use [`scratch/`](scratch/) for throwaway work.** Probe programs, diagnostic scripts, captured
+  output, config copies pulled from a test install. It is gitignored except its README, so
+  nothing in it can be committed by accident. If something there proves worth keeping, move it
+  to a real home and commit it there rather than force-adding out of scratch. Test *builds* do
+  not go here — they go outside the repository entirely.
 - **Never commit** the signing key `Plugin/GenieStrongKey2020.pfx` or any credential.
 - **Don't push or tag unless asked.** Tagging triggers a release build.
 
