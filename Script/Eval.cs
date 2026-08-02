@@ -80,7 +80,16 @@ namespace GenieClient.Genie.Script
             return sResult;
         }
 
-        private Regex m_KeyRegex = new Regex(@"\b(eq|and|or|not|true|false)\b", RegexOptions.IgnoreCase & MyRegexOptions.options);
+        // Options are combined with |, not &. RegexOptions.IgnoreCase (1) & RegexOptions.Multiline (2)
+        // is 0 -- RegexOptions.None -- so both intended options were silently discarded and the
+        // keyword match ran case-sensitive. ReplaceKeyWordsSection below already lowercases the
+        // match before switching on it, which only makes sense if this was meant to be
+        // case-insensitive all along. Until this was fixed, "IF $health > 50 AND $mana > 20" left
+        // AND untranslated and reached the evaluator malformed, while the lowercase spelling worked.
+        //
+        // Safe against quoted text: ReplaceKeyWords only calls ReplaceKeyWordsSection on the
+        // sections *outside* string literals, so an "and" inside quotes is still left alone.
+        private Regex m_KeyRegex = new Regex(@"\b(eq|and|or|not|true|false)\b", RegexOptions.IgnoreCase | MyRegexOptions.options);
 
         private string ReplaceKeyWordsSection(string sText)
         {

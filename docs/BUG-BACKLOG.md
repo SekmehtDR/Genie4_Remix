@@ -50,7 +50,7 @@ IDs are never reused. Next free ID: **GRX-024**.
 | [GRX-002](#grx-002) | Case-insensitive highlights are destroyed by a save/reload cycle | Critical | Medium | Open |
 | [GRX-003](#grx-003) | Closing the window and answering "No" kills every trigger for the session | Critical | Low | Open |
 | [GRX-004](#grx-004) | Every config save deletes the file first, then writes | Critical | Low | Open |
-| [GRX-005](#grx-005) | Script keyword regex built with `&` instead of `|` | High | Low | Open |
+| [GRX-005](#grx-005) | Script keyword regex built with `&` instead of `|` | High | Low | ✅ Fixed 2026-08-02 |
 | [GRX-006](#grx-006) | `#plugin` from a script crashes when a new-ABI plugin is installed | High | Low | Open |
 | [GRX-007](#grx-007) | `.Result` on an async command can deadlock the UI thread permanently | High | Low | Open |
 | [GRX-008](#grx-008) | Incoming images wipe the player's clipboard | High | Medium | Open |
@@ -181,6 +181,12 @@ change, no format impact, and it makes the failure mode "old file survives" inst
 ### GRX-005
 **Script keyword regex built with `&` instead of `|`**
 `Script/Eval.cs:83`
+
+**Status: ✅ Fixed 2026-08-02.** Changed `&` to `|`. Verified by probe both ways: the old form
+does not match `$health > 50 AND $mana > 20`, the fixed form does, and it still matches lowercase
+`and`, still respects word boundaries (`ANDROID` does not match), and leaves `$NOTES` alone. No
+change needed to quoted-string handling — `ReplaceKeyWords` was already only applying this outside
+string literals, which is what made the fix safe.
 
 ```csharp
 new Regex(@"\b(eq|and|or|not|true|false)\b", RegexOptions.IgnoreCase & MyRegexOptions.options)
