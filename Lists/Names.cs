@@ -156,28 +156,23 @@ namespace GenieClient.Genie
                     sFileName = LocalDirectory.Path + @"\Config\" + sFileName;
                 }
 
-                if (File.Exists(sFileName) == true)
-                {
-                    Utility.DeleteFile(sFileName);
-                }
-
                 if (AcquireReaderLock())
                 {
                     try
                     {
-                        var oStreamWriter = new StreamWriter(sFileName, false);
-                        foreach (string key in base.Keys)
+                        Utility.SaveFileAtomic(sFileName, oStreamWriter =>
                         {
-                            string sColorName = ((Name)base[key]).ColorName;
-                            if (sColorName.Length == 0)
+                            foreach (string key in base.Keys)
                             {
-                                sColorName = ColorCode.ColorToHex(((Name)base[key]).FgColor) + "," + ColorCode.ColorToHex(((Name)base[key]).BgColor);
+                                string sColorName = ((Name)base[key]).ColorName;
+                                if (sColorName.Length == 0)
+                                {
+                                    sColorName = ColorCode.ColorToHex(((Name)base[key]).FgColor) + "," + ColorCode.ColorToHex(((Name)base[key]).BgColor);
+                                }
+
+                                oStreamWriter.WriteLine("#name {" + sColorName + "} {" + key + "}");
                             }
-
-                            oStreamWriter.WriteLine("#name {" + sColorName + "} {" + key + "}");
-                        }
-
-                        oStreamWriter.Close();
+                        });
                     }
                     finally
                     {

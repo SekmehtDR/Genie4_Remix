@@ -49,7 +49,7 @@ IDs are never reused. Next free ID: **GRX-024**.
 | [GRX-001](#grx-001) | Server text is decoded as UTF-8; DragonRealms sends Latin-1 | Critical | Medium | Open |
 | [GRX-002](#grx-002) | Case-insensitive highlights are destroyed by a save/reload cycle | Critical | Medium | Open |
 | [GRX-003](#grx-003) | Closing the window and answering "No" kills every trigger for the session | Critical | Low | ✅ Fixed 2026-08-02 |
-| [GRX-004](#grx-004) | Every config save deletes the file first, then writes | Critical | Low | Open |
+| [GRX-004](#grx-004) | Every config save deletes the file first, then writes | Critical | Low | ✅ Fixed 2026-08-02 |
 | [GRX-005](#grx-005) | Script keyword regex built with `&` instead of `|` | High | Low | ✅ Fixed 2026-08-02 |
 | [GRX-006](#grx-006) | `#plugin` from a script crashes when a new-ABI plugin is installed | High | Low | ✅ Fixed 2026-08-02 |
 | [GRX-007](#grx-007) | `.Result` on an async command can deadlock the UI thread permanently | High | Low | Open |
@@ -163,6 +163,32 @@ Nothing indicates why, and only a restart fixes it. Hitting X by accident is com
 **Every config save deletes the file first, then writes**
 `Lists/Config.cs:453`, `Lists/Globals.cs:790`, `:1888`, and the aliases / macros / triggers /
 presets / subs / gags savers on the same pattern
+
+**Status: ✅ Fixed 2026-08-02.** Added `Utility.SaveFileAtomic(path, Action<StreamWriter>)`, which
+writes to a sibling `.tmp` and only swaps it in once the write has completed
+(`File.Replace`, or `File.Move` when no original exists). All **11** save sites now use it:
+settings, variables, highlights, triggers, substitutes, gags, presets, aliases, classes, macros,
+names. `SaveHighlights` also gained the `try`/`catch` it never had — the `// Try` above its body
+was the entire error handling.
+
+Wider than the entry estimated: it listed the delete-then-write sites, but `Presets.Save` had the
+same exposure without a delete (unguarded writer, no `using`), so it was converted too.
+
+Left alone deliberately: `ScriptExplorer.cs:197` is a user-initiated script delete, not a save.
+`Mapper/MapForm.SaveXML` has the same weakness but is tracked separately as [GRX-018](#grx-018).
+
+Verified — probe (`scratch/`, not committed) against the built assembly:
+
+- a write body that throws leaves the original file byte-intact and still reports the failure
+- a destination locked by another handle (`FileShare.None`) leaves the original byte-intact
+- no `.tmp` files survive either failure
+
+And end to end in a real client built into `C:\GenieRemix-4Realz\`, loaded with the production
+`Config`: `#save aliases`, `#save highlights` and `#save config` all rewrote their files.
+`aliases.cfg` and `highlights.cfg` (132 KB) came back **byte-identical**, confirming the refactor
+preserves the format. `settings.cfg` differed by exactly one line — `connectstring` carrying
+`4.2.0.0` where the installed copy had `4.1.2.0`, which is correct, since that string embeds the
+running version.
 
 The shape is identical everywhere:
 

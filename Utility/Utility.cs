@@ -541,6 +541,61 @@ namespace GenieClient
             return true;
         }
 
+        // Writes a config file without destroying the existing one if the write fails.
+        //
+        // Every saver in Lists\ used to do this:
+        //
+        //     if (File.Exists(sFileName)) Utility.DeleteFile(sFileName);
+        //     var oStreamWriter = new StreamWriter(sFileName, false);
+        //
+        // The delete is redundant -- StreamWriter with append:false truncates anyway -- and it
+        // turned any write failure into total loss. An editor holding the file open, an antivirus
+        // or cloud-sync lock, a read-only flag or a full disk, and the player's entire highlight
+        // set, variable set or settings file was already gone before the writer was even opened.
+        // SaveHighlights was the worst of them: no try/catch at all, so a fault mid-loop left no
+        // file and a leaked handle.
+        //
+        // Writing to a sibling temp file and swapping it in means the worst case is "the old file
+        // survives" rather than "there is no file". The temp lives beside the target so the
+        // replace stays on one volume.
+        public static bool SaveFileAtomic(string sFileName, Action<StreamWriter> oWriteBody)
+        {
+            string sTempFile = sFileName + ".tmp";
+
+            try
+            {
+                using (var oStreamWriter = new StreamWriter(sTempFile, false))
+                {
+                    oWriteBody(oStreamWriter);
+                }
+            }
+            catch
+            {
+                // Leave the original untouched and take the half-written temp with us.
+                try { File.Delete(sTempFile); } catch { }
+                throw;
+            }
+
+            try
+            {
+                if (File.Exists(sFileName))
+                {
+                    File.Replace(sTempFile, sFileName, null);
+                }
+                else
+                {
+                    File.Move(sTempFile, sFileName);
+                }
+            }
+            catch
+            {
+                try { File.Delete(sTempFile); } catch { }
+                throw;
+            }
+
+            return true;
+        }
+
         public static bool DeleteFile(string sourceFileName)
         {
             try

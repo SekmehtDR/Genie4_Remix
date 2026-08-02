@@ -202,19 +202,15 @@ namespace GenieClient.Genie
                     sFileName = LocalDirectory.Path + @"\Config\" + sFileName;
                 }
 
-                if (File.Exists(sFileName) == true)
-                {
-                    Utility.DeleteFile(sFileName);
-                }
-
                 if (AcquireReaderLock())
                 {
                     try
                     {
-                        var oStreamWriter = new StreamWriter(sFileName, false);
-                        foreach (object key in base.Keys)
-                            oStreamWriter.WriteLine("#class {" + Conversions.ToString(key).ToString() + "} {" + Conversions.ToBoolean(base[key]).ToString() + "}");
-                        oStreamWriter.Close();
+                        Utility.SaveFileAtomic(sFileName, oStreamWriter =>
+                        {
+                            foreach (object key in base.Keys)
+                                oStreamWriter.WriteLine("#class {" + Conversions.ToString(key).ToString() + "} {" + Conversions.ToBoolean(base[key]).ToString() + "}");
+                        });
                     }
                     finally
                     {

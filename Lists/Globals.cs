@@ -471,16 +471,16 @@ namespace GenieClient.Genie
                     {
                         try
                         {
-                            var oStreamWriter = new StreamWriter(sFileName, false);
-                            foreach (Preset ov in base.Values)
+                            Utility.SaveFileAtomic(sFileName, oStreamWriter =>
                             {
-                                if (ov.bSaveToFile == true)
+                                foreach (Preset ov in base.Values)
                                 {
-                                    oStreamWriter.WriteLine("#preset {" + ov.sKey + "} {" + ov.sColorName + "} {" + ov.bHighlightLine + "}");
+                                    if (ov.bSaveToFile == true)
+                                    {
+                                        oStreamWriter.WriteLine("#preset {" + ov.sKey + "} {" + ov.sColorName + "} {" + ov.bHighlightLine + "}");
+                                    }
                                 }
-                            }
-
-                            oStreamWriter.Close();
+                            });
                         }
                         finally
                         {
@@ -787,25 +787,20 @@ namespace GenieClient.Genie
                         sFileName = LocalDirectory.Path + @"\Config\" + sFileName;
                     }
 
-                    if (File.Exists(sFileName) == true)
-                    {
-                        Utility.DeleteFile(sFileName);
-                    }
-
                     if (AcquireReaderLock())
                     {
                         try
                         {
-                            var oStreamWriter = new StreamWriter(sFileName, false);
-                            foreach (Variable ov in base.Values)
+                            Utility.SaveFileAtomic(sFileName, oStreamWriter =>
                             {
-                                if (ov.bSaveToFile == true)
+                                foreach (Variable ov in base.Values)
                                 {
-                                    oStreamWriter.WriteLine("#var {" + ov.sKey + "} {" + ov.sValue + "}");
+                                    if (ov.bSaveToFile == true)
+                                    {
+                                        oStreamWriter.WriteLine("#var {" + ov.sKey + "} {" + ov.sValue + "}");
+                                    }
                                 }
-                            }
-
-                            oStreamWriter.Close();
+                            });
                         }
                         finally
                         {
@@ -1138,38 +1133,33 @@ namespace GenieClient.Genie
                         sFileName = LocalDirectory.Path + @"\Config\" + sFileName;
                     }
 
-                    if (File.Exists(sFileName) == true)
-                    {
-                        Utility.DeleteFile(sFileName);
-                    }
-
                     if (AcquireReaderLock())
                     {
                         try
                         {
-                            var oStreamWriter = new StreamWriter(sFileName, false);
-                            foreach (Trigger ot in base.Values)
+                            Utility.SaveFileAtomic(sFileName, oStreamWriter =>
                             {
-                                string sKey = ot.sTrigger;
-                                if (ot.bIsEvalTrigger == true)
+                                foreach (Trigger ot in base.Values)
                                 {
-                                    sKey = "e/" + sKey + "/";
-                                }
-                                else if (ot.bIgnoreCase == true)
-                                {
-                                    sKey = "/" + sKey + "/i";
-                                }
+                                    string sKey = ot.sTrigger;
+                                    if (ot.bIsEvalTrigger == true)
+                                    {
+                                        sKey = "e/" + sKey + "/";
+                                    }
+                                    else if (ot.bIgnoreCase == true)
+                                    {
+                                        sKey = "/" + sKey + "/i";
+                                    }
 
-                                string sLine = "#trigger {" + sKey + "} {" + ot.sAction + "}";
-                                if (ot.ClassName.Length > 0)
-                                {
-                                    sLine += " {" + ot.ClassName + "}";
+                                    string sLine = "#trigger {" + sKey + "} {" + ot.sAction + "}";
+                                    if (ot.ClassName.Length > 0)
+                                    {
+                                        sLine += " {" + ot.ClassName + "}";
+                                    }
+
+                                    oStreamWriter.WriteLine(sLine);
                                 }
-
-                                oStreamWriter.WriteLine(sLine);
-                            }
-
-                            oStreamWriter.Close();
+                            });
                         }
                         finally
                         {
@@ -1600,35 +1590,30 @@ namespace GenieClient.Genie
                         sFileName = LocalDirectory.Path + @"\Config\" + sFileName;
                     }
 
-                    if (File.Exists(sFileName) == true)
-                    {
-                        Utility.DeleteFile(sFileName);
-                    }
-
                     if (AcquireReaderLock())
                     {
                         try
                         {
-                            var oStreamWriter = new StreamWriter(sFileName, false);
-                            for (int I = 0, loopTo = base.Count - 1; I <= loopTo; I++)
+                            Utility.SaveFileAtomic(sFileName, oStreamWriter =>
                             {
-                                Substitute os = (Substitute)get_Item(I);
-                                string sKey = os.sText;
-                                if (os.bIgnoreCase == true)
+                                for (int I = 0, loopTo = base.Count - 1; I <= loopTo; I++)
                                 {
-                                    sKey = "/" + sKey + "/i";
+                                    Substitute os = (Substitute)get_Item(I);
+                                    string sKey = os.sText;
+                                    if (os.bIgnoreCase == true)
+                                    {
+                                        sKey = "/" + sKey + "/i";
+                                    }
+
+                                    string sLine = "#subs {" + sKey + "} {" + os.sReplaceBy + "}";
+                                    if (os.ClassName.Length > 0)
+                                    {
+                                        sLine += " {" + os.ClassName + "}";
+                                    }
+
+                                    oStreamWriter.WriteLine(sLine);
                                 }
-
-                                string sLine = "#subs {" + sKey + "} {" + os.sReplaceBy + "}";
-                                if (os.ClassName.Length > 0)
-                                {
-                                    sLine += " {" + os.ClassName + "}";
-                                }
-
-                                oStreamWriter.WriteLine(sLine);
-                            }
-
-                            oStreamWriter.Close();
+                            });
                         }
                         finally
                         {
@@ -1829,35 +1814,30 @@ namespace GenieClient.Genie
                         sFileName = LocalDirectory.Path + @"\Config\" + sFileName;
                     }
 
-                    if (File.Exists(sFileName) == true)
-                    {
-                        Utility.DeleteFile(sFileName);
-                    }
-
                     if (AcquireReaderLock())
                     {
                         try
                         {
-                            var oStreamWriter = new StreamWriter(sFileName, false);
-                            for (int I = 0, loopTo = base.Count - 1; I <= loopTo; I++)
+                            Utility.SaveFileAtomic(sFileName, oStreamWriter =>
                             {
-                                Gag os = (Gag)get_Item(I);
-                                string sKey = os.Text;
-                                if (os.bIgnoreCase == true)
+                                for (int I = 0, loopTo = base.Count - 1; I <= loopTo; I++)
                                 {
-                                    sKey = "/" + sKey + "/i";
+                                    Gag os = (Gag)get_Item(I);
+                                    string sKey = os.Text;
+                                    if (os.bIgnoreCase == true)
+                                    {
+                                        sKey = "/" + sKey + "/i";
+                                    }
+
+                                    string sLine = "#gag {" + sKey + "}";
+                                    if (os.ClassName.Length > 0)
+                                    {
+                                        sLine += " {" + os.ClassName + "}";
+                                    }
+
+                                    oStreamWriter.WriteLine(sLine);
                                 }
-
-                                string sLine = "#gag {" + sKey + "}";
-                                if (os.ClassName.Length > 0)
-                                {
-                                    sLine += " {" + os.ClassName + "}";
-                                }
-
-                                oStreamWriter.WriteLine(sLine);
-                            }
-
-                            oStreamWriter.Close();
+                            });
                         }
                         finally
                         {
@@ -1887,101 +1867,110 @@ namespace GenieClient.Genie
 
         public bool SaveHighlights(string sFileName = "highlights.cfg")
         {
-            // Try
-            if (sFileName.IndexOf(@"\") == -1)
+            // The `// Try` left behind above the old body was the whole error handling this had:
+            // the delete ran first, then an unguarded StreamWriter with no using. Anything that
+            // threw -- a locked file, a read-only flag, a full disk -- left the player with no
+            // highlights.cfg at all and a leaked handle. Now the write goes to a temp file and
+            // only replaces the real one once it has completed, and a failure is reported rather
+            // than swallowed by the absence of a catch.
+            try
             {
-                sFileName = LocalDirectory.Path + @"\Config\" + sFileName;
-            }
+                if (sFileName.IndexOf(@"\") == -1)
+                {
+                    sFileName = LocalDirectory.Path + @"\Config\" + sFileName;
+                }
 
-            if (File.Exists(sFileName) == true)
+                Utility.SaveFileAtomic(sFileName, oStreamWriter =>
+                {
+                    foreach (string sKey in HighlightList.Keys)
+                    {
+                        Highlights.Highlight oHighlight = (Highlights.Highlight)HighlightList[sKey];
+                        string sColorName = oHighlight.ColorName;
+                        string sText = sKey;
+                        if (oHighlight.CaseSensitive == false)
+                        {
+                            sText = "/" + sText + "/i";
+                        }
+
+                        string sLine = string.Empty;
+                        if (oHighlight.HighlightWholeRow == true)
+                        {
+                            sLine = "#highlight {line} {" + sColorName + "} {" + sText + "}";
+                        }
+                        else
+                        {
+                            sLine = "#highlight {string} {" + sColorName + "} {" + sText + "}";
+                        }
+
+                        if (oHighlight.ClassName.Length > 0 | oHighlight.SoundFile.Length > 0)
+                        {
+                            sLine += " {" + oHighlight.ClassName + "}";
+                        }
+
+                        if (oHighlight.SoundFile.Length > 0)
+                        {
+                            sLine += " {" + oHighlight.SoundFile + "}";
+                        }
+
+                        oStreamWriter.WriteLine(sLine);
+                    }
+
+                    foreach (string sKey in HighlightBeginsWithList.Keys)
+                    {
+                        HighlightLineBeginsWith.Highlight oHighlight = (HighlightLineBeginsWith.Highlight)HighlightBeginsWithList[sKey];
+                        string sColorName = oHighlight.ColorName;
+                        string sText = oHighlight.Text;
+                        if (oHighlight.CaseSensitive == false)
+                        {
+                            sText = "/" + sText + "/i";
+                        }
+
+                        string sLine = "#highlight {beginswith} {" + sColorName + "} {" + sText + "}";
+                        if (oHighlight.ClassName.Length > 0 | oHighlight.SoundFile.Length > 0)
+                        {
+                            sLine += " {" + oHighlight.ClassName + "}";
+                        }
+
+                        if (oHighlight.SoundFile.Length > 0)
+                        {
+                            sLine += " {" + oHighlight.SoundFile + "}";
+                        }
+
+                        oStreamWriter.WriteLine(sLine);
+                    }
+
+                    foreach (string sKey in HighlightRegExpList.Keys)
+                    {
+                        HighlightRegExp.Highlight oHighlight = (HighlightRegExp.Highlight)HighlightRegExpList[sKey];
+                        string sColorName = oHighlight.ColorName;
+                        string sText = oHighlight.Text;
+                        if (oHighlight.CaseSensitive == false)
+                        {
+                            sText = "/" + sText + "/i";
+                        }
+
+                        string sLine = "#highlight {regexp} {" + sColorName + "} {" + sText + "}";
+                        if (oHighlight.ClassName.Length > 0 | oHighlight.SoundFile.Length > 0)
+                        {
+                            sLine += " {" + oHighlight.ClassName + "}";
+                        }
+
+                        if (oHighlight.SoundFile.Length > 0)
+                        {
+                            sLine += " {" + oHighlight.SoundFile + "}";
+                        }
+
+                        oStreamWriter.WriteLine(sLine);
+                    }
+                });
+
+                return true;
+            }
+            catch (Exception ex)
             {
-                Utility.DeleteFile(sFileName);
+                GenieError.Error("SaveHighlights", ex.Message, ex.ToString());
+                return false;
             }
-
-            var oStreamWriter = new StreamWriter(sFileName, false);
-            foreach (string sKey in HighlightList.Keys)
-            {
-                Highlights.Highlight oHighlight = (Highlights.Highlight)HighlightList[sKey];
-                string sColorName = oHighlight.ColorName;
-                string sText = sKey;
-                if (oHighlight.CaseSensitive == false)
-                {
-                    sText = "/" + sText + "/i";
-                }
-
-                string sLine = string.Empty;
-                if (oHighlight.HighlightWholeRow == true)
-                {
-                    sLine = "#highlight {line} {" + sColorName + "} {" + sText + "}";
-                }
-                else
-                {
-                    sLine = "#highlight {string} {" + sColorName + "} {" + sText + "}";
-                }
-
-                if (oHighlight.ClassName.Length > 0 | oHighlight.SoundFile.Length > 0)
-                {
-                    sLine += " {" + oHighlight.ClassName + "}";
-                }
-
-                if (oHighlight.SoundFile.Length > 0)
-                {
-                    sLine += " {" + oHighlight.SoundFile + "}";
-                }
-
-                oStreamWriter.WriteLine(sLine);
-            }
-
-            foreach (string sKey in HighlightBeginsWithList.Keys)
-            {
-                HighlightLineBeginsWith.Highlight oHighlight = (HighlightLineBeginsWith.Highlight)HighlightBeginsWithList[sKey];
-                string sColorName = oHighlight.ColorName;
-                string sText = oHighlight.Text;
-                if (oHighlight.CaseSensitive == false)
-                {
-                    sText = "/" + sText + "/i";
-                }
-
-                string sLine = "#highlight {beginswith} {" + sColorName + "} {" + sText + "}";
-                if (oHighlight.ClassName.Length > 0 | oHighlight.SoundFile.Length > 0)
-                {
-                    sLine += " {" + oHighlight.ClassName + "}";
-                }
-
-                if (oHighlight.SoundFile.Length > 0)
-                {
-                    sLine += " {" + oHighlight.SoundFile + "}";
-                }
-
-                oStreamWriter.WriteLine(sLine);
-            }
-
-            foreach (string sKey in HighlightRegExpList.Keys)
-            {
-                HighlightRegExp.Highlight oHighlight = (HighlightRegExp.Highlight)HighlightRegExpList[sKey];
-                string sColorName = oHighlight.ColorName;
-                string sText = oHighlight.Text;
-                if (oHighlight.CaseSensitive == false)
-                {
-                    sText = "/" + sText + "/i";
-                }
-
-                string sLine = "#highlight {regexp} {" + sColorName + "} {" + sText + "}";
-                if (oHighlight.ClassName.Length > 0 | oHighlight.SoundFile.Length > 0)
-                {
-                    sLine += " {" + oHighlight.ClassName + "}";
-                }
-
-                if (oHighlight.SoundFile.Length > 0)
-                {
-                    sLine += " {" + oHighlight.SoundFile + "}";
-                }
-
-                oStreamWriter.WriteLine(sLine);
-            }
-
-            oStreamWriter.Close();
-            return true;
         }
 
         public bool LoadHighlights(string sFileName = "highlights.cfg")
