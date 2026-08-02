@@ -51,7 +51,7 @@ IDs are never reused. Next free ID: **GRX-024**.
 | [GRX-003](#grx-003) | Closing the window and answering "No" kills every trigger for the session | Critical | Low | Open |
 | [GRX-004](#grx-004) | Every config save deletes the file first, then writes | Critical | Low | Open |
 | [GRX-005](#grx-005) | Script keyword regex built with `&` instead of `|` | High | Low | ✅ Fixed 2026-08-02 |
-| [GRX-006](#grx-006) | `#plugin` from a script crashes when a new-ABI plugin is installed | High | Low | Open |
+| [GRX-006](#grx-006) | `#plugin` from a script crashes when a new-ABI plugin is installed | High | Low | ✅ Fixed 2026-08-02 |
 | [GRX-007](#grx-007) | `.Result` on an async command can deadlock the UI thread permanently | High | Low | Open |
 | [GRX-008](#grx-008) | Incoming images wipe the player's clipboard | High | Medium | Open |
 | [GRX-009](#grx-009) | Output buffer is never trimmed while the player is scrolled up | High | Medium | Open |
@@ -211,6 +211,21 @@ inside quoted strings, though `ReplaceKeyWordsSection` is already only applied o
 ### GRX-006
 **`#plugin` from a script crashes when a new-ABI plugin is installed**
 `Script/Script.cs:2883`, `:2899`
+
+**Status: ✅ Fixed 2026-08-02.** Both loops now iterate as `object` and branch on the runtime
+type, matching `Game.ParsePluginText`. The per-plugin call was also isolated so a throwing plugin
+disables itself rather than aborting the script line, as the entry proposed.
+
+One thing the entry did not anticipate: hoisting the call into a shared
+`TryParsePluginInput`/`TryParsePluginText` helper mattered for correctness, not just tidiness. A
+first attempt left `sResult` null for an entry that matched neither ABI, which would then compare
+unequal to the input and get returned as a result. The helpers return false for "did not run" so
+only a plugin that actually executed can produce a result.
+
+**Not verified at runtime** — that needs a current-ABI plugin installed, and none is available
+here. Verified by reading: `FormMain.VerifyAndLoadPlugin` has overloads adding both interface
+types to the same list, and `Plugin/IPlugin.vb` confirms the current ABI exposes `ParseText`,
+`ParseInput` and `Enabled` with the same shapes the legacy one does.
 
 ```csharp
 foreach (GeniePlugin.Interfaces.IPlugin oPlugin in m_oGlobals.PluginList)

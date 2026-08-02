@@ -2877,14 +2877,22 @@ namespace GenieClient
             return sResult;
         }
 
+        // PluginList holds both plugin ABIs -- FormMain.VerifyAndLoadPlugin has one overload adding
+        // GeniePlugin.Interfaces.IPlugin (legacy, Libs\Interfaces.dll) and one adding
+        // GeniePlugin.Plugins.IPlugin (current, Plugin\Plugins.vbproj). The two loops below used to
+        // declare the loop variable as the legacy interface, which makes the foreach downcast every
+        // element: with any current-ABI plugin installed, the first iteration threw
+        // InvalidCastException and the script aborted pointing at the script, not the plugin.
+        //
+        // Branch on the runtime type the way Game.ParsePluginText already does, and isolate the
+        // call so a throwing plugin disables itself instead of taking the script line down.
         private string EvalPlugin(string sText, int iFileId, int iFileRow)
         {
-            string sResult;
-            foreach (GeniePlugin.Interfaces.IPlugin oPlugin in m_oGlobals.PluginList)
+            foreach (object oPlugin in m_oGlobals.PluginList)
             {
-                if (oPlugin.Enabled)
+                string sResult;
+                if (TryParsePluginInput(oPlugin, "@script " + sText, out sResult))
                 {
-                    sResult = oPlugin.ParseInput("@script " + sText);
                     if ((sResult ?? "") != (sText ?? ""))
                         return sResult;
                 }
@@ -2895,18 +2903,101 @@ namespace GenieClient
 
         private string EvalPluginScript(string sText, int iFileId, int iFileRow)
         {
-            string sResult;
-            foreach (GeniePlugin.Interfaces.IPlugin oPlugin in m_oGlobals.PluginList)
+            foreach (object oPlugin in m_oGlobals.PluginList)
             {
-                if (oPlugin.Enabled)
+                string sResult;
+                if (TryParsePluginText(oPlugin, sText, "PluginScript", out sResult))
                 {
-                    sResult = oPlugin.ParseText(sText, "PluginScript");
                     if ((sResult ?? "") != (sText ?? ""))
                         return sResult;
                 }
             }
 
             return string.Empty;
+        }
+
+        // Returns false -- leaving the caller to skip this plugin entirely -- when the entry is
+        // disabled, is neither known ABI, or threw. Only a plugin that actually ran produces a
+        // result to compare against, which is what keeps a skipped entry from being mistaken for
+        // one that returned something.
+        private bool TryParsePluginInput(object oPlugin, string sText, out string sResult)
+        {
+            sResult = null;
+            if (oPlugin is GeniePlugin.Interfaces.IPlugin oLegacy)
+            {
+                if (!oLegacy.Enabled)
+                    return false;
+                try
+                {
+                    sResult = oLegacy.ParseInput(sText);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    GenieError.GeniePluginError(oLegacy, "ParseInput", ex);
+                    oLegacy.Enabled = false;
+                    return false;
+                }
+            }
+
+            if (oPlugin is GeniePlugin.Plugins.IPlugin oModern)
+            {
+                if (!oModern.Enabled)
+                    return false;
+                try
+                {
+                    sResult = oModern.ParseInput(sText);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    GenieError.GeniePluginError(oModern, "ParseInput", ex);
+                    oModern.Enabled = false;
+                    return false;
+                }
+            }
+
+            return false;
+        }
+
+        private bool TryParsePluginText(object oPlugin, string sText, string sWindow, out string sResult)
+        {
+            sResult = null;
+            if (oPlugin is GeniePlugin.Interfaces.IPlugin oLegacy)
+            {
+                if (!oLegacy.Enabled)
+                    return false;
+                try
+                {
+                    sResult = oLegacy.ParseText(sText, sWindow);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    GenieError.GeniePluginError(oLegacy, "ParseText", ex);
+                    oLegacy.Enabled = false;
+                    return false;
+                }
+            }
+
+            if (oPlugin is GeniePlugin.Plugins.IPlugin oModern)
+            {
+                if (!oModern.Enabled)
+                    return false;
+                try
+                {
+                    sResult = oModern.ParseText(sText, sWindow);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    GenieError.GeniePluginError(oModern, "ParseText", ex);
+                    oModern.Enabled = false;
+                    return false;
+                }
+            }
+
+            return false;
         }
 
         private void EvalShift()
