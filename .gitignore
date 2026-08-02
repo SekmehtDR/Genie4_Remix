@@ -56,6 +56,22 @@ Genie-Remix-*.zip
 /Sounds/
 
 # ---------------------------------------------------------------------------
+# Local scratch space
+# ---------------------------------------------------------------------------
+# /scratch/ is a working area for throwaway things that support development but are not part
+# of the product: one-off probe programs, diagnostic scripts, captured output, comparison
+# dumps, notes in progress. Nothing in it is ever committed.
+#
+# README.md is the one tracked file, so the folder exists in a fresh clone and explains
+# itself rather than appearing as a mystery empty directory.
+#
+# If something in here turns out to be worth keeping, move it to its real home (docs/,
+# .github/, a tools folder) and commit it there. Don't `git add -f` out of scratch — that
+# defeats the point of the boundary.
+/scratch/*
+!/scratch/README.md
+
+# ---------------------------------------------------------------------------
 # Secrets — never commit these
 # ---------------------------------------------------------------------------
 # Plugin/GenieStrongKey2020.pfx is the assembly signing key. It is referenced by
