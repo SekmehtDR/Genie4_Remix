@@ -48,7 +48,7 @@ IDs are never reused. Next free ID: **GRX-024**.
 |---|---|---|---|---|
 | [GRX-001](#grx-001) | Server text is decoded as UTF-8; DragonRealms sends Latin-1 | Critical | Medium | Open |
 | [GRX-002](#grx-002) | Case-insensitive highlights are destroyed by a save/reload cycle | Critical | Medium | Open |
-| [GRX-003](#grx-003) | Closing the window and answering "No" kills every trigger for the session | Critical | Low | Open |
+| [GRX-003](#grx-003) | Closing the window and answering "No" kills every trigger for the session | Critical | Low | ✅ Fixed 2026-08-02 |
 | [GRX-004](#grx-004) | Every config save deletes the file first, then writes | Critical | Low | Open |
 | [GRX-005](#grx-005) | Script keyword regex built with `&` instead of `|` | High | Low | ✅ Fixed 2026-08-02 |
 | [GRX-006](#grx-006) | `#plugin` from a script crashes when a new-ABI plugin is installed | High | Low | ✅ Fixed 2026-08-02 |
@@ -132,6 +132,15 @@ detect a leading `/` and trailing `/i` on load and repair rather than orphaning 
 ### GRX-003
 **Closing the window and answering "No" kills every trigger for the session**
 `Forms/FormMain.cs:1602`
+
+**Status: ✅ Fixed 2026-08-02.** `_triggerChannel.Writer.TryComplete()` moved from the first
+statement of `FormMain_FormClosing` to immediately after `bCloseNow = true` — the point where the
+close is actually committed. Answering "No" now returns before the channel is touched.
+
+**Not verified at runtime.** The prompt only appears when connected (`if (m_oGame.IsConnected ...)`),
+so reproducing it means logging a real character in and cancelling a close. Deferred rather than
+done unannounced. Verified by reading: the cancel path returns at `e.Cancel = true`, which is
+above the new call site, so the channel cannot be completed on a cancelled close.
 
 `FormMain_FormClosing` calls `_triggerChannel.Writer.TryComplete()` as its **first** statement —
 before the "You are connected to the game" confirmation. If the player answers No, the handler

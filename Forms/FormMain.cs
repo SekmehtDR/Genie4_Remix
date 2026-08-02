@@ -1599,8 +1599,6 @@ namespace GenieClient
 
         private void FormMain_FormClosing(object sender, FormClosingEventArgs e)
         {
-            _triggerChannel.Writer.TryComplete();
-
             // Second pass: the shutdown is already under way, let the form close.
             if (bCloseNow == true)
             {
@@ -1620,6 +1618,15 @@ namespace GenieClient
             // when the close alert is switched off, which used to skip this entirely and drop
             // the window without notifying anything or quitting the game.
             bCloseNow = true;
+
+            // Shut the trigger pipeline down here, at the point the close is actually committed,
+            // and not before. This used to be the first statement of the method -- so answering
+            // "No" to the close prompt above returned with the channel already completed. Writer
+            // .TryWrite then returns false rather than throwing, which meant Game_EventTriggerParse
+            // reported nothing, its catch never ran, and the consumer loop had already exited:
+            // every trigger silently dead for the rest of the session, fixable only by restarting.
+            _triggerChannel.Writer.TryComplete();
+
             NotifyPluginsClosing();
 
             if (m_oGame.IsConnected == true)
