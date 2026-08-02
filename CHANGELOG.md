@@ -16,6 +16,15 @@ Sections, in order, omitting any that are empty:
 
 ## [Unreleased]
 
+*Nothing yet.*
+
+---
+
+## [4.2.0] — 2026-08-01
+
+Connecting through Lich, staying connected, and shutting down. Every fix below was reproduced
+on a real DragonRealms session before it was written, and verified on one afterwards.
+
 ### Fixed
 - **Genie forgot it was using Lich as soon as you connected.** The connection to the login
   server is closed on purpose partway through a successful Lich login, and that closure was
