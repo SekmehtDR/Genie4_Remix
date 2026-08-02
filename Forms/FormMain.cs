@@ -6215,6 +6215,21 @@ namespace GenieClient
             ConnectToGame(account, password, character, game, true);
         }
 
+        // Fire-and-forget entry point for the above, for callers that cannot await. Swallowing
+        // the exception here would put us back to a connect that fails in silence, so it is
+        // reported the same way any other unhandled path is.
+        private async void LaunchLichAndConnectSafe(string account, string password, string character, string game)
+        {
+            try
+            {
+                await LaunchLichAndConnect(account, password, character, game);
+            }
+            catch (Exception ex)
+            {
+                HandleGenieException("LaunchLichAndConnect", ex.Message, ex.ToString());
+            }
+        }
+
         private static DateTime m_oNullTime = DateTime.Parse("0001-01-01");
         private bool m_CommandSent = false;
 
@@ -6269,6 +6284,19 @@ namespace GenieClient
                     string argsPassword = m_oGame.AccountPassword;
                     string argsCharacter = m_oGame.AccountCharacter;
                     string argsGame = m_oGame.AccountGame;
+
+                    // A Lich session has to have Lich back before reconnecting is worth anything.
+                    // Reconnect only ever called Game.Connect, which logs in to eaccess and then
+                    // connects to LichServer:LichPort -- so with Lich gone, every single attempt
+                    // fetched a login key from Simutronics and threw it away when the port refused
+                    // the connection, once per retry, indefinitely. Bring Lich back first, and if
+                    // it cannot be started say so and stop rather than hammering the login server.
+                    if (m_oGame.IsLich)
+                    {
+                        LaunchLichAndConnectSafe(argsAccountName, argsPassword, argsCharacter, argsGame);
+                        return;
+                    }
+
                     m_oGame.Connect(m_sGenieKey, argsAccountName, argsPassword, argsCharacter, argsGame);
                 }
             }
