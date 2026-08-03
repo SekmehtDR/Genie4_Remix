@@ -29,6 +29,24 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
+  <!--
+    Keep scratch/ out of the build.
+
+    scratch/ is a gitignored working area for throwaway diagnostics (see scratch/README.md).
+    Git ignoring it is not enough: Genie4.csproj is an SDK-style project, so it globs **/*.cs
+    from the repository root and will happily compile anything left in there. A throwaway probe
+    project under scratch/ produced its own obj\**\*.AssemblyInfo.cs, those got swept into the
+    client's compilation, and the build died with a wall of CS0579 duplicate-attribute errors.
+    That is the same symptom CLAUDE.md warns about for AssemblyInfo, from a different cause.
+
+    DefaultItemExcludes is the right hook because it is applied before the SDK's default globbing
+    rather than removing items afterwards. The path is relative to each importing project, so it
+    only ever matches the repository-root scratch/ and never a project living inside it.
+  -->
+  <PropertyGroup>
+    <DefaultItemExcludes>$(DefaultItemExcludes);scratch/**</DefaultItemExcludes>
+  </PropertyGroup>
+
   <PropertyGroup>
     <!-- MAJOR.MINOR.PATCH. The only value a human edits. -->
     <VersionPrefix>4.2.0</VersionPrefix>

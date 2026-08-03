@@ -100,6 +100,40 @@ namespace GenieClient.Genie
             }
         }
 
+        // Strips the /text/i marker that SaveHighlights writes for a case-insensitive highlight.
+        //
+        // This list was the only one that wrote the marker and never read it back. Every sibling
+        // -- HighlightRegExp, HighlightLineBeginsWith, SubstituteRegExp, GagRegExp, Triggers --
+        // does this inside its own Add. Without it a case-insensitive highlight saved as
+        // "#highlight {string} {red} {/orc/i}" came back as a case-sensitive highlight whose
+        // literal text was "/orc/i", so it matched nothing, showed the mangled text in the config
+        // UI, and re-saved in the same broken state. It survived only until the client restarted.
+        //
+        // Deliberately stricter than the siblings: they strip a leading "/" independently of the
+        // trailing marker, which would eat the slash from a highlight on literal text like "/say".
+        // Both delimiters must be present here before either is removed. SaveHighlights always
+        // writes them as a pair, so nothing it produces is missed.
+        private static string StripCaseMarker(string sKey, ref bool bCaseSensitive)
+        {
+            if (!sKey.StartsWith("/"))
+            {
+                return sKey;
+            }
+
+            if (sKey.EndsWith("/i") && sKey.Length > 3)
+            {
+                bCaseSensitive = false;
+                return sKey.Substring(1, sKey.Length - 3);
+            }
+
+            if (sKey.EndsWith("/") && sKey.Length > 2)
+            {
+                return sKey.Substring(1, sKey.Length - 2);
+            }
+
+            return sKey;
+        }
+
         public bool Add(string sKey, bool bHighlightWholeRow, string sColorName, bool bCaseSensitive = true, string SoundFile = "", string ClassName = "", bool IsActive = true)
         {
             if (sKey.Length == 0)
@@ -108,6 +142,12 @@ namespace GenieClient.Genie
             }
             else
             {
+                sKey = StripCaseMarker(sKey, ref bCaseSensitive);
+                if (sKey.Length == 0)
+                {
+                    return false;
+                }
+
                 Color oColor;
                 Color oBgcolor;
                 if (sColorName.Contains(",") == true && sColorName.EndsWith(",") == false)

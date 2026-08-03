@@ -47,12 +47,12 @@ IDs are never reused. Next free ID: **GRX-024**.
 | ID | Title | Severity | Risk | Status |
 |---|---|---|---|---|
 | [GRX-001](#grx-001) | Server text is decoded as UTF-8; DragonRealms sends Latin-1 | Critical | Medium | Open |
-| [GRX-002](#grx-002) | Case-insensitive highlights are destroyed by a save/reload cycle | Critical | Medium | Open |
+| [GRX-002](#grx-002) | Case-insensitive highlights are destroyed by a save/reload cycle | Critical | Medium | ✅ Fixed 2026-08-02 |
 | [GRX-003](#grx-003) | Closing the window and answering "No" kills every trigger for the session | Critical | Low | ✅ Fixed 2026-08-02 |
 | [GRX-004](#grx-004) | Every config save deletes the file first, then writes | Critical | Low | ✅ Fixed 2026-08-02 |
 | [GRX-005](#grx-005) | Script keyword regex built with `&` instead of `|` | High | Low | ✅ Fixed 2026-08-02 |
 | [GRX-006](#grx-006) | `#plugin` from a script crashes when a new-ABI plugin is installed | High | Low | ✅ Fixed 2026-08-02 |
-| [GRX-007](#grx-007) | `.Result` on an async command can deadlock the UI thread permanently | High | Low | Open |
+| [GRX-007](#grx-007) | `.Result` on an async command can deadlock the UI thread permanently | High | Low | ✅ Fixed 2026-08-02 |
 | [GRX-008](#grx-008) | Incoming images wipe the player's clipboard | High | Medium | Open |
 | [GRX-009](#grx-009) | Output buffer is never trimmed while the player is scrolled up | High | Medium | Open |
 | [GRX-010](#grx-010) | Output freezes while the mouse button is held in the game window | Medium | Low | Open |
@@ -126,6 +126,33 @@ does not self-heal.
 *Risk (Medium):* the fix itself is small (strip `/…/i` in `Highlights.Add`, or stop writing it and
 persist the flag positionally). The work is in migrating configs already corrupted in the field —
 detect a leading `/` and trailing `/i` on load and repair rather than orphaning the entry.
+
+**Status: ✅ Fixed 2026-08-02.** `Highlights.Add` now strips the marker, via a `StripCaseMarker`
+helper, bringing this list in line with every sibling.
+
+**Correction to the assessment above: no migration was needed, and the entry was wrong to expect
+one.** The file on disk was never corrupted. A broken load produced an in-memory entry with the
+literal key `/orc/i` and `CaseSensitive = true`, and because `SaveHighlights` only adds the marker
+when `CaseSensitive` is false, re-saving wrote the same single-marker line back. The damage was
+purely in interpretation, so stripping on load recovers every existing config with no repair pass
+and no risk of double-unwrapping.
+
+Deliberately **stricter than the sibling lists**: they strip a leading `/` independently of the
+trailing marker, so a highlight on literal text like `/say` would lose its slash. Here both
+delimiters must be present before either is removed. `SaveHighlights` always writes them as a
+pair, so nothing it produces is missed. The siblings have the same latent flaw; left alone as
+out of scope.
+
+Verified by probe (`scratch/`, not committed) against the built assembly:
+
+- `/orc/i` loads under the key `orc`, case-insensitive; an unmarked entry stays case-sensitive
+- a highlight on `/say` keeps its leading slash; `/whisper/` strips to `whisper`, still case-sensitive
+- full round-trip through the real `SaveHighlights`/`LoadHighlights`: a case-insensitive entry
+  survives save → load → save, and re-saving does not double-wrap
+- **against the player's real `highlights.cfg`: all 391 highlights load, zero keys left wrapped in
+  `/…/i`, and both case-insensitive entries come through correctly.** Those two —
+  `The taipan tightens its coils about your arm` and
+  `You exhale softly on your sanowret crystal` — were live instances of this bug, matching nothing.
 
 ---
 
@@ -308,6 +335,38 @@ and any unsaved session state lost. Narrow trigger, but nothing recovers from it
 
 *Risk (Low):* add `ConfigureAwait(false)` throughout `LichLauncher`, which removes the deadlock
 without restructuring. Making `ParseAllArgs` properly async is the real fix and is a larger change.
+
+**Status: ✅ Fixed 2026-08-02 — but not the way this entry proposed.**
+
+**The proposed fix was wrong and would not have worked.** `ConfigureAwait(false)` inside
+`LichLauncher` changes only where *LichLauncher's own* continuations run. The deadlock is one
+level up: `ParseCommand` awaits `EnsureRunning` and that await captures **`ParseCommand`'s**
+synchronization context, so the final hop resuming `ParseCommand` still posts to a UI thread that
+is blocked in `.Result`. Adding `ConfigureAwait(false)` to `LichLauncher` would have left the hang
+in place while looking like a fix — worth stating plainly, because it is the obvious change to reach for.
+
+Adding `ConfigureAwait(false)` to `ParseCommand` instead *would* break the deadlock, but at a bad
+price: everything after the await (`EchoText`, `EchoColorText`, `Connect`) would then run on a pool
+thread in the **common** path — every ordinary `#lc` — to fix a rare one. That trades a narrow hang
+for a broad threading hazard.
+
+What was done instead: `ParseAllArgs` no longer blocks at all.
+
+```csharp
+var oTask = ParseCommand(...);
+sResult = oTask.IsCompleted ? oTask.GetAwaiter().GetResult() : string.Empty;
+```
+
+Every command that completes synchronously — all of them except the Lich launch path — returns its
+text exactly as before, so the common path is untouched. A command still running contributes no
+text and is left to finish on its own, which is right for an action command like `#lc`: it has no
+string result worth waiting for, and it still runs to completion. `GetAwaiter().GetResult()` also
+rethrows unwrapped rather than wrapping in `AggregateException` as `.Result` did.
+
+**Not reproduced at runtime.** Triggering the original hang means `#echo #lc <profile>` against a
+real Lich launch, and a successful reproduction would have frozen the client with Task Manager as
+the only exit. Established by reading the await chain. The six `CS4014` fire-and-forget
+`ParseCommand` sites in `FormMain` are untouched and remain as noted above.
 
 ---
 
