@@ -16,7 +16,56 @@ Sections, in order, omitting any that are empty:
 
 ## [Unreleased]
 
-*Nothing yet.*
+Highlights, triggers, saved settings and scripts. Where a fix was confirmed against a real
+DragonRealms session it says so below; the rest were established from the code and are called out
+as such, rather than implied to be more tested than they are.
+
+### Fixed
+- **Case-insensitive highlights stopped working the next time you started Genie.** A highlight
+  with case-sensitivity switched off was saved correctly, but loaded back wrong: instead of the
+  text you typed, the highlight became the literal string `/your text/i` — slashes and all. It
+  then matched nothing at all, showed the mangled version in the highlight editor, and saved
+  itself back in the same broken state, so it stayed broken until you noticed and retyped it.
+  Case-sensitive highlights were never affected. This one was quiet until 4.2.0 made the
+  case-insensitive setting actually take effect, at which point every highlight relying on it
+  broke on the next restart. Existing `highlights.cfg` files are recovered as-is on load — there
+  is nothing to repair and nothing to re-enter. *Confirmed against a real 391-highlight config.*
+
+- **Closing the window and then changing your mind silently killed every trigger.** Clicking the
+  X while connected asks whether you want to quit. Answering **No** returned you to the game with
+  the trigger system already shut down — permanently, for the rest of the session. No message, no
+  error, nothing in the log; triggers simply never fired again until you restarted Genie. Easy to
+  hit by accident, and very hard to connect to the cause. *Reproduced and verified on a live
+  session.*
+
+- **A failed settings save could delete the file it was saving.** Every config file — highlights,
+  variables, triggers, aliases, macros, classes, names, presets, substitutes, gags and settings —
+  was deleted first and rewritten afterwards. If anything went wrong in between, and an editor
+  holding the file open, a cloud-sync or antivirus lock, a read-only flag or a full disk all
+  qualify, the old file was already gone and the new one was never written. Highlights were the
+  most exposed: that save had no error handling at all. Saves now write to a temporary file and
+  only replace the real one once the write has finished, so a failure leaves your existing file
+  untouched instead of destroying it. *Failure cases exercised directly, including a locked file.*
+
+- **`AND`, `OR` and `NOT` in scripts only worked in lower case.** Written in capitals — which is
+  how a lot of scripts read more clearly — they were not recognised as operators, and the
+  condition was handed to the evaluator malformed. `if $health > 50 AND $mana > 20` behaved
+  differently from the same line written with `and`, which made for scripts that worked for one
+  person and not another with capitalisation as the only difference. `EQ`, `TRUE` and `FALSE` were
+  affected the same way. Text inside quotes is untouched, as before.
+
+- **Scripts using `#plugin` crashed if you had a current-generation plugin installed.** Genie
+  supports two plugin generations side by side, but the script side only ever expected the older
+  one, so the first modern plugin it reached threw an error and stopped the script. The error
+  pointed at your script rather than the plugin, which sent people looking in the wrong place. A
+  plugin that misbehaves now disables itself instead of taking the script down with it.
+  *Established from the code; not reproduced, as no current-generation plugin was available to
+  test against.*
+
+- **A command inside another command could freeze Genie completely.** Certain nested combinations,
+  in practice anything that ran `#lc` from inside another command, locked the window with no
+  error and no way out except Task Manager. *Established from the code; not reproduced, since a
+  successful reproduction would have frozen the client.*
 
 ---
 
