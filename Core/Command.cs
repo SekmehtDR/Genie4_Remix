@@ -2870,7 +2870,25 @@ namespace GenieClient.Genie
             {
                 if (sCommand.StartsWith(" .") == false)
                 {
-                    sResult = ParseCommand(sCommand.Substring(1), false, false, "", bParseQuickSend).Result; // Remove first space
+                    // Never block on the task. ParseCommand is async, and .Result here was a hard
+                    // UI-thread deadlock waiting to happen: ParseAllArgs runs on the UI thread
+                    // (macros, typed input and triggers all reach it), so blocking it means the
+                    // continuation ParseCommand needs in order to finish can never be pumped.
+                    // Reaching it took a nested command that actually suspends -- in practice
+                    // "#echo #lc <profile>" and friends, since #lc awaits LichLauncher -- and the
+                    // result was a frozen window with no error and Task Manager as the only way out.
+                    //
+                    // Note ConfigureAwait(false) inside LichLauncher does NOT fix this: it changes
+                    // where LichLauncher's own continuations run, but the final hop back into
+                    // ParseCommand still targets the captured UI context.
+                    //
+                    // Every command that completes synchronously -- which is all of them except the
+                    // Lich launch path -- is unaffected and still returns its text. One that is
+                    // still running contributes no text and is left to finish on its own, which is
+                    // right for an action command like #lc: it has no string result worth waiting
+                    // for, and it still runs to completion.
+                    var oTask = ParseCommand(sCommand.Substring(1), false, false, "", bParseQuickSend); // Remove first space
+                    sResult = oTask.IsCompleted ? oTask.GetAwaiter().GetResult() : string.Empty;
                 }
                 else
                 {
