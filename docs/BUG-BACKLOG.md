@@ -46,7 +46,7 @@ IDs are never reused. Next free ID: **GRX-024**.
 
 | ID | Title | Severity | Risk | Status |
 |---|---|---|---|---|
-| [GRX-001](#grx-001) | Multi-byte characters split across a receive boundary decode as `�` | ~~Critical~~ Medium | Medium | ⚠️ Revised 2026-08-02 |
+| [GRX-001](#grx-001) | Multi-byte characters split across a receive boundary decode as `�` | ~~Critical~~ Medium | Medium | ❌ Won't fix 2026-08-02 |
 | [GRX-002](#grx-002) | Case-insensitive highlights are destroyed by a save/reload cycle | Critical | Medium | ✅ Fixed 2026-08-02 |
 | [GRX-003](#grx-003) | Closing the window and answering "No" kills every trigger for the session | Critical | Low | ✅ Fixed 2026-08-02 |
 | [GRX-004](#grx-004) | Every config save deletes the file first, then writes | Critical | Low | ✅ Fixed 2026-08-02 |
@@ -143,6 +143,25 @@ rather than Critical.
 - **The send side was not tested.** `Send` still uses `Encoding.Default.GetBytes`; whether the
   server accepts UTF-8 for a typed non-ASCII character is untested, and testing it means sending
   real input to the game.
+
+---
+
+**Decision: ❌ Won't fix (owner's call, 2026-08-02). Leave the encoding path alone.**
+
+The current UTF-8 behaviour is what renders the Lich progress bar and other block-drawing output,
+and that is considered a feature worth protecting — players like having it. Anything in this area
+risks that, so the whole path stays as it is.
+
+For the record, so a future reader does not reopen this on a misunderstanding: the outstanding
+sub-defect is *only* the stateless per-packet decode, and fixing it with
+`Encoding.UTF8.GetDecoder()` held across callbacks would have made the progress bar render **more**
+reliably, not less. It does not remove or alter any character. The decision was taken with that
+understood; the judgement is that a rare, self-correcting `�` on one redraw is not worth touching
+the receive path for.
+
+**Reopen this only if** a player reports persistent mojibake, or if a direct (non-Lich) connection
+is ever sampled and turns out not to be UTF-8 — the direct path remains unmeasured, and that would
+be a genuinely different bug from the one described here.
 
 ---
 
