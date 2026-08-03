@@ -128,7 +128,9 @@ gh workflow run Release -f version=4.1.1 -f dry_run=true
 Core/          Connection, Game (XML protocol parsing), Command dispatch, plugin hosting
 Forms/         All WinForms UI. FormMain.cs is the ~9k-line hub. Config panels in ConfigPanels/
 Mapper/        AutoMapper — map rendering, pathfinding, node/arc editing
-Script/        Genie script engine + JavaScript (Jint) and Lua backends, expression eval
+Script/        Genie script engine + JavaScript (Jint), expression eval.
+               NB: LUAScript.cs and JavaScript.cs are 100% commented out — there is no Lua
+               support, and the live JS path is Jint inside Script.cs. See FEAT-018.
 Lists/         In-memory state: Config, Globals ($variables), Highlights, Aliases, Macros, Triggers
 Utility/       Cross-cutting: logging, crypto, dark mode, embedded assembly loading
                RemixUpdater.cs — self-update against THIS repo (Help -> Check For Updates)
@@ -195,9 +197,74 @@ Full scheme: **[docs/VERSIONING.md](docs/VERSIONING.md)**.
 
 ## Release process
 
-Releases are GitHub Releases with a single `Genie-Remix.zip` asset (self-contained `win-x64`
-publish, nested under a `Genie-Remix/` folder). Full procedure:
-**[docs/RELEASING.md](docs/RELEASING.md)**.
+Releases are GitHub Releases with a single `Genie-Remix-<version>.zip` asset (self-contained
+`win-x64` publish, nested under a `Genie-Remix/` folder). Full procedure:
+**[docs/RELEASING.md](docs/RELEASING.md)**. The steps below are the ones that actually bite.
+
+### The version comes from the git tag — do not hand-edit it
+
+**`VersionPrefix` in `Directory.Build.props` is NOT bumped for a release.** CI overrides
+`VersionPrefix`, `BuildNumber` and `SourceRevisionId` from the tag, and the workflow then *asserts*
+the built binary carries exactly the tag's version. Editing it by hand before tagging is wasted
+work at best and a mismatch at worst.
+
+The only file a release edits is `CHANGELOG.md`.
+
+### Preflight — every one of these is a hard gate in `release.yml`
+
+Work through this before tagging. Each maps to a step that will fail the run:
+
+- [ ] **`CHANGELOG.md` has a `## [X.Y.Z]` heading for the exact version.** Entries live under
+      `## [Unreleased]` while work is in flight; **moving them under a real version heading is a
+      separate, easy-to-forget step.** The *Extract release notes from CHANGELOG* step fails
+      without it, and the release body is built from that section.
+- [ ] Working tree clean and **`main` pushed** — *Verify the tag is on main* fails otherwise.
+- [ ] No release already exists for the tag. Published versions are immutable; a bad build gets a
+      new patch number, never a replaced asset.
+- [ ] Entries are written for players, and say honestly what was verified live versus established
+      from the code. See *Before claiming something works*.
+- [ ] Backlog entries for anything shipping are marked `✅ Fixed`. See *Living documents*.
+
+### Dry-run first, always
+
+Exercises the whole pipeline — build, version assertion, package verification, smoke test, ZIP and
+checksums — and skips only the publish step:
+
+```powershell
+gh workflow run Release -f version=4.2.1 -f dry_run=true
+```
+
+It uploads a `dry-run-<version>` artifact: the exact ZIP a real release would ship.
+
+**If `gh workflow` / `gh run` return empty or "could not find any workflows"** — a known quirk on
+this machine, where the `gh` subcommands fail while the REST API works — dispatch through the API
+instead:
+
+```powershell
+$wf = gh api repos/SekmehtDR/Genie4_Remix/actions/workflows --jq '.workflows[] | select(.name=="Release") | .id'
+gh api -X POST "repos/SekmehtDR/Genie4_Remix/actions/workflows/$wf/dispatches" `
+  -f ref=main -f "inputs[version]=4.2.1" -f "inputs[dry_run]=true"
+
+# watch it, and read the per-step results
+gh api "repos/SekmehtDR/Genie4_Remix/actions/runs?per_page=3" --jq '.workflow_runs[] | "\(.name) | \(.status) | \(.conclusion) | \(.id)"'
+gh api "repos/SekmehtDR/Genie4_Remix/actions/runs/<id>/jobs" --jq '.jobs[].steps[] | "\(.conclusion) \(.name)"'
+```
+
+### Publishing — the last two commands
+
+Nothing reaches players until the tag is pushed. Pushing `main` only runs the Build workflow;
+**the release fires on the `v*` tag and nothing else.**
+
+```powershell
+git tag v4.2.1
+git push origin v4.2.1
+```
+
+**Agent rule: never run these unasked, and never let a release stall silently on them.** Tagging
+publishes to real players and cannot be undone. So when the work is otherwise ready — changelog
+sectioned, `main` pushed, dry run green — **say so explicitly and surface these two commands as
+the remaining step.** Finishing a release-prep task without naming the tag-and-push is treating it
+as done when it is not; the user has asked to be reminded every time.
 
 Every user-visible change should land a line in **[CHANGELOG.md](CHANGELOG.md)**.
 
@@ -300,7 +367,8 @@ built / launched / connected / exercised the feature — and what was not.
 
 | Task | Where |
 |---|---|
-| Bump the version | `Properties/AssemblyInfo.cs` + `Genie4.csproj` `<ApplicationVersion>` |
+| Bump the version | `Directory.Build.props` `<VersionPrefix>` — **and nothing else.** For a *release* not even that: CI takes it from the tag |
+| Cut a release | Section `CHANGELOG.md`, dry-run, then `git tag v<x.y.z>` + `git push origin v<x.y.z>` — see *Release process* |
 | Add a config setting | `Lists/Config.cs`, then a UI panel in `Forms/ConfigPanels/` |
 | Add a script variable | `Lists/Globals.cs` |
 | Add a client command | `Core/Command.cs` |
