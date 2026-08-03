@@ -46,7 +46,7 @@ IDs are never reused. Next free ID: **GRX-024**.
 
 | ID | Title | Severity | Risk | Status |
 |---|---|---|---|---|
-| [GRX-001](#grx-001) | Server text is decoded as UTF-8; DragonRealms sends Latin-1 | Critical | Medium | Open |
+| [GRX-001](#grx-001) | Multi-byte characters split across a receive boundary decode as `�` | ~~Critical~~ Medium | Medium | ⚠️ Revised 2026-08-02 |
 | [GRX-002](#grx-002) | Case-insensitive highlights are destroyed by a save/reload cycle | Critical | Medium | ✅ Fixed 2026-08-02 |
 | [GRX-003](#grx-003) | Closing the window and answering "No" kills every trigger for the session | Critical | Low | ✅ Fixed 2026-08-02 |
 | [GRX-004](#grx-004) | Every config save deletes the file first, then writes | Critical | Low | ✅ Fixed 2026-08-02 |
@@ -97,6 +97,52 @@ typing those characters produces bytes the server does not expect.
 *Risk (Medium):* the encoding is on the login handshake path too, so a wrong choice breaks
 connecting outright. Confirm DragonRealms' actual encoding (ISO-8859-1 vs Windows-1252) against a
 live session before committing; they differ in the `0x80`–`0x9F` range.
+
+---
+
+**Status: ⚠️ Revised 2026-08-02 after a live session. The primary claim above is WRONG. Severity
+drops Critical → Medium. Do not "fix" this by switching to Latin-1 — that would introduce a bug.**
+
+Captured raw bytes straight off the socket before any decoding, via temporary instrumentation in
+`ReceiveCallback`, over a real DragonRealms session (login, room, inventory, skills, ambient
+traffic with other players present). **380 KB sampled.**
+
+What the wire actually carries:
+
+| | |
+|---|---|
+| First 149 KB (login, room, `inventory`, `exp`, `health`, `info`, …) | **100% 7-bit ASCII** |
+| Full 380 KB with ambient traffic | 150 bytes ≥ `0x80` |
+| Those bytes | `E2 96 88` and `E2 96 91` |
+| Decoded as UTF-8 | `█` U+2588 FULL BLOCK, `░` U+2591 LIGHT SHADE |
+| Whole stream tested against a strict UTF-8 decoder | **valid UTF-8, no exceptions** |
+
+The source was a Lich progress bar: `Circle Progress: [█████████░] 92%`. The protocol otherwise
+encodes specials as XML entities (`&apos;` ×4, `&amp;` ×2, `&quot;` ×4, `&lt;` ×9, `&gt;` ×123),
+which is why ordinary game text stays ASCII.
+
+So `Encoding.Default` resolving to UTF-8 is **correct** for this path, not a porting mistake.
+Latin-1 would render that progress bar as `â–ˆâ–ˆâ–‘`.
+
+**The second defect in the original entry stands, and is now confirmed reachable rather than
+theoretical.** Decoding is still done per packet with a stateless `GetString`. Multi-byte
+sequences demonstrably occur on this connection, so a 3-byte sequence straddling the 10,240-byte
+receive boundary will decode as `�`. The fix is a `Decoder` held across callbacks
+(`Encoding.UTF8.GetDecoder()`), which carries the partial sequence into the next read.
+
+*Why it matters to players:* rare, transient mojibake in Lich script output — a progress bar or
+status line with a `�` in it. Cosmetic and self-correcting on the next redraw, hence Medium
+rather than Critical.
+
+**Still unknown, deliberately not assumed:**
+
+- **The direct (non-Lich) path was not sampled.** Both test profiles use `UseLich="True"`, and
+  Lich is a Ruby proxy whose default external encoding is UTF-8 — so this measured *Lich's*
+  output, not necessarily `play.net`'s. A direct connection could still be Latin-1. Any change
+  here needs that case sampled first.
+- **The send side was not tested.** `Send` still uses `Encoding.Default.GetBytes`; whether the
+  server accepts UTF-8 for a typed non-ASCII character is untested, and testing it means sending
+  real input to the game.
 
 ---
 
@@ -164,10 +210,18 @@ Verified by probe (`scratch/`, not committed) against the built assembly:
 statement of `FormMain_FormClosing` to immediately after `bCloseNow = true` — the point where the
 close is actually committed. Answering "No" now returns before the channel is touched.
 
-**Not verified at runtime.** The prompt only appears when connected (`if (m_oGame.IsConnected ...)`),
-so reproducing it means logging a real character in and cancelling a close. Deferred rather than
-done unannounced. Verified by reading: the cancel path returns at `e.Cancel = true`, which is
-above the new call site, so the channel cannot be completed on a cancelled close.
+**Verified at runtime 2026-08-02, live DragonRealms session.** Logged a character in through Lich,
+then:
+
+1. registered `#trigger {ZZPROBEZZ} {#math ZZCOUNT add 1}` and fired it with `/ZZPROBEZZ`
+   (the `/` prefix is parsed for triggers but never sent to the game) → `ZZCOUNT = 1`
+2. closed the window, answered **No** to the confirmation → client stayed connected
+3. fired the trigger twice more → **`ZZCOUNT = 3`**
+
+Before the fix the count would have stayed at 1, because the channel was completed before the
+prompt was even shown. Read back off disk via `#save variable` rather than trusted to the screen;
+`#echo` output turned out not to reach the log, so a variable counter was used as the
+observation channel instead.
 
 `FormMain_FormClosing` calls `_triggerChannel.Writer.TryComplete()` as its **first** statement —
 before the "You are connected to the game" confirmation. If the player answers No, the handler
