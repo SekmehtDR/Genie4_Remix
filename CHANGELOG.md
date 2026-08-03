@@ -16,6 +16,12 @@ Sections, in order, omitting any that are empty:
 
 ## [Unreleased]
 
+*Nothing yet.*
+
+---
+
+## [4.2.1] — 2026-08-02
+
 Highlights, triggers, saved settings and scripts. Where a fix was confirmed against a real
 DragonRealms session it says so below; the rest were established from the code and are called out
 as such, rather than implied to be more tested than they are.
