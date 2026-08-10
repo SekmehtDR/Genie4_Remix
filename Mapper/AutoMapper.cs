@@ -124,6 +124,57 @@ namespace GenieClient.Mapper
 
         private FormMain m_ParentForm = null;
 
+        // Window geometry restored from the layout config, and whether the window has been placed
+        // yet this session. Null bounds means nothing was saved, so the first-run default applies.
+        private Rectangle? m_oSavedBounds = null;
+        private bool m_bPositioned = false;
+
+        // Called by FormMain while loading the layout, before the window is ever shown.
+        public void SetSavedBounds(int iLeft, int iTop, int iWidth, int iHeight)
+        {
+            if (iWidth <= 0 || iHeight <= 0)
+            {
+                return; // nothing usable saved -- fall through to the default placement
+            }
+
+            m_oSavedBounds = new Rectangle(iLeft, iTop, iWidth, iHeight);
+        }
+
+        // Current geometry, for FormMain to write into the layout config. False when there is no
+        // form, or it has never been placed -- saving zeros would strand it off-screen next time.
+        public bool TryGetBounds(out Rectangle oBounds)
+        {
+            oBounds = Rectangle.Empty;
+            if (Information.IsNothing(m_Form) || !m_bPositioned)
+            {
+                return false;
+            }
+
+            oBounds = new Rectangle(m_Form.Left, m_Form.Top, m_Form.Width, m_Form.Height);
+            return true;
+        }
+
+        // Restore saved geometry, clamped so a layout saved against a bigger main window cannot
+        // put the mapper somewhere the user cannot reach it. Coordinates are relative to the MDI
+        // client area, not the desktop, because MapForm is an MDI child of FormMain.
+        private void ApplySavedBounds(FormMain parent)
+        {
+            Rectangle oBounds = m_oSavedBounds.Value;
+            Size oClient = (Size)parent.ClientSize;
+
+            int iWidth = Math.Max(200, Math.Min(oBounds.Width, oClient.Width));
+            int iHeight = Math.Max(150, Math.Min(oBounds.Height, oClient.Height));
+
+            // Keep at least a sliver on screen in each direction.
+            int iLeft = Math.Max(0, Math.Min(oBounds.X, Math.Max(0, oClient.Width - 80)));
+            int iTop = Math.Max(0, Math.Min(oBounds.Y, Math.Max(0, oClient.Height - 40)));
+
+            m_Form.Left = iLeft;
+            m_Form.Top = iTop;
+            m_Form.Width = iWidth;
+            m_Form.Height = iHeight;
+        }
+
         private void CreateMapForm()
         {
             m_Form = new MapForm(m_oGlobals);
@@ -166,13 +217,30 @@ namespace GenieClient.Mapper
 
             if (!m_Form.Visible)
             {
-                if (!Information.IsNothing(parent))
+                // Position the window once per session and then leave it alone.
+                //
+                // This block used to run on every Show, forcing the mapper to the right-hand half
+                // of the client area at full height each time. Because MapForm_FormClosing only
+                // hides the form rather than closing it, whatever size and position you had chosen
+                // survived right up until you reopened it, and was then thrown away -- which is
+                // why the mapper was the one window that never remembered where you put it.
+                if (!m_bPositioned && !Information.IsNothing(parent))
                 {
-                    m_Form.Top = 0;
-                    m_Form.Height = parent.ClientHeight - SystemInformation.Border3DSize.Height * 2;
-                    Size clientSize = (Size)parent.ClientSize;
-                    m_Form.Left = Conversions.ToInteger(clientSize.Width / 2 - SystemInformation.Border3DSize.Width);
-                    m_Form.Width = Conversions.ToInteger(clientSize.Width - SystemInformation.Border3DSize.Width * 2 - m_Form.Left);
+                    if (m_oSavedBounds.HasValue)
+                    {
+                        ApplySavedBounds(parent);
+                    }
+                    else
+                    {
+                        // First run, or no saved layout yet: the original right-half default.
+                        m_Form.Top = 0;
+                        m_Form.Height = parent.ClientHeight - SystemInformation.Border3DSize.Height * 2;
+                        Size clientSize = (Size)parent.ClientSize;
+                        m_Form.Left = Conversions.ToInteger(clientSize.Width / 2 - SystemInformation.Border3DSize.Width);
+                        m_Form.Width = Conversions.ToInteger(clientSize.Width - SystemInformation.Border3DSize.Width * 2 - m_Form.Left);
+                    }
+
+                    m_bPositioned = true;
                 }
 
                 m_Form.Show();

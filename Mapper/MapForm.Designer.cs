@@ -57,6 +57,7 @@ namespace GenieClient.Mapper
             this._ToolStripSeparator7 = new System.Windows.Forms.ToolStripSeparator();
             this._ToolStripButtonZoomOut = new System.Windows.Forms.ToolStripButton();
             this._ToolStripButtonZoomIn = new System.Windows.Forms.ToolStripButton();
+            this._ToolStripButtonCenter = new System.Windows.Forms.ToolStripButton();
             this._ToolStripSeparator6 = new System.Windows.Forms.ToolStripSeparator();
             this._ToolStripButtonDown = new System.Windows.Forms.ToolStripButton();
             this._ToolStripButtonUp = new System.Windows.Forms.ToolStripButton();
@@ -104,6 +105,7 @@ namespace GenieClient.Mapper
             this._ToolStripButtonFixID,
             this._ToolStripButtonDock,
             this._ToolStripSeparator7,
+            this._ToolStripButtonCenter,
             this._ToolStripButtonZoomOut,
             this._ToolStripButtonZoomIn,
             this._ToolStripSeparator6,
@@ -305,6 +307,22 @@ namespace GenieClient.Mapper
             // 
             // _ToolStripButtonZoomIn
             // 
+            //
+            // _ToolStripButtonCenter
+            //
+            // Text rather than an image: every other button here draws from the .resx, and adding
+            // an icon means editing that resource. A short label sits fine next to the zoom
+            // controls and needs no new asset.
+            this._ToolStripButtonCenter.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
+            this._ToolStripButtonCenter.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this._ToolStripButtonCenter.Name = "_ToolStripButtonCenter";
+            this._ToolStripButtonCenter.Size = new System.Drawing.Size(49, 22);
+            this._ToolStripButtonCenter.Text = "Center";
+            this._ToolStripButtonCenter.ToolTipText = "Center the map on the room you are in";
+            this._ToolStripButtonCenter.Click += new System.EventHandler(this.ToolStripButtonCenter_Click);
+            //
+            // _ToolStripButtonZoomIn
+            //
             this._ToolStripButtonZoomIn.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
             this._ToolStripButtonZoomIn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
             this._ToolStripButtonZoomIn.Image = ((System.Drawing.Image)(resources.GetObject("_ToolStripButtonZoomIn.Image")));
@@ -1236,6 +1254,32 @@ namespace GenieClient.Mapper
                 _ToolStripSeparator6 = value;
                 if (_ToolStripSeparator6 != null)
                 {
+                }
+            }
+        }
+
+        private ToolStripButton _ToolStripButtonCenter;
+
+        internal ToolStripButton ToolStripButtonCenter
+        {
+            [MethodImpl(MethodImplOptions.Synchronized)]
+            get
+            {
+                return _ToolStripButtonCenter;
+            }
+
+            [MethodImpl(MethodImplOptions.Synchronized)]
+            set
+            {
+                if (_ToolStripButtonCenter != null)
+                {
+                    _ToolStripButtonCenter.Click -= ToolStripButtonCenter_Click;
+                }
+
+                _ToolStripButtonCenter = value;
+                if (_ToolStripButtonCenter != null)
+                {
+                    _ToolStripButtonCenter.Click += ToolStripButtonCenter_Click;
                 }
             }
         }

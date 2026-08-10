@@ -20,6 +20,29 @@ Sections, in order, omitting any that are empty:
 
 ---
 
+## [4.2.2] — 2026-08-03
+
+Automapper quality of life, both requested by **Tirost**. Verified on a live DragonRealms session.
+
+### Added
+- **A `Center` button on the automapper toolbar.** On a large zone the map is far bigger than the
+  window, and once you have panned around — or resized the window smaller — finding your own room
+  again meant dragging until you spotted the marker. The new button, next to the zoom controls,
+  puts the room you are standing in back in the middle of the view. It works whether or not the
+  room is currently on screen, which is the difference between it and the automatic scrolling that
+  already happens as you move.
+
+### Changed
+- **The automapper window now remembers where you put it.** Every other window keeps its position
+  and size; the mapper was the exception, reopening pinned to the right-hand half of the main
+  window at full height no matter what you had done to it. Worse, it *looked* like it remembered
+  within a session, because closing it only hid it — the size and position you had chosen survived
+  right up until you reopened it and were thrown away. Position and size are now saved with the
+  rest of your layout, so `#save layout` keeps them. A fresh install still gets the old
+  right-hand-side placement the first time, so nothing changes until you move it yourself.
+
+---
+
 ## [4.2.1] — 2026-08-02
 
 Highlights, triggers, saved settings and scripts. Where a fix was confirmed against a real

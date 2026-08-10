@@ -1970,6 +1970,43 @@ namespace GenieClient.Mapper
             //UpdatePanelColor();
         }
 
+        // Converts node coordinates to panel coordinates: apply the zoom scale, then the current
+        // map offset. Both CheckScrollTo and CenterOn need this and used to work it out inline.
+        private Point NodeToPanel(int NodeX, int NodeY)
+        {
+            var oOffset = GetOffset();
+            return new Point(NodeX * m_Scale + oOffset.X, NodeY * m_Scale + oOffset.Y);
+        }
+
+        // Scroll offset that puts a panel coordinate in the middle of the visible area. The
+        // scrollbar allowance matters: without it the room lands off-centre by half a scrollbar,
+        // which is exactly the case this is used in.
+        private Point CenterScrollFor(Point oPanelPoint)
+        {
+            int iScrollX = (int)(oPanelPoint.X - (PanelBase.Width - SystemInformation.VerticalScrollBarWidth - 10 * m_Scale) / (double)2);
+            int iScrollY = (int)(oPanelPoint.Y - (PanelBase.Height - SystemInformation.HorizontalScrollBarHeight - 10 * m_Scale) / (double)2);
+            return new Point(iScrollX, iScrollY);
+        }
+
+        // Centre the view on the room the character is in, whether or not it is already visible.
+        //
+        // Deliberately not CheckScrollTo: that one returns early when the room is already on
+        // screen, because its job is to keep up with movement without yanking the view around.
+        // The toolbar button is an explicit "put me back in the middle", so it always centres.
+        public void CenterOnCurrentRoom()
+        {
+            if (Information.IsNothing(m_CurrentNode) || Information.IsNothing(m_CurrentNode.Position))
+            {
+                return; // no room known yet, or the room has never been placed on the map
+            }
+
+            var oTarget = CenterScrollFor(NodeToPanel(m_CurrentNode.Position.X, m_CurrentNode.Position.Y));
+
+            // AutoScrollPosition is read back negated but set with positive values, and it clamps
+            // to the scrollable range itself -- so a map smaller than the window simply stays put.
+            PanelBase.AutoScrollPosition = new Point(Math.Max(0, oTarget.X), Math.Max(0, oTarget.Y));
+        }
+
         private void CheckScrollTo(int NodeX, int NodeY)
         {
             // Do not scroll if current possition is inside visible area
@@ -1981,7 +2018,7 @@ namespace GenieClient.Mapper
             NodeX += m_Offset.X;
             NodeY *= m_Scale;
             NodeY += m_Offset.Y;
-            
+
             var withBlock = PanelBase.AutoScrollPosition;
             // Debug.WriteLine("===============")
 
@@ -2311,6 +2348,11 @@ namespace GenieClient.Mapper
         public void SetLockPositionsToggle(bool toggle)
         {
             ToolStripButtonLockPositions.Checked = toggle;
+        }
+
+        private void ToolStripButtonCenter_Click(object sender, EventArgs e)
+        {
+            CenterOnCurrentRoom();
         }
 
         private void ToolStripButtonZoomIn_Click(object sender, EventArgs e)

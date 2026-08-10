@@ -2562,6 +2562,19 @@ namespace GenieClient
                     I = 0;
                 }
 
+                // Automapper geometry. Handed to AutoMapper rather than applied here: the window
+                // may not be shown yet, and AutoMapper is what decides between saved bounds and
+                // the first-run default when it finally places it. Width of 0 means nothing was
+                // saved, which SetSavedBounds treats as "use the default".
+                if (!Information.IsNothing(m_oAutoMapper))
+                {
+                    int iMapWidth = m_oConfig.GetValue("Genie/Windows/Mapper", "Width", 0);
+                    int iMapHeight = m_oConfig.GetValue("Genie/Windows/Mapper", "Height", 0);
+                    int iMapLeft = m_oConfig.GetValue("Genie/Windows/Mapper", "Left", 0);
+                    int iMapTop = m_oConfig.GetValue("Genie/Windows/Mapper", "Top", 0);
+                    m_oAutoMapper.SetSavedBounds(iMapLeft, iMapTop, iMapWidth, iMapHeight);
+                }
+
                 bool bTimeStamp = m_oConfig.GetValue("Genie/Windows/Game", "TimeStamp", false);
                 m_oOutputMain.TimeStamp = bTimeStamp;
                 string sColorName = m_oConfig.GetValue("Genie/Windows/Game", "Colors", string.Empty);
@@ -2765,6 +2778,21 @@ namespace GenieClient
             m_oConfig.SetValue("Genie/Windows/Game/Font", "Family", m_oOutputMain.TextFont.Name.ToString());
             m_oConfig.SetValue("Genie/Windows/Game/Font", "Size", m_oOutputMain.TextFont.Size.ToString());
             m_oConfig.SetValue("Genie/Windows/Game/Font", "Style", m_oOutputMain.TextFont.Style.ToString());
+
+            // Automapper geometry, so it reopens where it was left rather than being forced back
+            // to the right-hand half of the window. Skipped when the mapper has never been placed
+            // this session -- writing zeros would strand it in the corner next time.
+            if (!Information.IsNothing(m_oAutoMapper))
+            {
+                System.Drawing.Rectangle oMapBounds;
+                if (m_oAutoMapper.TryGetBounds(out oMapBounds))
+                {
+                    m_oConfig.SetValue("Genie/Windows/Mapper", "Left", oMapBounds.X.ToString());
+                    m_oConfig.SetValue("Genie/Windows/Mapper", "Top", oMapBounds.Y.ToString());
+                    m_oConfig.SetValue("Genie/Windows/Mapper", "Width", oMapBounds.Width.ToString());
+                    m_oConfig.SetValue("Genie/Windows/Mapper", "Height", oMapBounds.Height.ToString());
+                }
+            }
             RemoveDisposedForms();
             FormSkin tmpFormSkin;
             var myEnumerator = m_oFormList.GetEnumerator();

@@ -70,8 +70,8 @@ IDs are never reused. Next free ID: **FEAT-021**.
 | [FEAT-017](#feat-017) | Support a list of script extensions rather than one plus hardcoded `.js` | S | Open |
 | [FEAT-018](#feat-018) | Resolve the Lua question — it is advertised but absent | S | Open |
 | **Automapper** *(requested by Tirost)* | | | |
-| [FEAT-019](#feat-019) | Button to centre the map on the room you are in | S | Open |
-| [FEAT-020](#feat-020) | Automapper window remembers its position and size | S–M | Open |
+| [FEAT-019](#feat-019) | Button to centre the map on the room you are in | S | ✅ Done 4.2.2 |
+| [FEAT-020](#feat-020) | Automapper window remembers its position and size | S–M | ✅ Done 4.2.2 |
 
 ---
 
@@ -537,6 +537,23 @@ reference and being a puzzle.
 can have no `Position` (unplaced rooms are skipped on save at `:953`). The button should be
 disabled or a no-op in both cases rather than throwing.
 
+**Status: ✅ Done 4.2.2.** Added a text-labelled `Center` button to the right-aligned view group
+next to the zoom controls, and `CenterOnCurrentRoom()` in `MapForm`. The shared maths was pulled
+out into `NodeToPanel` and `CenterScrollFor` so the new path and `CheckScrollTo` cannot drift
+apart. `CheckScrollTo` keeps its early-out — it exists to follow movement without yanking the view
+around, which is the opposite of what an explicit button should do. Null and unplaced nodes no-op
+as the entry required.
+
+Text label rather than an icon: every other button on that toolbar pulls its image from the
+`.resx`, and adding one means editing that resource for no functional gain.
+
+**Verified on a live session** (Agan, zone Dirge, 91 maps loaded). Located the button through UI
+Automation and invoked it after right-drag panning the map away in each direction. The toolbar
+region was pixel-identical across the before/after captures — proving the same window was
+sampled — while the map area changed, proving it scrolled. On the screenshot the "HERE" marker
+(gold border, X glyph) lands at ≈(245, 218) in a viewport centred on ≈(254, 230): centred to
+within about ten pixels.
+
 ---
 
 ### FEAT-020
@@ -585,6 +602,30 @@ relative to the MDI client area, not the desktop. Restored geometry still needs 
 window saved against a larger main window cannot end up entirely off the visible client area. The
 `Dock` toggle (`MapForm.cs:2414`) is separate state and should probably be saved with it, or
 explicitly left out and noted.
+
+**Status: ✅ Done 4.2.2.** Both halves, as the entry predicted were needed:
+
+1. `FormMain.SaveXMLConfig` / `LoadXMLConfig` now carry a `Genie/Windows/Mapper` section with
+   `Left`/`Top`/`Width`/`Height`, alongside the existing per-window entries.
+2. `AutoMapper.Show` places the window **once per session** instead of on every show. Saved bounds
+   win when present; the original right-half placement remains as the first-run default. Without
+   this, step 1 would have had no visible effect at all.
+
+Geometry is handed to `AutoMapper.SetSavedBounds` rather than applied directly, because the window
+may not exist yet when the layout loads, and `AutoMapper` is what decides between saved bounds and
+the default. `TryGetBounds` refuses to report geometry before the window has been placed, so a
+session that never opened the mapper cannot write zeros into the layout and strand it in the corner.
+Restored bounds are clamped against the current client size with a minimum of 200×150.
+
+**`Dock` was deliberately left out** — it is a different kind of state (a display mode, not
+geometry) and folding it in would mean a docked mapper silently reopening docked with no obvious
+way back. Worth its own decision rather than a side effect of this one.
+
+**Verified on a live session.** Moved the mapper to 40,30 at 520×420, ran `#save layout`, and
+confirmed `default.layout` held `Left=40 Top=30 Width=520 Height=420`. Closed the client fully,
+relaunched, reopened the mapper: it came back at 520×420 rather than the right-half default. It
+also held that geometry across connecting a character and through the window being recreated on
+map load.
 
 ---
 
