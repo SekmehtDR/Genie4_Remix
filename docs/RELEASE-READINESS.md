@@ -6,6 +6,43 @@ A review of Genie Remix's supportability across release cycles: can you tell wha
 running, reproduce it, and ship a fix with confidence? Findings are ordered by how much they
 cost you when something goes wrong.
 
+> **This is a point-in-time review, kept for its findings and evidence.** The body below is as
+> written on 2026-07-31 against `v4.1.0.0`; it is not rewritten as things change. The summary
+> table *is* kept current, and *Status since the review* records what has actually happened since.
+> For live engineering state see [BUG-BACKLOG.md](BUG-BACKLOG.md) and
+> [FEATURE-BACKLOG.md](FEATURE-BACKLOG.md).
+
+---
+
+## Status since the review
+
+**Updated 2026-08-03.** Four releases have gone out through the automated pipeline since this was
+written, which settles the biggest open question in it — *"Release automation: written, not yet
+exercised on GitHub."* It has now been exercised repeatedly.
+
+| Since | What changed |
+|---|---|
+| `v4.1.1`, `v4.1.2` | First real use of the tag-driven release workflow |
+| `v4.2.0` | Lich connection, reconnect and shutdown work |
+| `v4.2.1` | Six client fixes, including config saves no longer destroying the file they write |
+| `v4.2.2` *(prepared)* | Two automapper features requested by a player |
+
+What this review flagged and has since been addressed:
+
+- **"If a player reports a bug you cannot determine what code they are running."** Version
+  stamping is asserted in CI and comes from the tag; `Help → About` and the window title both
+  carry it. A real install self-updated 4.2.0 → 4.2.1 through **Help → Check For Updates**,
+  proving the delivery path end to end rather than in theory.
+- **No place to record known defects.** Two backlogs now carry that, with a convention in
+  `CLAUDE.md` for keeping them true as work lands.
+- **Release process knowledge lived only in this file.** `CLAUDE.md` now carries a release section
+  built from real failure modes: the `## [X.Y.Z]` changelog heading being a hard gate, the version
+  coming from the tag rather than being hand-edited, and the `gh` CLI returning empty on at least
+  one machine while the REST API works.
+
+Still open from the review: **test coverage** (none, deliberately) and the **rollback story**
+(works, informally).
+
 ---
 
 ## Summary
@@ -24,12 +61,14 @@ determine what code they are running.** That is the single thing worth fixing.
 | Build reproducibility | ✅ Good | CI builds on a clean runner, records the SDK, stamps the commit sha into the binary |
 | Version management | ✅ Fixed | Single source of truth in `Directory.Build.props`, injectable from the tag, asserted in CI |
 | CI | ✅ Good | Build + package verification on push, PR, and dispatch; branch protection still optional |
-| Release automation | ✅ Written | Tag-driven, with guards; not yet exercised on GitHub |
+| Release automation | ✅ Proven | Tag-driven, with guards. Since exercised for real: `v4.1.1`, `v4.1.2`, `v4.2.0`, `v4.2.1` all published through it |
 | Artifact integrity | ✅ Fixed | Version-stamped filename, `SHA256SUMS.txt`, immutability enforced |
-| Changelog | ✅ Now exists | Added by this review |
+| Changelog | ✅ Now exists | Added by this review; kept current per release since |
 | Rollback story | ⚠️ Informal | Works by accident (portable app), undocumented until now |
 | Test coverage | ❌ None | No automated tests; not necessarily worth building, but know it |
-| Contributor docs | ✅ Now exists | `CLAUDE.md` + `docs/` added by this review |
+| Known-defect tracking | ✅ Now exists | [BUG-BACKLOG.md](BUG-BACKLOG.md) and [FEATURE-BACKLOG.md](FEATURE-BACKLOG.md), added 2026-08-01 |
+| Contributor docs | ✅ Now exists | `CLAUDE.md` + `docs/`; `CLAUDE.md` gained a full release-process section 2026-08-02 |
+| Self-update path | ✅ Proven in the wild | Help → Check For Updates carried a real install 4.2.0 → 4.2.1 unattended |
 
 ---
 

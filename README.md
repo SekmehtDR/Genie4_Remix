@@ -48,10 +48,20 @@ Download the latest release:
 - **Connect via Lich** checkbox available in both the Game Connect and Connect via Profile dialog boxes
 - Fixed sessions getting stuck and manual password entry bypassing Lich entirely
 
+### AutoMapper
+- **Center button** — puts the room you are standing in back in the middle of the view, whether or not it is currently on screen. On a large zone the map is far bigger than the window, and after panning around you no longer have to hunt for your own marker
+- **The window remembers where you put it** — position and size are saved with the rest of your layout instead of snapping back to the right-hand half of the window every time you reopen it. A fresh install still gets the original placement first time, so nothing moves until you move it
+
 ### Quality of Life
 - **Shift+select to send text to config** — hold Shift while highlighting output text to get a context menu: copy to clipboard, or send directly to Highlights, Triggers, Substitutes, Gags, or Aliases with the text already filled in and the config panel ready to finish
 
 ### Bug Fixes & Stability
+- **Your settings survive a failed save** — every config file (highlights, variables, triggers, aliases, macros, and the rest) used to be deleted and then rewritten. If anything went wrong in between — a file locked by an editor, cloud sync, antivirus, or a full disk — the old file was already gone. Saves now write to a temporary file and only replace the real one once complete
+- **Case-insensitive highlights keep working after a restart** — they were being saved correctly but read back as literal text including the `/…/i` markers, so they silently matched nothing. Existing highlight files are recovered as they are, with nothing to re-enter
+- **Closing the window and changing your mind no longer kills your triggers** — answering "No" to the quit prompt used to return you to the game with the trigger system permanently shut down for that session, with no error and nothing in the log
+- **`AND`, `OR` and `NOT` work in scripts in upper case**, not just lower case
+- Scripts using `#plugin` no longer crash when a current-generation plugin is installed
+- Certain nested commands could freeze the client outright; they no longer can
 - Significant performance improvements reducing lag during heavy combat or script use
 - Reduced output window trim frequency for smoother scrolling during heavy output
 - Fixed a duplicate event subscription in GenieError that caused handlers to fire multiple times
@@ -59,7 +69,10 @@ Download the latest release:
 - AutoMapper reliability and theme fixes
 - Script engine corrections and logging fixes
 - Numerous smaller UI issues from the original codebase addressed
-- Auto-updater disabled — this version stays put and won't be replaced by an upstream release on launch
+
+### Updates
+- **Help → Check For Updates** checks *this* fork and offers only a newer Remix release. Updating is always something you choose — there is no startup check and nothing updates itself in the background
+- Genie Remix will never be replaced by an upstream Genie4 release. The original update path pointed at upstream and would have *downgraded* a Remix install
 
 ### Runtime Modernization
 - Upgraded from .NET 6 to **.NET 10**
