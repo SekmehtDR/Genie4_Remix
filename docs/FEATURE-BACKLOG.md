@@ -39,7 +39,7 @@ the same commit as the code change.
 | **⚠️ Partial** | Partly built. Entry states exactly what remains. |
 | **❌ Declined** | Decided against. Entry stays, with the reasoning — this is the useful part. |
 
-IDs are never reused. Next free ID: **FEAT-019**.
+IDs are never reused. Next free ID: **FEAT-021**.
 
 ## Summary
 
@@ -69,6 +69,9 @@ IDs are never reused. Next free ID: **FEAT-019**.
 | [FEAT-016](#feat-016) | Fix absolute-path detection so UNC and network paths work | S | Open |
 | [FEAT-017](#feat-017) | Support a list of script extensions rather than one plus hardcoded `.js` | S | Open |
 | [FEAT-018](#feat-018) | Resolve the Lua question — it is advertised but absent | S | Open |
+| **Automapper** *(requested by Tirost)* | | | |
+| [FEAT-019](#feat-019) | Button to centre the map on the room you are in | S | Open |
+| [FEAT-020](#feat-020) | Automapper window remembers its position and size | S–M | Open |
 
 ---
 
@@ -491,6 +494,97 @@ file to uncomment — the commented code targets `LuaInterface`, which is long u
 *Why it matters to players:* only indirectly — but a player who reads that Lua is supported and
 writes a Lua script gets a silent failure. Being honest about the supported script languages
 costs nothing and prevents wasted effort.
+
+---
+
+## Automapper
+
+Both requested by **Tirost**, 2 Aug 2026. Feasibility checked against the current tree; both are
+straightforward, and neither needs new plumbing invented.
+
+### FEAT-019
+**Button to centre the map on the room you are in**
+`Mapper/MapForm.cs:1973` (`CheckScrollTo`), `Mapper/MapForm.Designer.cs` (toolbar)
+
+> *"Button in automapper window to center the room my character occupies in the window, when
+> there are scroll bars on the automapper window."*
+
+**Feasible, small.** The centring maths already exists and is already correct —
+`CheckScrollTo(NodeX, NodeY)` converts node coordinates through the current scale and offset,
+accounts for scrollbar width, and sets `PanelBase.AutoScrollPosition`.
+
+The one thing it deliberately does *not* do is what this request asks for:
+
+```csharp
+if (iScrollX == 0 && iScrollY == 0)
+    return;                     // already visible -- do nothing
+```
+
+It is "scroll into view if off-screen", not "centre". A button needs an unconditional variant that
+centres whether or not the room is currently visible — the same formula with the early-out and the
+inside-the-viewport branches skipped.
+
+The current room is tracked in `m_CurrentNode` (`MapForm.cs:52`), and there is a working call site
+to copy from at `MapForm.cs:2190`. The toolbar in `MapForm.Designer.cs` already carries ~18
+buttons, so adding one is routine.
+
+*Why it matters to a player:* on a big zone the map is far larger than the window, and after
+panning around — or after the window is resized smaller — finding yourself again means dragging
+until you spot the "HERE" marker. One click to recentre is the difference between the map being a
+reference and being a puzzle.
+
+*Watch out for:* `m_CurrentNode` can be `null` (`MapForm.cs:422`, `:683` both clear it), and a node
+can have no `Position` (unplaced rooms are skipped on save at `:953`). The button should be
+disabled or a no-op in both cases rather than throwing.
+
+---
+
+### FEAT-020
+**Automapper window remembers its position and size**
+`Mapper/AutoMapper.cs:168`–`178`, `Forms/FormMain.cs:2467` / `:2733`
+
+> *"Automapper window remembers its layout position when loaded like other windows."*
+
+**Feasible, and the diagnosis is more specific than "persistence is missing".** Position is not
+merely unsaved — it is **actively overwritten every time the window is shown**:
+
+```csharp
+if (!m_Form.Visible)
+{
+    if (!Information.IsNothing(parent))
+    {
+        m_Form.Top = 0;
+        m_Form.Height = parent.ClientHeight - SystemInformation.Border3DSize.Height * 2;
+        m_Form.Left = clientSize.Width / 2 - SystemInformation.Border3DSize.Width;
+        m_Form.Width = clientSize.Width - ... - m_Form.Left;
+    }
+    m_Form.Show();
+}
+```
+
+That pins it to the right-hand half of the client area at full height, unconditionally, on every
+open. It compounds with `MapForm_FormClosing` (`MapForm.cs:200`), which cancels the close and just
+sets `Visible = false` — so the form instance survives, keeps whatever geometry you gave it, and
+then has it thrown away the moment you reopen it.
+
+So the work is two parts, and the second is the one that actually makes it stick:
+
+1. Persist geometry alongside the existing windows. `FormMain.SaveXMLConfig` / `LoadXMLConfig`
+   already store `Left`/`Top`/`Width`/`Height` per window under keys like `Genie/Windows/Main`,
+   `Genie/Windows/Game` and `Genie/Windows/Window<n>` — a `Genie/Windows/Mapper` section follows
+   the established pattern exactly. The mapper currently appears nowhere in either method.
+2. **Make the hardcoded placement a first-run default**, applied only when no saved geometry
+   exists. Without this, step 1 has no visible effect.
+
+*Why it matters to a player:* the mapper is a window you arrange once to suit your screen. Having
+it jump back to half-width-right-hand-side every time you reopen it is a small irritation repeated
+every session, and it is the one window in the client that behaves this way.
+
+*Watch out for:* `MapForm` is an **MDI child** (`m_Form.MdiParent = parent`), so coordinates are
+relative to the MDI client area, not the desktop. Restored geometry still needs clamping so a
+window saved against a larger main window cannot end up entirely off the visible client area. The
+`Dock` toggle (`MapForm.cs:2414`) is separate state and should probably be saved with it, or
+explicitly left out and noted.
 
 ---
 
