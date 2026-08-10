@@ -155,6 +155,17 @@ docs/          Versioning, release process, and the living backlogs — bugs, fe
   Assembly-resolution changes can break plugin loading in ways that only appear at runtime.
 - **`GenerateAssemblyInfo=false`** in both project files. See below — this is the single most
   important build fact in the repo.
+- **The automapper window is not a normal window.** `MapForm` is an **MDI child** of `FormMain`
+  (`AutoMapper.Show` sets `MdiParent`), so its `Left`/`Top` are relative to the MDI client area,
+  not the desktop. `MapForm_FormClosing` **cancels the close and sets `Visible = false`** — the
+  instance survives for the life of the session, and its window handle is recreated when a map
+  loads, so a cached `HWND` goes stale. `AutoMapper.Show` is what positions it; it now does so
+  once per session, and anything that reintroduces per-show positioning will silently undo
+  FEAT-020. Geometry lives in `Genie/Windows/Mapper` in the layout file.
+- **`scratch/` is excluded from the build via `DefaultItemExcludes`** in `Directory.Build.props`.
+  Gitignoring it is not enough: `Genie4.csproj` globs `**/*.cs` from the repo root, so a stray
+  project left in `scratch/` gets its generated `obj/**/*.AssemblyInfo.cs` swept into the client
+  and the build dies with `CS0579`. Don't remove that exclusion.
 
 ---
 
@@ -361,6 +372,34 @@ conversion. It is not idiomatic modern C# and does not need to become so. Follow
 There is no test suite. "It builds" is not "it works". State exactly what was verified:
 built / launched / connected / exercised the feature — and what was not.
 
+### Techniques that actually work for verifying against a running client
+
+Hard-won; each of these replaced something that gave a wrong or unconvincing answer.
+
+- **Drive toolbar buttons with UI Automation, not screen coordinates.** `AutomationElement`
+  `.FromHandle(hwnd)` then `FindFirst` on `NameProperty` and `InvokePattern.Invoke()` finds a
+  `ToolStripButton` by its label. `ToolStrip` items are not real windows, so there is no handle to
+  click and coordinate maths is fragile.
+- **Any screenshot comparison needs a control region.** Capture a part of the window that must
+  *not* change — a toolbar strip works well — alongside the part that must. If the control region
+  differs, the capture grabbed the wrong window and the result is meaningless. This caught a test
+  that reported a confident 100% difference because focus had moved.
+- **`#echo` output does not reach the log**, so it is useless as an observation channel. A trigger
+  action that increments a variable, then `#save variable`, gives a value that can be read off
+  disk and counted.
+- **`/`-prefixed input is parsed for triggers but never sent to the game** (`cMyCommandChar`).
+  That is the way to fire a trigger during a live session without sending anything to
+  DragonRealms.
+- **`SendKeys` needs `{` and `}` escaped as `{{}` and `{}}`** — and the two replacements must go
+  through placeholders, or the second corrupts the braces the first introduced. Always confirm the
+  target window is foreground before sending; a keystroke sent blind lands in whatever *is*.
+- **The automapper needs a logged-in character.** Room information from the game is what loads the
+  correct zone map and sets the current room, so anything touching `m_CurrentNode` cannot be
+  exercised offline — it correctly does nothing.
+- **Instrumentation for a diagnosis goes in, gets used, and comes straight back out.** Guard it
+  behind an environment variable so it is inert by default, build it to a throwaway folder, and
+  `git checkout` the file afterwards. Verify the revert before committing anything else.
+
 ---
 
 ## Quick reference
@@ -376,4 +415,6 @@ built / launched / connected / exercised the feature — and what was not.
 | Change server XML parsing | `Core/Game.cs` |
 | Change status bars / RT bars | `Forms/Components/ComponentBars.cs`, `ComponentRoundtime.cs` |
 | Theme / dark mode | `Utility/DarkModeManager.cs`, `Forms/Components/MenuRenderer.cs` |
+| Add an automapper toolbar button | `Mapper/MapForm.Designer.cs` — needs **three** edits: the backing field, the `InitializeComponent` block + `Items.AddRange` entry, and the wire/unwire property. Handler goes in `MapForm.cs` |
+| Window position / layout | `FormMain.SaveXMLConfig` / `LoadXMLConfig`, `Genie/Windows/<name>`; saved to `Config\Layout\default.layout` by `#save layout` |
 | Change how updates work | `Utility/RemixUpdater.cs` + `checkForUpdatesToolStripMenuItem_Click` in `FormMain.cs` |
