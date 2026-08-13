@@ -49,7 +49,7 @@
 
   <PropertyGroup>
     <!-- MAJOR.MINOR.PATCH. The only value a human edits. -->
-    <VersionPrefix>4.2.2</VersionPrefix>
+    <VersionPrefix>4.2.3</VersionPrefix>
 
     <!-- Pre-release label, e.g. "rc.1". Empty for stable releases. -->
     <VersionSuffix></VersionSuffix>

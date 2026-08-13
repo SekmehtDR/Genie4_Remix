@@ -69,7 +69,7 @@ IDs are never reused. Next free ID: **GRX-025**.
 | [GRX-021](#grx-021) | `throw ex` discards stack traces in crypto and config failures | Low | Low | Open |
 | [GRX-022](#grx-022) | `HandleGenieException` is an unreachable infinite-recursion trap | Low | Low | Open |
 | [GRX-023](#grx-023) | Mapper value types override `Equals` without `GetHashCode` | Low | Low | Open |
-| [GRX-024](#grx-024) | Text in a single-row stream goes to the main window, not the target | High | Low | ✅ Fixed 2026-08-12 |
+| [GRX-024](#grx-024) | Text in a single-row stream goes to the main window, not the target | High | Low | ✅ Fixed 4.2.3 |
 
 ---
 
@@ -744,7 +744,9 @@ than a crash.
 **Text in a single-row stream goes to the main window, not the target**
 `Core/Game.cs` — `ParseGameRow` row buffer vs. `pushStream`/`popStream`
 
-**Status: ✅ Fixed 2026-08-12.** Reported by a player whose Lich `moonwatch` window stayed empty.
+**Status: ✅ Fixed 2026-08-12, shipping in 4.2.3.** Reported by **Allyebot**, whose Lich
+`moonwatch` window stayed empty. **Not in the published 4.2.2** — that tag was cut before this fix
+landed, and published versions are immutable, so it takes the next patch number.
 
 `ParseGameRow` scans a row character by character, accumulating plain text into `sTextBuffer`, and
 prints it **once at the end of the row**:

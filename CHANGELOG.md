@@ -20,10 +20,9 @@ Sections, in order, omitting any that are empty:
 
 ---
 
-## [4.2.2] — 2026-08-03
+## [4.2.3] — 2026-08-12
 
-Automapper quality of life, both requested by **Tirost**, and a stream-routing fix that stopped
-custom windows from ever receiving their text. Verified on a live DragonRealms session.
+A long-standing stream-routing fix, reported by **Allyebot**.
 
 ### Fixed
 - **Text sent to a custom window could end up in the main window instead.** A script or plugin
@@ -32,7 +31,16 @@ custom windows from ever receiving their text. Verified on a live DragonRealms s
   its text entirely. The window stayed empty while the text appeared in the main game window
   instead, which makes it look like the window or the plugin is broken. Streams whose content
   spans several lines were never affected, which is why some custom windows worked and others
-  never did. Reported by a player whose Lich moon-phase window never displayed anything.
+  never did. Reported by **Allyebot**, whose Lich moon-phase window never displayed anything.
+
+  This one is old: it has been present since the first commit of the Genie4 C# codebase in
+  December 2021, and Genie Remix inherited it. It was never a Remix regression.
+
+---
+
+## [4.2.2] — 2026-08-03
+
+Automapper quality of life, both requested by **Tirost**. Verified on a live DragonRealms session.
 
 ### Added
 - **A `Center` button on the automapper toolbar.** On a large zone the map is far bigger than the
