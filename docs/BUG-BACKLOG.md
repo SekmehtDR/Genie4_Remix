@@ -40,7 +40,7 @@ the same commit as the code change.
 | **⚠️ Partial** | Partly addressed. Entry states exactly what remains. |
 | **❌ Not a defect** | Disproved. Entry stays, with the evidence. |
 
-IDs are never reused. Next free ID: **GRX-024**.
+IDs are never reused. Next free ID: **GRX-025**.
 
 ## Summary
 
@@ -69,6 +69,7 @@ IDs are never reused. Next free ID: **GRX-024**.
 | [GRX-021](#grx-021) | `throw ex` discards stack traces in crypto and config failures | Low | Low | Open |
 | [GRX-022](#grx-022) | `HandleGenieException` is an unreachable infinite-recursion trap | Low | Low | Open |
 | [GRX-023](#grx-023) | Mapper value types override `Equals` without `GetHashCode` | Low | Low | Open |
+| [GRX-024](#grx-024) | Text in a single-row stream goes to the main window, not the target | High | Low | ✅ Fixed 2026-08-12 |
 
 ---
 
@@ -736,6 +737,63 @@ None of the three currently go into a `Dictionary` or `HashSet`, so this is late
 set of nodes gets silently wrong lookups — the failure mode is a route that cannot be found rather
 than a crash.
 *Risk (Low):* implement `GetHashCode` consistently with `Equals`.
+
+---
+
+### GRX-024
+**Text in a single-row stream goes to the main window, not the target**
+`Core/Game.cs` — `ParseGameRow` row buffer vs. `pushStream`/`popStream`
+
+**Status: ✅ Fixed 2026-08-12.** Reported by a player whose Lich `moonwatch` window stayed empty.
+
+`ParseGameRow` scans a row character by character, accumulating plain text into `sTextBuffer`, and
+prints it **once at the end of the row**:
+
+```csharp
+PrintTextWithParse(sTextBuffer, default, default, default, default, isRoomOutput);
+```
+
+That fourth `default` is `WindowTarget.Unknown` — the enum's zero value — which means *"use
+whatever `m_oTargetWindow` is now"*. But `m_oTargetWindow` is mutated **during** the scan:
+`pushStream` sets it, `popStream` resets it to `Main`.
+
+So when a stream opens and closes on one row, `popStream` restores `Main` before the buffered text
+is ever printed, and the text lands in the game window instead of the stream's window:
+
+```
+<pushStream id="moonWindow"/>[k]+(126) [y]-(21) [x]+(66)<popStream/>
+    target = Other/moonWindow    buffered, not printed    target reset to Main
+                                                   ↓
+                                    end of row: printed to Main
+```
+
+**The rule is precise: only text sharing a row with the closing `popStream` is misrouted.** A
+stream spread over several rows is unaffected, because every intermediate row flushes while the
+target is still set. That is the entire difference between `percWindow`, which worked, and
+`moonWindow`, which did not — not the fact that `percWindow` is one of the hardcoded stream ids,
+which is a real difference but a misleading one.
+
+**The script was not at fault, and was deliberately doing the safer thing.** `moonwatch.lic`
+documents why it emits open, content and close in a single `_respond`: splitting them races
+against game output, and a frontend holding one "current stream" pointer will strand an unrelated
+line in the custom window. Genie Remix is exactly such a frontend, and it mishandled the pattern
+intended to protect it. `percWindow` works only because it uses the *racier* multi-row form.
+
+*Why it mattered to players:* any Lich script or plugin emitting a self-contained stream — the
+recommended form — silently lost its output, while its window sat empty. The text was not dropped;
+it was mixed into the main game window, which makes it look like the window or the plugin is
+broken rather than the routing.
+
+**Fix:** capture the routing before each tag is processed in `ParseGameRow`, and if the tag moved
+it while text is already buffered, flush that text against the *previous* target first
+(`FlushRowTextTo`). Stream content now reaches its window whether it spans one row or many.
+
+**Verified live** (Agan, `;moonwatch` under Lich with the DynamicWindows plugin): the moon window
+went from permanently empty to showing `[k]+(120) [y]-(15) [x]+(60)`, confirmed by the player.
+
+**Still open, noticed while fixing:** `popStream` resets `m_oTargetWindow` but never clears
+`m_sTargetWindow`, so a stale window name lingers after a stream closes. Harmless while the target
+is `Main`, but it is loaded state waiting to be misread — worth its own entry if it ever bites.
 
 ---
 

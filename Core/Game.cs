@@ -624,7 +624,39 @@ namespace GenieClient.Genie
                             {
                                 m_oXMLBuffer.Append(oXMLBuffer);
                                 string buffer = m_oXMLBuffer.ToString();
+
+                                // Stream tags move where buffered text belongs, so remember the
+                                // routing as it stands before the tag is processed.
+                                var oTargetBeforeTag = m_oTargetWindow;
+                                string sTargetNameBeforeTag = m_sTargetWindow;
+
                                 string sTmp = ProcessXML(buffer);
+
+                                // A stream boundary just changed the target. Whatever is already
+                                // buffered belongs to the stream that was open when it arrived,
+                                // not the one in effect now, so flush it before going on.
+                                //
+                                // Without this, a stream opened and closed on a single row --
+                                // "<pushStream id='moonWindow'/>text<popStream/>", which is how
+                                // Lich emits most custom windows -- lost its text completely. The
+                                // row buffer is only printed at the end of the row, and by then
+                                // popStream had reset the target back to Main, so the text landed
+                                // in the game window instead of the one it was addressed to.
+                                //
+                                // A stream spread over several rows was unaffected, because every
+                                // intermediate row flushed while the target was still set. That is
+                                // the whole difference between percWindow, which worked, and
+                                // moonWindow, which did not: only text sharing a row with the
+                                // closing popStream was ever misrouted.
+                                if (sTextBuffer.Length > 0
+                                    && (m_oTargetWindow != oTargetBeforeTag
+                                        || (m_sTargetWindow ?? string.Empty) != (sTargetNameBeforeTag ?? string.Empty)))
+                                {
+                                    FlushRowTextTo(sTextBuffer, oTargetBeforeTag, sTargetNameBeforeTag);
+                                    sTextBuffer = string.Empty;
+                                    iBoldIndex = 0;
+                                }
+
                                 if (buffer.EndsWith("</preset>"))
                                 {
                                     string presetLabel = string.Empty;
@@ -2884,7 +2916,29 @@ namespace GenieClient.Genie
                 oWindowTarget = m_oTargetWindow;
             }
             PrintTextToWindow(sText, color, bgcolor, oWindowTarget, bIsPrompt, bIsRoomOutput);
-            
+
+        }
+
+        // Prints row text against a stream that has since been closed.
+        //
+        // PrintTextToWindow reads m_sTargetWindow directly to resolve WindowTarget.Other, so the
+        // name has to be in place for the duration of the call and put back afterwards -- the row
+        // is still being scanned and the caller's routing must survive.
+        private void FlushRowTextTo(string sText, WindowTarget oTarget, string sTargetName)
+        {
+            var oSavedTarget = m_oTargetWindow;
+            string sSavedName = m_sTargetWindow;
+            try
+            {
+                m_oTargetWindow = oTarget;
+                m_sTargetWindow = sTargetName;
+                PrintTextWithParse(sText, default, default, false, oTarget, false);
+            }
+            finally
+            {
+                m_oTargetWindow = oSavedTarget;
+                m_sTargetWindow = sSavedName;
+            }
         }
 
         private Color m_oLastFgColor = default;
