@@ -40,7 +40,7 @@ the same commit as the code change.
 | **⚠️ Partial** | Partly addressed. Entry states exactly what remains. |
 | **❌ Not a defect** | Disproved. Entry stays, with the evidence. |
 
-IDs are never reused. Next free ID: **GRX-025**.
+IDs are never reused. Next free ID: **GRX-029**.
 
 ## Summary
 
@@ -70,6 +70,10 @@ IDs are never reused. Next free ID: **GRX-025**.
 | [GRX-022](#grx-022) | `HandleGenieException` is an unreachable infinite-recursion trap | Low | Low | Open |
 | [GRX-023](#grx-023) | Mapper value types override `Equals` without `GetHashCode` | Low | Low | Open |
 | [GRX-024](#grx-024) | Text in a single-row stream goes to the main window, not the target | High | Low | ✅ Fixed 4.2.3 |
+| [GRX-025](#grx-025) | Stream text is routed by window **title**, so a window whose title differs from its id never receives it | High | Low | Open |
+| [GRX-026](#grx-026) | `FormSkin.ID` is stored case-sensitively but every lookup compares lowercased | High | Low | Open |
+| [GRX-027](#grx-027) | `exposeStream` and `closeStream` are silently ignored | Medium | Low | Open |
+| [GRX-028](#grx-028) | A familiar stream can silently discard the next custom window's text | Medium | Low | Open |
 
 ---
 
@@ -796,6 +800,138 @@ went from permanently empty to showing `[k]+(120) [y]-(15) [x]+(60)`, confirmed 
 **Still open, noticed while fixing:** `popStream` resets `m_oTargetWindow` but never clears
 `m_sTargetWindow`, so a stale window name lingers after a stream closes. Harmless while the target
 is `Main`, but it is loaded state waiting to be misread — worth its own entry if it ever bites.
+
+---
+
+## Custom stream windows — a second sweep
+
+Prompted by [GRX-024](#grx-024). That fix made moonwatch work, but the surrounding area turned out
+to hold several more defects, all in the same subsystem: **how a stream id becomes a window.**
+These four are separate faults that happen to overlap, which is why the symptom looked like one
+confusing bug. Found 2026-08-12; none reproduced live yet beyond the evidence noted.
+
+### GRX-025
+**Stream text is routed by window *title*, so a window whose title differs from its id never
+receives it**
+`Forms/FormMain.cs` — `FindSkinFormByName` (~`:5552`), used by `AddText` for `WindowTarget.Other`
+
+Two different lookups are used for the same window, and they disagree:
+
+| Path | Resolver | Matches on |
+|---|---|---|
+| `<clearStream id="x"/>` | `FindSkinFormByIDOrName` | **id or title** |
+| `<pushStream id="x"/>` text | `FindSkinFormByName` | **title only** |
+
+A window created by `<streamWindow id='moonWindow' title='Moons'/>` is therefore *cleared*
+correctly but can never be *written to*: `AddText` looks for a window whose title is `moonwindow`,
+finds nothing, and returns silently at the `Information.IsNothing(oFormTarget)` guard.
+
+*Why this matters for the client:* it makes the stream API quietly conditional on a coincidence.
+Every other consumer in `FormMain` resolves windows by ID — `#window` commands, layout save/load,
+`ClassCommand_EchoText`. This one path is the odd one out, and it is the one that carries the
+actual text.
+
+*Why it matters to players:* a script's window appears, clears, and stays permanently empty. There
+is nothing in the log and no error, so it reads as a broken plugin or a broken script.
+
+**Field evidence that this is real and already costing people:** `moonwatch.lic` carries a
+Genie-specific branch that exists purely to work around it —
+
+```ruby
+if $frontend == 'genie'
+  _respond("<streamWindow id='moonWindow' title='moonWindow' ... />")  # title forced == id
+else
+  _respond("<streamWindow id='moonWindow' title='Moons' ... />")       # friendly title
+end
+```
+
+Every other frontend gets a readable window title. Genie users get the raw stream id, because a
+friendly title breaks routing. *Fix:* use `FindSkinFormByIDOrName` here, as `clearStream` does.
+
+---
+
+### GRX-026
+**`FormSkin.ID` is stored case-sensitively but every lookup compares lowercased**
+`Forms/FormMain.cs:4058` (`oForm.ID = sID;`), vs `FindSkinFormByID` (~`:5500`)
+
+Window creation stores the id exactly as it arrived:
+
+```csharp
+oForm.ID = sID;                       // "moonWindow"
+```
+
+Every lookup lowercases the *query* but not the *stored* value:
+
+```csharp
+if ((((FormSkin)oEnumerator.Current).ID ?? "") == (sID.ToLower().Trim() ?? ""))
+```
+
+So `"moonWindow" == "moonwindow"` is false, and **ID matching fails for any id containing an
+uppercase letter** — which is most of them, since the game and Lich both use camelCase stream ids
+(`percWindow`, `moonWindow`, `familiarWindow`).
+
+Note the inconsistency with `SaveXMLConfig` (`:2807`), which does `ID = Title.ToLower()`. Windows
+restored from a layout get lowercased ids; windows created live from `<streamWindow>` do not. The
+same window can therefore match or not depending on how it came into existence this session.
+
+*Why this matters for the client:* it makes GRX-025 much harder to diagnose, because
+`FindSkinFormByIDOrName` still succeeds via its *title* half. The ID half is effectively dead code
+for camelCase ids, and anything that relies on it alone silently misses.
+
+*Why it matters to players:* on its own it is mostly invisible; combined with GRX-025 it is the
+difference between "my window works" and "my window is empty", with no way to tell which rule
+decided. *Fix:* normalise on assignment (`oForm.ID = sID.ToLower()`), or compare
+case-insensitively in the finders. Prefer the latter — normalising on assignment would change what
+`#save layout` writes.
+
+---
+
+### GRX-027
+**`exposeStream` and `closeStream` are silently ignored**
+`Core/Game.cs` — `ProcessXMLNodeElement` tag switch
+
+The client handles `streamWindow`, `pushStream`, `popStream` and `clearStream`, but there is no
+case for `exposeStream` or `closeStream`; both fall through and do nothing. A script can create a
+window and write to it, but cannot **show** one the player has closed, or close one it opened.
+
+*Why this matters for the client:* it is an incomplete implementation of a protocol the client
+otherwise supports, and the gap is invisible — an unknown tag produces no warning, so a script
+author has no way to discover it short of reading Genie's source.
+
+*Why it matters to players:* the window a script depends on stays hidden until you find and open
+it by hand. `moonwatch.lic` works around this too, printing *"Be sure to open the moonWindow window
+if not already open"* — a message that exists only because `<exposeStream/>` does nothing here.
+
+---
+
+### GRX-028
+**A familiar stream can silently discard the next custom window's text**
+`Core/Game.cs:869`–`884`
+
+`<pushStream id="familiar"/>` sets `m_bFamiliarLineParse = true`. At the end of each row:
+
+```csharp
+if (m_bFamiliarLineParse)
+{
+    if (m_oTargetWindow == WindowTarget.Other)
+    {
+        sTextBuffer = "";        // discards the row entirely
+    }
+    else { ...; m_bFamiliarLineParse = false; }
+}
+```
+
+The flag is only cleared on a row whose target is *not* `Other`. So while it is set, **every row
+bound for a custom window is thrown away**, and the flag stays set because that branch never
+clears it. A familiar stream followed by any custom-window stream loses the latter's text until
+some unrelated row happens to land on a built-in target.
+
+*Why this matters for the client:* it is a targeted workaround ("Fix for broke familiar XML") that
+silently discards data outside the case it was written for, and it does so at the exact point
+GRX-024 was flushing from — the two interact.
+
+*Why it matters to players:* intermittent, ordering-dependent loss of custom window output that
+would be near-impossible to attribute. Narrow trigger, which is why it is Medium rather than High.
 
 ---
 
