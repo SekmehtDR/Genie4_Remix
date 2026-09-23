@@ -100,6 +100,27 @@ namespace GenieClient.Genie
 
         private TcpClient _client;
         private const int MAX_PACKET_SIZE = 2048;
+
+        // Every SGE read during login is a live round trip to play.net's login server, and this
+        // was 500ms -- an assumption that the server always answers within half a second. When it
+        // does not, the timed-out read was treated as an empty response rather than an error and
+        // the login died in silence with the socket still open. A bound is still wanted so a dead
+        // server cannot hang the client forever; 15s leaves room for a slow server without being
+        // long enough to look like a hang.
+        private const int SGE_READ_TIMEOUT_MS = 15000;
+
+        // Two different jobs were being done by one timeout, which is why 500ms looked reasonable.
+        // Waiting for the login server to answer at all needs a generous bound; detecting the end
+        // of a reply that carries no newline terminator needs a short one, because there the
+        // timeout IS the terminator and a long value would stall every login by that much. The
+        // short value therefore applies only once data has started arriving.
+        //
+        // Not as short as it could be, deliberately. The character list is the one SGE reply that
+        // gets genuinely large -- an account with a full roster spans several segments -- and this
+        // bound is what decides when that list is considered finished. Cutting it off early costs
+        // the player characters off the end of their own list, reported as "character not found",
+        // so the margin here is worth more than the fraction of a second it can add.
+        private const int SGE_CONTINUATION_TIMEOUT_MS = 2000;
         private SslStream sslStream;
 
         private Socket m_SocketClient;
@@ -262,12 +283,17 @@ namespace GenieClient.Genie
                 try
                 {
                     sslStream = new SslStream(_client.GetStream(), true, new RemoteCertificateValidationCallback(Utility.ValidateServerCertificate), null);
-                    sslStream.ReadTimeout = 500; // .5s — prevents auth/char-select reads from hanging forever
+                    sslStream.ReadTimeout = SGE_READ_TIMEOUT_MS;
                     try
                     {
                         sslStream.AuthenticateAsClient(m_sHostname, null, SslProtocols.Tls12, false);
                     }
-                    catch (AuthenticationException e)
+                    // Not just AuthenticationException: ReadTimeout also bounds the reads the
+                    // handshake itself performs, so a slow login server throws IOException here.
+                    // That escaped every catch below and, since this runs from a Task, became an
+                    // unobserved exception -- no message, no reconnect, and not even the
+                    // "Connected to ..." line to say how far it got.
+                    catch (Exception e) when (e is AuthenticationException || e is System.IO.IOException)
                     {
                         // Must not fall through: everything below assumes a working TLS stream.
                         // Announcing "Connected" and raising EventConnected after a failed
@@ -336,6 +362,10 @@ namespace GenieClient.Genie
 
         private AuthState AuthenticateInternal(string account, string password)
         {
+            // Cleared per attempt: a login script that walks a whole account would otherwise
+            // report the previous character's rejection against the next one.
+            m_sLastAuthFailure = string.Empty;
+
             if (_client == null || !_client.Connected || sslStream == null)
             {
                 CurrentAuthState = AuthState.Disconnected;
@@ -354,9 +384,12 @@ namespace GenieClient.Genie
                 sslStream.Flush();
 
                 CurrentAuthState = AuthState.ListeningForKey;
-                // Read Key response: should be 32 bytes
+                // Read Key response: should be 32 bytes. A single Read returns whatever has
+                // arrived so far, so a key split across two TCP segments used to land here as
+                // "not 32 bytes" and fail the login silently. Keep reading until the full key
+                // is in hand; a genuinely short or absent response still falls through below.
                 byte[] buffer = new byte[MAX_PACKET_SIZE];
-                int bytes = sslStream.Read(buffer, 0, buffer.Length);
+                int bytes = ReadAtLeast(buffer, 32);
                 if (bytes != 32)
                 {
                     sslStream.Dispose();
@@ -376,15 +409,20 @@ namespace GenieClient.Genie
                 // null out password to not keep it in memory longer than necessary
                 password = null;
 
+                // Single read, deliberately. The "A" reply carries no newline terminator, so
+                // ReadSgeResponse's loop-until-newline blocks on it until the read timeout --
+                // verified live: it turned every login into a timeout failure.
                 buffer = new byte[MAX_PACKET_SIZE];
-                _ = sslStream.Read(buffer, 0, buffer.Length);
+                int authBytes = sslStream.Read(buffer, 0, buffer.Length);
+                string authResponse = Encoding.Default.GetString(buffer, 0, authBytes);
 
-                if (Encoding.Default.GetString(buffer).Contains("\tKEY\t"))
+                if (authResponse.Contains("\tKEY\t"))
                 {
                     CurrentAuthState = AuthState.KeyAuthenticated;
                 }
                 else
                 {
+                    m_sLastAuthFailure = DescribeAuthFailure(authResponse);
                     sslStream.Dispose();
                     sslStream = null;
                     CurrentAuthState = AuthState.AuthenticationFailed;
@@ -396,9 +434,61 @@ namespace GenieClient.Genie
             
         }
 
-        // SGE protocol responses are newline-terminated; SslStream.Read may return partial data,
-        // so loop until we have a complete response. The G response also sends a trailing blank
+        // The last thing the login server said when it refused the account, so the player gets
+        // "Invalid password" instead of the generic "connection was lost".
+        private string m_sLastAuthFailure = string.Empty;
+
+        public string LastAuthFailure
+        {
+            get
+            {
+                return m_sLastAuthFailure;
+            }
+        }
+
+        // Turn the SGE "A" rejection reply into something a player can act on. The reason is the
+        // third tab-delimited field: A <tab> ACCOUNT <tab> PASSWORD|NORECORD|REJECT.
+        private static string DescribeAuthFailure(string response)
+        {
+            string[] fields = response.Split('\t');
+            string reason = fields.Length > 2 ? fields[2].Trim().ToUpper() : string.Empty;
+            switch (reason)
+            {
+                case "PASSWORD":
+                    return "Invalid password.";
+                case "NORECORD":
+                    return "Account does not exist.";
+                case "REJECT":
+                    return "Access rejected.";
+                default:
+                    return response.Trim().Length == 0
+                        ? "The login server did not answer the login request."
+                        : "The login server rejected the login.";
+            }
+        }
+
+        // Fill at least iWanted bytes. A single Read returns as soon as any data is available, so
+        // a fixed-size SGE field split across segments has to be reassembled rather than assumed.
+        private int ReadAtLeast(byte[] buffer, int iWanted)
+        {
+            int iTotal = 0;
+            while (iTotal < iWanted)
+            {
+                int bytes = sslStream.Read(buffer, iTotal, buffer.Length - iTotal);
+                if (bytes == 0)
+                    break; // server closed
+                iTotal += bytes;
+            }
+            return iTotal;
+        }
+
         // SGE G response: a single raw chunk with no newline terminator — just read once.
+        //
+        // The timeout is swallowed on purpose. Not every SGE reply is newline-terminated, so for
+        // some of them the read timeout is the only thing that marks the end of the response --
+        // treating it as a hard error breaks logins that were working. What was wrong before was
+        // not the swallow but that an empty result then travelled all the way to ParseKeyRow,
+        // which had no case for it and did nothing at all. That is now caught at the call site.
         private string ReadSgeGameInfoResponse()
         {
             byte[] buffer = new byte[MAX_PACKET_SIZE];
@@ -427,9 +517,18 @@ namespace GenieClient.Genie
                     string chunk = Encoding.Default.GetString(buffer, 0, bytes);
                     sb.Append(chunk);
                     if (chunk.IndexOfAny(new[] { '\n', '\r' }) >= 0) break;
+
+                    // Data is flowing now, so any further wait is only about spotting the end of
+                    // an unterminated reply -- keep that short so the login is not held up.
+                    sslStream.ReadTimeout = SGE_CONTINUATION_TIMEOUT_MS;
                 }
             }
             catch (System.IO.IOException) { /* read timeout or connection closed — return what we have */ }
+            finally
+            {
+                // Back to the "has the server answered?" bound for whatever is read next.
+                try { if (sslStream != null) sslStream.ReadTimeout = SGE_READ_TIMEOUT_MS; } catch { }
+            }
             return sb.ToString().TrimEnd('\0', '\r', '\n');
         }
 
@@ -458,6 +557,19 @@ namespace GenieClient.Genie
         private string GetLoginKeyInternal(string instance, string character)
         {
                         // Sanity checks
+            // Checked before the connection test: a rejected login closes the stream, and
+            // reporting that as "the connection was lost" sent players hunting for a network
+            // fault when the real answer was a bad password.
+            if (CurrentAuthState == AuthState.AuthenticationFailed)
+            {
+                return "E\t" + (m_sLastAuthFailure.Length > 0 ? m_sLastAuthFailure : "Authentication Failed.");
+            }
+
+            if (CurrentAuthState == AuthState.InvalidResponse)
+            {
+                return "E\tThe login server sent an unexpected response to the key request.";
+            }
+
             if (!IsConnected || sslStream == null)
             {
                 return "E\tThe connection was lost.";
@@ -466,11 +578,6 @@ namespace GenieClient.Genie
             if (string.IsNullOrWhiteSpace(instance))
             {
                 return "E\tThe game instance was not specified.";
-            }
-
-            if (CurrentAuthState == AuthState.AuthenticationFailed)
-            {
-                return "E\tAuthentication Failed.";
             }
 
             // Send G - Game Details Request

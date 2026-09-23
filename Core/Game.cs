@@ -1313,6 +1313,20 @@ namespace GenieClient.Genie
 
                             break;
                         }
+
+                    default:
+                        {
+                            // Previously nothing: a reply that matched no case was dropped, and
+                            // the login stopped dead with no message and the socket still open.
+                            // Blank rows stay ignored -- they are normal protocol padding.
+                            if (sText.Trim().Length > 0)
+                            {
+                                PrintError("Login failed: unexpected response from the login server.");
+                                m_oSocket.Disconnect();
+                            }
+
+                            break;
+                        }
                 }
             }
         }
@@ -3287,8 +3301,34 @@ namespace GenieClient.Genie
                 case ConnectStates.ConnectingKeyServer:
                     {
                         m_oConnectState = ConnectStates.ConnectedKey;
-                        m_oSocket.Authenticate(AccountName, AccountPassword);
-                        ParseKeyRow(m_oSocket.GetLoginKey(AccountGame, AccountCharacter));
+
+                        // The result used to be discarded, so a rejected or unanswered login
+                        // produced no message at all -- the client sat on an open socket to the
+                        // login server and never went anywhere. Report it and stop here rather
+                        // than asking for a login key the server was never going to give us.
+                        var oAuthState = m_oSocket.Authenticate(AccountName, AccountPassword);
+                        if (oAuthState != Connection.AuthState.KeyAuthenticated)
+                        {
+                            PrintError(m_oSocket.LastAuthFailure.Length > 0
+                                ? m_oSocket.LastAuthFailure
+                                : "Login failed: the login server did not complete the login (" + oAuthState.ToString() + ").");
+                            m_oSocket.Disconnect();
+                            break;
+                        }
+
+                        string sKeyRow = m_oSocket.GetLoginKey(AccountGame, AccountCharacter);
+
+                        // ParseKeyRow's switch has no default, so an empty or unrecognised reply
+                        // fell straight through and did nothing whatsoever. That is the shape the
+                        // failure took when the login server was slow: connected, silent, stuck.
+                        if (string.IsNullOrWhiteSpace(sKeyRow))
+                        {
+                            PrintError("Login failed: no response from the login server. It may be busy — try again in a moment.");
+                            m_oSocket.Disconnect();
+                            break;
+                        }
+
+                        ParseKeyRow(sKeyRow);
                         break;
                     }
 

@@ -20,6 +20,27 @@ Sections, in order, omitting any that are empty:
 
 ---
 
+## [4.2.4] — 2026-09-22
+
+A login fix, reported by **Aislynn**. If the client ever connected to the login server and then
+just sat there doing nothing, this is that.
+
+### Fixed
+- **A slow login server could leave the client connected, silent and stuck forever.** The client
+  would print `Connected to eaccess.play.net.` and then simply stop — no error, no reconnect, no
+  further output — while the connection sat open doing nothing. Logging in a character by hand
+  looked like it had frozen; a script logging several characters in a row never advanced past the
+  first one, because there was nothing for it to react to. The client now waits considerably
+  longer for the login server to answer, and if it never does, it says so and closes the
+  connection instead of waiting in silence. Reported by **Aislynn**.
+
+- **Login failures now say what actually went wrong.** A rejected login reported
+  `The connection was lost.`, which pointed at the network when the real answer was the account.
+  You will now see `Invalid password.`, `Account does not exist.` or `Access rejected.` as
+  appropriate.
+
+---
+
 ## [4.2.3] — 2026-08-12
 
 A long-standing stream-routing fix, reported by **Allyebot**.

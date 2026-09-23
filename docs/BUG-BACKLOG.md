@@ -40,7 +40,7 @@ the same commit as the code change.
 | **⚠️ Partial** | Partly addressed. Entry states exactly what remains. |
 | **❌ Not a defect** | Disproved. Entry stays, with the evidence. |
 
-IDs are never reused. Next free ID: **GRX-029**.
+IDs are never reused. Next free ID: **GRX-030**.
 
 ## Summary
 
@@ -74,6 +74,7 @@ IDs are never reused. Next free ID: **GRX-029**.
 | [GRX-026](#grx-026) | `FormSkin.ID` is stored case-sensitively but every lookup compares lowercased | High | Low | Open |
 | [GRX-027](#grx-027) | `exposeStream` and `closeStream` are silently ignored | Medium | Low | Open |
 | [GRX-028](#grx-028) | A familiar stream can silently discard the next custom window's text | Medium | Low | Open |
+| [GRX-029](#grx-029) | A slow login server leaves the client connected, silent and stuck forever | Critical | Medium | ✅ Fixed 4.2.4 |
 
 ---
 
@@ -932,6 +933,109 @@ GRX-024 was flushing from — the two interact.
 
 *Why it matters to players:* intermittent, ordering-dependent loss of custom window output that
 would be near-impossible to attribute. Narrow trigger, which is why it is Medium rather than High.
+
+---
+
+---
+
+### GRX-029
+**A slow login server leaves the client connected, silent and stuck forever**
+`Core/Connection.cs` — `ConnectAndAuthenticate`, `AuthenticateInternal`, `GetLoginKeyInternal`;
+`Core/Game.cs` — `GameSocket_EventConnected`, `ParseKeyRow`
+
+**Status:** ✅ Fixed 4.2.4. Reported by **Aislynn**, whose multi-character login script stopped
+connecting anything.
+
+**Origin — this is an inherited defect, not a Remix invention.** The silent-failure *design* came
+in with the upstream TLS/SGE login rewrite: `7baeaff` (2022-03-09), first released in **Genie4
+4.0.2.0**, and it is still in `upstream/main` today. Upstream sets **no** `ReadTimeout` at all, so
+its reads block indefinitely — it hangs rather than failing, but it usually *succeeds*, because
+waiting forever is the one thing that always outlasts a slow server.
+
+What Remix added is the **500ms** `SslStream.ReadTimeout` (`1096403`, 2026-04-18, shipped from
+**4.2.0**). That did not create the silence; it created the *trigger*, by converting a slow reply
+into a failure that the inherited design then swallows. So: latent since Genie4 4.0.2.0, reachable
+in normal use since Genie Remix 4.2.0. Every read in that exchange is
+a live round trip to Simutronics' login server, so the timeout is really an assertion that the
+server always answers within half a second.
+
+When it does not, the failure is completely silent. Three separate places conspire:
+
+1. `ReadSgeResponse` / `ReadSgeGameInfoResponse` catch the timeout `IOException` and **return an
+   empty string**, so the caller proceeds as though the server had answered.
+2. `Authenticate`'s return value was **discarded** at `Game.cs` — a rejected or unanswered login
+   was never reported.
+3. `ParseKeyRow`'s switch has cases for `?`, `A`, `G`, `C`, `E` and `L` and **no `default`**. An
+   empty or unrecognised reply falls straight through and does nothing at all.
+
+The result is the exact symptom reported: `Connected to eaccess.play.net.` is printed, and then
+nothing, ever. The TCP socket stays open, so the client does not even notice it is stuck — which is
+why the next thing in Aislynn's log is `Connection failure. (ConnectionAborted)` 40 seconds later,
+when her script gave up and sent `quit` down the still-open socket.
+
+*Why it matters to players:* the client looks connected and does nothing. There is no error, no
+reconnect and no clue, and a login script cannot detect it either — it simply never advances. For
+anyone logging several characters in sequence it fails the whole run.
+
+**What the fix actually was** (it differs from the obvious reading of the entry above):
+
+- The read timeout was doing **two different jobs**, which is why 500ms looked defensible. Waiting
+  for the server to answer at all needs a generous bound; marking the end of a reply that carries
+  **no newline terminator** needs a short one, because there the timeout *is* the terminator.
+  Split into `SGE_READ_TIMEOUT_MS` (15s) and `SGE_CONTINUATION_TIMEOUT_MS` (500ms, applied only
+  once data has started arriving).
+- `Authenticate`'s result is now checked, and an empty login-key reply is reported, both in
+  `GameSocket_EventConnected`. `ParseKeyRow` gained a `default` case. Silence is no longer possible
+  on any of these paths.
+- Auth rejections now say *why* — `Invalid password.` / `Account does not exist.` /
+  `Access rejected.` — instead of the misleading `The connection was lost.`, which was produced
+  because the rejection path disposes the stream and the connection check came first.
+- The `AuthenticateAsClient` catch was broadened to `IOException`. `ReadTimeout` also bounds the
+  reads the TLS handshake itself performs, and an `IOException` there escaped every catch in
+  `ConnectAndAuthenticate` into an unobserved `Task` — silence before even the `Connected to` line.
+
+**A wrong turn worth recording**, because it disproves the tempting version of this fix: the "A"
+(account authentication) reply was also switched to the newline-terminated `ReadSgeResponse`
+reader, on the assumption that all SGE replies are newline-terminated. **They are not.** The `A`
+reply has no terminator, so the loop blocked until the timeout and *every* login failed — verified
+live, 4 attempts out of 4, against a login server that an unpatched build connected to
+successfully in the same session. Only the `C` and `L` replies may be read that way. The swallowed
+timeouts in the read helpers are load-bearing for the same reason and were deliberately kept; the
+silence was fixed at the call sites instead.
+
+**Field evidence that the two clients differ for exactly this reason.** On the reporter's machine,
+at the same time, on the same account:
+
+- **Genie4 original** reached `Connected to eaccess.play.net.` → `Connection closed.` →
+  `Connect failed. (ConnectionRefused)`. The refusal is on the *second* connect, to Lich on
+  localhost — so the SGE exchange **completed and returned a login key**. Her eaccess connectivity
+  and credentials are fine.
+- **Genie Remix** reached `Connected to eaccess.play.net.` and then printed nothing at all, ever.
+
+Same machine, same network, same account, same minute. The one relevant difference between the two
+clients is the 500ms bound, which is the behaviour this entry describes. That is the closest thing
+to a controlled experiment this defect is likely to get, and it is what the reporter meant by "the
+exact same script works just fine in unremixed genie".
+
+Note her Genie4 `ConnectionRefused` is a **separate, unrelated problem** — `rubyw.exe` failing to
+start with `0xc0150002` (a Windows side-by-side/runtime fault), so nothing is listening on the Lich
+port. Not a Genie defect, and it does not touch the Remix path at all: `#connect <profile>` never
+enables Lich (`LoadProfile` does not read `UseLich`; only the connect dialog and `#lc` do), so her
+script's failure cannot be a Lich failure.
+
+*Verified:* built, launched, and connected a real character end to end
+(`eaccess.play.net` → `dr.simutronics.net` → in game) against the patched build, with an unpatched
+4.2.2 build used as an A/B control in the same session. **Not** reproduced locally against an
+actually-slow login server — the server was healthy here throughout. The causal chain is
+established by code plus the field evidence above; what local testing proves is that the fix does
+not regress a normal login.
+
+*One consequence of the fix worth watching:* `SGE_CONTINUATION_TIMEOUT_MS` is what decides when the
+character list is considered complete. It was first written as 500ms and raised to **2000ms**
+precisely because the reporter has 18 characters — a roster large enough to span several segments,
+where an early cut-off would drop characters off the end of the list and surface as the
+long-standing "Character not found". If that report resurfaces on a large account, this constant is
+the first place to look.
 
 ---
 
