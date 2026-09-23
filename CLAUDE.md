@@ -259,9 +259,21 @@ gh workflow run Release -f version=4.2.1 -f dry_run=true
 
 It uploads a `dry-run-<version>` artifact: the exact ZIP a real release would ship.
 
-**If `gh workflow` / `gh run` return empty or "could not find any workflows"** — a known quirk on
-this machine, where the `gh` subcommands fail while the REST API works — dispatch through the API
-instead:
+**If `gh` says "No default remote repository has been set", or `gh workflow` / `gh run` return
+empty** — this repo has **two** remotes (`origin` and `upstream`), so `gh` cannot guess which one
+you mean. It is not a broken `gh` install. Fix it once:
+
+```powershell
+gh repo set-default SekmehtDR/Genie4_Remix
+```
+
+After that the ordinary subcommands work normally (`gh workflow list`, `gh run list`,
+`gh workflow run Release -f version=4.2.4 -f dry_run=true`). Passing `-R SekmehtDR/Genie4_Remix`
+on a single command does the same thing without changing local config.
+
+This was previously recorded here as "a known quirk on this machine, where the `gh` subcommands
+fail while the REST API works". That was a misdiagnosis — the REST calls worked only because they
+name the repo explicitly in the path. The API route below is still a fine fallback:
 
 ```powershell
 $wf = gh api repos/SekmehtDR/Genie4_Remix/actions/workflows --jq '.workflows[] | select(.name=="Release") | .id'
