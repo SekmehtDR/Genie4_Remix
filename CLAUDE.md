@@ -212,14 +212,22 @@ Releases are GitHub Releases with a single `Genie-Remix-<version>.zip` asset (se
 `win-x64` publish, nested under a `Genie-Remix/` folder). Full procedure:
 **[docs/RELEASING.md](docs/RELEASING.md)**. The steps below are the ones that actually bite.
 
-### The version comes from the git tag — do not hand-edit it
+### Bump `VersionPrefix` in the shipping commit, and let CI confirm it from the tag
 
-**`VersionPrefix` in `Directory.Build.props` is NOT bumped for a release.** CI overrides
-`VersionPrefix`, `BuildNumber` and `SourceRevisionId` from the tag, and the workflow then *asserts*
-the built binary carries exactly the tag's version. Editing it by hand before tagging is wasted
-work at best and a mismatch at worst.
+**Bump `<VersionPrefix>` in `Directory.Build.props` to the version you are about to tag**, as part
+of the same commit that ships the work. That is the established practice here — e.g. `b2fe037`
+("Ship the stream fix as 4.2.3") bumped `4.2.2` → `4.2.3` alongside the fix.
 
-The only file a release edits is `CHANGELOG.md`.
+CI *does* override `VersionPrefix`, `BuildNumber` and `SourceRevisionId` from the tag at publish
+time, and then *asserts* the built binary carries exactly the tag's version — so the bump is not
+what makes the **release** correct. It matters because every **non-release** build stamps from the
+file: local builds and the CI `build` / `package` jobs. Leave it stale and every test build claims
+the previously released version, which quietly ruins any A/B against that release.
+
+So: bump the file **and** tag the matching version. A mismatch between the two is the thing to
+avoid — not the edit itself.
+
+A release therefore edits two files: `Directory.Build.props` and `CHANGELOG.md`.
 
 ### Preflight — every one of these is a hard gate in `release.yml`
 
@@ -235,6 +243,10 @@ Work through this before tagging. Each maps to a step that will fail the run:
 - [ ] Entries are written for players, and say honestly what was verified live versus established
       from the code. See *Before claiming something works*.
 - [ ] Backlog entries for anything shipping are marked `✅ Fixed`. See *Living documents*.
+- [ ] **`<VersionPrefix>` in `Directory.Build.props` equals the version being tagged.** This one is
+      *not* a gate — CI re-stamps from the tag, so a stale value still releases correctly. It is
+      here because nothing will catch it: every local and CI test build afterwards silently claims
+      the wrong version. See *Bump `VersionPrefix` in the shipping commit*.
 
 ### Dry-run first, always
 
@@ -406,7 +418,7 @@ Hard-won; each of these replaced something that gave a wrong or unconvincing ans
 
 | Task | Where |
 |---|---|
-| Bump the version | `Directory.Build.props` `<VersionPrefix>` — **and nothing else.** For a *release* not even that: CI takes it from the tag |
+| Bump the version | `Directory.Build.props` `<VersionPrefix>` — **and nothing else.** Bump it in the shipping commit to the version you will tag; CI re-stamps it from the tag at publish |
 | Cut a release | Section `CHANGELOG.md`, dry-run, then `git tag v<x.y.z>` + `git push origin v<x.y.z>` — see *Release process* |
 | Add a config setting | `Lists/Config.cs`, then a UI panel in `Forms/ConfigPanels/` |
 | Add a script variable | `Lists/Globals.cs` |
